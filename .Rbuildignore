@@ -1,0 +1,9 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+<<<<<<< HEAD
+=======
+.RData
+^.*Rhistory
+test.Rmd
+.git
+>>>>>>> 61ea959... working

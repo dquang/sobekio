@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1539345061256.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3066431565",
+    "id" : "63945853",
+    "lastKnownWriteTime" : 1539942241,
+    "last_content_update" : 1539942241467,
+    "path" : "~/sobekio/R/change-dat.R",
+    "project_path" : "R/change-dat.R",
+    "properties" : {
+        "cursorPosition" : "196,14",
+        "docOutlineVisible" : "1",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

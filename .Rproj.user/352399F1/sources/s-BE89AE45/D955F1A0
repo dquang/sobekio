@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1537216076077.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "D955F1A0",
+    "lastKnownWriteTime" : 1537216158,
+    "last_content_update" : 1537216158586,
+    "path" : "C:/Users/quang/Dropbox/programming/sobekio/test.R",
+    "project_path" : "test.R",
+    "properties" : {
+        "cursorPosition" : "34,25",
+        "scrollLine" : "20",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

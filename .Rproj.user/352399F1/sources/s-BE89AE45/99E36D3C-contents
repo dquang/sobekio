@@ -1,0 +1,359 @@
+#' Export data for nodes/reaches for multiple SOBEK Cases
+#'
+#' For all .HIS files subfolders.
+#' @param case.list.file Path to the file containing SOBEK Cases to work with\cr
+#' @param qID Path to file containing list of reach IDs for struct.his\cr
+#' @param wID Path to file containing list of node IDs for calcpnt.his\cr
+#' @param lID Path to file containing list of node IDs for lateral.his\cr
+#' @param sID Path to file containing list of node IDs for struct.his\cr
+#' @param mID Path to file containing list of node IDs for measstat.his\cr
+#' IDs list shoulde have the first column with IDs(col.name = "sobek_id")\cr
+#' Second column (col.name = "name") is for Names correspond to the IDs
+#' @param f.sep Seperator of the node.list.file, default = '\\t'
+#' @param f.header Logical. Has node.list.file header?
+#' @param param Index of the Paramter to get the data, default = 1
+#' @param copy.his Should .HIS files copied to the output folders?
+#' @param out.folder Parent folder for the output.
+#' @param verbose Should message be displayed?
+#' @return A list of data.table
+#' @export
+his_from_case<- function(
+                          case.list = "", # path to list of cases to work with
+                          sobek.project = "", # path to Sobek Project folder
+                          qID = NULL, # path to list of sobek_ids for Discharge
+                          wID = NULL, # path to list of sobek_ids for Water level
+                          lID = NULL, # path to list of sobek_ids for Lateral
+                          sID = NULL, # path to list of sobek_ids for Structure
+                          mID = NULL, # path to list of sobek_ids for Measstation
+                          f.sep = "\t", # seperation of node list
+                          f.header = FALSE,
+                          param = 1, # index of the paramter to get data from .HIS file
+                          copy.his = FALSE, # copy .HIS file to destination folder?
+                          out.folder = ".",
+                          verbose = TRUE) {
+  wk_dir <- getwd()
+  str_as_factor <- default.stringsAsFactors()
+  options("stringsAsFactors" = FALSE)
+  if (!dir.exists(out.folder)) {
+    dir.create(out.folder, recursive = FALSE, showWarnings = FALSE)
+  }
+
+  setwd(out.folder)
+
+  # check SOBEK project
+  sobek_cmt <- paste(sobek.project, "caselist.cmt", sep = "/")
+
+  if (!file.exists(sobek_cmt)) {
+    stop("Sobek Caselist.cmt does not exist! Check sobek.project Folder")
+  }
+
+  if (is.character(case.list) && length(case.list) == 1 && file.exists(case.list)){
+    # reading case.list.file
+    clist <- data.table::fread(
+      file = case.list,
+      header = FALSE,
+      sep = f.sep,
+      quote = "",
+      stringsAsFactors = FALSE,
+      blank.lines.skip = TRUE
+    )
+  } else {
+    if (is.vector(case.list)){
+      clist <- as.data.frame(matrix(unlist(case.list),
+                                    nrow = length(case.list),
+                                    ncol = 1),
+                             stringAsFactors = FALSE)
+    } else {
+      if (is.data.frame(case.list)){
+        clist <- case.list
+      } else {
+        stop("case.list must be a path to file, a list, or a data.frame")
+      }
+    }
+  }
+  # first column in the clist is case_name
+  colnames(clist)[1] <- "case_name"
+
+  if (ncol(clist) >= 2){
+    if(!"case_folder" %in% colnames(clist)) colnames(clist)[2] <- "case_folder"
+  }
+  col_case_folder <- ifelse("case_folder" %in% colnames(clist),
+                           TRUE, FALSE
+                           )
+  # reading SOBEK caselist.cmt
+  sobek_clist <-data.table::fread(file = sobek_cmt,
+                                  header = FALSE,
+                                  sep = " ",
+                                  quote = "'",
+                                  stringsAsFactors = FALSE,
+                                  blank.lines.skip = TRUE,
+                                  col.names = c("case_number", "case_name")
+                                  )
+  clist$case_number <- lapply(clist$case_name,
+                              FUN = .get_case_number, case.list = sobek_clist)
+  # check if clist contain a column for destination
+  if ("case_folder" %in% colnames(clist)){
+    clist$case_dest_folder <- lapply(clist$case_folder,
+                                     FUN = function(x, pth = out.folder) {
+                                       paste(pth, x, sep = "/")
+                                     }
+    )
+    clist$case_sobek_folder <- lapply(clist$case_number,
+                                      FUN = function(x, pth = sobek.project) {
+                                        paste(pth, x, sep = "/")
+                                      }
+    )
+  } else {
+    clist$case_sobek_folder <- lapply(clist$case_number,
+                                      FUN = function(x, pth = sobek.project){
+                                        paste(pth, x, sep = "/")
+                                      }
+    )
+    clist$case_dest_folder <- lapply(clist$case_number,
+                                     FUN = function(x, pth = out.folder){
+                                       paste(pth, x, sep = "/")
+                                     }
+    )
+  }
+  # copy .HIS file to destination folders
+  if (copy.his) {
+    for (i in clist$case_number) {
+      if (!is.na(i)) {
+        if (!dir.exists(clist$case_folder[clist$case_number == i])){
+          dir.create(clist$case_folder[clist$case_number == i],
+                     recursive = TRUE)
+        }
+        src_folder <- clist$case_sobek_folder[clist$case_number == i]
+        dest_folder <- paste(clist$case_folder[clist$case_number == i], "/",
+          sep = ""
+        )
+        if (!is.null(wID)) {
+          file.copy(
+            from = paste(src_folder, "calcpnt.his", sep = "/"),
+            to = dest_folder
+          )
+        }
+        if (!is.null(qID)) {
+          file.copy(
+            from = paste(src_folder, "reachseg.his", sep = "/"),
+            to = dest_folder
+          )
+        }
+        if (!is.null(lID)) {
+          file.copy(
+            from = paste(src_folder, "lateral.his", sep = "/"),
+            to = dest_folder
+          )
+        }
+        if (!is.null(sID)) {
+          file.copy(
+            from = paste(src_folder, "struc.his", sep = "/"),
+            to = dest_folder
+          )
+        }
+        if (!is.null(mID)) {
+          file.copy(
+            from = paste(src_folder, "measstat.his", sep = "/"),
+            to = dest_folder
+          )
+        }
+      }
+    }
+  }
+  wID_res <- list()
+  qID_res <- list()
+  lID_res <- list()
+  sID_res <- list()
+  mID_res <- list()
+  result <- list()
+  j <- 1
+  for (i in clist$case_number) {
+    if (verbose) {
+      print(paste(
+        "Working with Case:",
+        clist$case_name[clist$case_number == i]
+      ))
+    }
+    # if case.name found in the caselist.cmt
+    if (!is.na(i)) {
+      his_folder <- ifelse(copy.his,
+        clist$case_dest_folder[clist$case_number == i],
+        clist$case_sobek_folder[clist$case_number == i]
+      )
+      if (!is.null(wID)) {
+        # The function his_from_file checks if the file exists
+        if(class(wID) == "character"){
+          tmp <- his_from_file(
+            his.file = paste(his_folder, "calcpnt.his", sep = "/"),
+            node.list.file = wID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+                             )
+          wID_res[[j]] <- tmp
+        }
+
+        if (class(wID) == "list"){
+          tmp <- his_from_list(
+            his.file = paste(his_folder, "calcpnt.his", sep = "/"),
+            node.list = wID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+          )
+          wID_res[[j]] <- tmp
+        }
+      }
+
+      # get data for Discharge
+      if (!is.null(qID)) {
+        if(class(qID) == "character"){
+          tmp <- his_from_file(
+            his.file = paste(his_folder, "reachseg.his", sep = "/"),
+            node.list.file = qID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+          )
+          qID_res[[j]] <- tmp
+        }
+
+        if (class(qID) == "list"){
+          tmp <- his_from_list(
+            his.file = paste(his_folder, "reachseg.his", sep = "/"),
+            node.list = qID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+          )
+          qID_res[[j]] <- tmp
+        }
+      }
+
+      # get data for Laterals
+      if (!is.null(lID)) {
+        if(class(lID) == "character"){
+          tmp <- his_from_file(
+            his.file = paste(his_folder,"lateral.his", sep = "/"),
+            node.list.file = lID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+          )
+          lID_res[[j]] <- tmp
+        }
+
+        if (class(lID) == "list"){
+          tmp <- his_from_list(
+            his.file = paste(his_folder, "lateral.his", sep = "/"),
+            node.list = lID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+          )
+          lID_res[[j]] <- tmp
+        }
+      }
+
+      # get data for Structure
+      if (!is.null(sID)) {
+        if (class(sID) == "character"){
+          tmp <- his_from_file(
+            his.file = paste(his_folder, "struc.his", sep = "/"),
+            node.list.file = sID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+          )
+          sID_res[[j]] <- tmp
+        }
+
+        if (class(sID) == "list"){
+          tmp <- his_from_list(
+            his.file = paste(his_folder, "struc.his", sep = "/"),
+            node.list = sID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+          )
+          sID_res[[j]] <- tmp
+        }
+      }
+
+      # get data for Measstation
+      if (!is.null(mID)) {
+        if (class(mID) == "character"){
+          tmp <- his_from_file(
+            his.file = paste(his_folder, "measstat.his", sep = "/"),
+            node.list.file = mID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+          )
+          mID_res[[j]] <- tmp
+        }
+
+        if (class(mID) == "list"){
+          tmp <- his_from_list(
+            his.file = paste(his_folder, "measstat.his", sep = "/"),
+            node.list = mID,
+            param = param
+          )
+          tmp$case <- ifelse(col_case_folder,
+                             clist$case_folder[clist$case_number == i],
+                             clist$case_name[clist$case_number == i]
+          )
+          mID_res[[j]] <- tmp
+        }
+      }
+      j <- j + 1
+    }
+  }
+
+  # rm(tmp)
+
+  if (length(wID_res) > 0) {
+    result$waterlevel <- data.table::rbindlist(wID_res)
+    # colnames(result$waterlevel) <-
+    rm(wID_res)
+  }
+  if (length(qID_res) > 0) {
+    result$discharge <- data.table::rbindlist(qID_res)
+    rm(qID_res)
+  }
+  if (length(lID_res) > 0) {
+    result$lateral <- data.table::rbindlist(lID_res)
+    rm(lID_res)
+  }
+  if (length(sID_res) > 0) {
+    result$structure <- data.table::rbindlist(sID_res)
+    rm(sID_res)
+  }
+  if (length(mID_res) > 0) {
+    result$measstation <- data.table::rbindlist(mID_res)
+    rm(mID_res)
+  }
+  options("stringsAsFactors" = str_as_factor)
+  setwd(wk_dir)
+  return(result)
+}
+
+

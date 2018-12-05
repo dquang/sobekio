@@ -1,0 +1,26 @@
+tmp <- list("Z:\\M\\M2\\work\\duong\\NHWSP-Rhein\\Simulation_Ergebnisse\\rhein_ergebnisse\\vg_koeln\\nach_laufen\\20180907\\qIDs.txt")
+tmp <- 
+length(tmp)
+is.vector(tmp)
+file.exists(tmp)
+
+clist <- list(
+'4_Main_2013_neue_LAT_fixP13_HW2013',
+'4_Main_2013_neue_LAT_fixP13_hist_HW2011',
+'4_Main_2013_neue_LAT_fixP13_hist_HW2003',
+'4_Main_2013_neue_LAT_fixP13_hist_HW1999',
+ '4_Main_2013_neue_LAT_fixP13_hist_HW1995',
+ '4_Main_2013_neue_LAT_fixP13_hist_HW1988',
+ '4_Main_2013_neue_LAT_fixP13_HW1988_korr',
+ '4_Main_2013_neue_LAT_fixP13_HW1995_korr',
+ '4_Main_2013_neue_LAT_fixP13_HW1995_korr_2')
+
+
+
+tmp
+clist <- unlist(clist)
+tmp <- data.table(matrix(clist,
+                             nrow = length(clist),
+                             ncol = 1))
+is.data.frame(tmp)
+tmp <- data.table(tmp)
