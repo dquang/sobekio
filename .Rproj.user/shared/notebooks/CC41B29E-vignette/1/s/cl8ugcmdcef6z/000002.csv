@@ -1,5 +1,0 @@
-"0","# work"
-"0","his_list <- his_from_list(his.file = hfile,"
-"0","                          id.list = qid_list,"
-"0","                          param = ""discharge"")"
-"0","head(his_list)"

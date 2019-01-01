@@ -1,8 +1,8 @@
 Package: sobekio
-Title: Reading Deltares SOBEK Version 2 simulation result (.HIS) file
-Version: 0.0.0.9008
+Title: Input and Output support for Sobek 2
+Version: 0.1.0
 Authors@R: person("D. Quang", "Duong", email = "dinhquanght@gmail.com", role = c("aut", "cre"))
-Description: This package provides functions to read the .HIS file directly (with binary access).
+Description: This package provides functions to read the .HIS files and create .DAT files
 Depends: R (>= 3.3.0)
 License: GPL-3
 Encoding: UTF-8

@@ -2,7 +2,7 @@
 % Please edit documentation in R/read-his.R
 \name{his_info}
 \alias{his_info}
-\title{get basic information of the .HIS file}
+\title{Read basic information of the .HIS file}
 \usage{
 his_info(his.file = "")
 }
@@ -22,5 +22,5 @@ A list of basic information, includes:
 }
 }
 \description{
-get basic information of the .HIS file
+Read basic information of the .HIS file
 }

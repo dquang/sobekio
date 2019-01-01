@@ -2,7 +2,7 @@
 % Please edit documentation in R/read-his.R
 \name{his_location}
 \alias{his_location}
-\title{read a .HIS file and return a data.frame of location and sobek.id
+\title{Read location table from .HIS file
 Locations are SOBEK's internal index of the node/reach IDs
 sobek.ids are IDs of nodes/reaches in the River Network
 sobek.id are automatically truncated to max. length of 20 characters by SOBEK}
@@ -14,10 +14,9 @@ his_location(his.file = "")
 }
 \value{
 a data.table with two column: location & sobek.id
-example his_loc("c:/sobek21302/rhein.lit/110/reachseg.his")
 }
 \description{
-read a .HIS file and return a data.frame of location and sobek.id
+Read location table from .HIS file
 Locations are SOBEK's internal index of the node/reach IDs
 sobek.ids are IDs of nodes/reaches in the River Network
 sobek.id are automatically truncated to max. length of 20 characters by SOBEK

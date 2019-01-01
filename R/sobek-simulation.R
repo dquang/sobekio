@@ -173,3 +173,73 @@ sobek_sim <- function(case.name = NULL,
   }
   # return(so_res[["Summary"]])
 }
+
+
+#' Run Sobek Simulation for single case
+#' @param case.name Name of the Case
+#' @param sobek.project Path to Sobek Project Folder
+#' @param sobek.path Path to Sobek Program Folder (ex. d:/so21302)
+#' @param overwrite Should simulation result overwrite back to Case folder?
+#' @param clear.temp Should temp directory to be clear?
+#' @export
+sobek_view <- function(case.name = NULL,
+                      sobek.project = NULL,
+                      sobek.path = NULL,
+                      overwrite = TRUE,
+                      clear.temp = TRUE,
+                      cmt.template = "c:/so21503/cmtwork"){
+  clist <- fread(file = paste(sobek.project, "caselist.cmt", sep = "/"),
+                 header = FALSE,
+                 sep = " ",
+                 quote = "'",
+                 col.names = c("case_number", "case_name")
+  )
+  c_number <- .get_case_number(case.name, clist)
+  c_folder <- paste(sobek.project, c_number, sep = "/")
+  wkd <- getwd()
+  # copy relative file to working folder
+  setwd(sobek.path)
+  tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
+  dir.create(tmp_folder)
+  prj_files <- dir(sobek.project, full.names = TRUE)
+  prj_files <- prj_files[!grepl("/[0-9]{1,}$", prj_files)]
+  file.copy(from = prj_files,
+            to = tmp_folder,
+            recursive = TRUE)
+  # copy case folder to work folder
+  file.copy(from = c_folder,
+            to = tmp_folder,
+            recursive = TRUE
+  )
+  wk_folder_del <- paste(sobek.path, tmp_folder, sep = "/")
+  wk_folder <- paste(sobek.path, tmp_folder, "WORK", sep = "/")
+  cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "/")
+  if(!dir.exists(wk_folder)) dir.create(wk_folder)
+  if(!dir.exists(cmt_folder)) dir.create(cmt_folder)
+  file.copy(from = dir(c_folder, full.names = TRUE,
+                       recursive = TRUE,
+                       all.files = TRUE,
+                       include.dirs = TRUE,
+                       no.. = TRUE
+  ),
+  to = wk_folder)
+  file.copy(from = paste(sobek.path, "programs/simulate.ini", sep = "/"),
+            to = wk_folder)
+  file.copy(from = dir(cmt.template, full.names = TRUE,
+                       recursive = TRUE,
+                       all.files = TRUE,
+                       include.dirs = TRUE,
+                       no.. = TRUE
+  ),
+  to = cmt_folder)
+  # fwrite(list())
+  setwd(cmt_folder)
+  cmd <- paste("cmd.exe /c ", sobek.path, "/programs/netter.exe ntrpluv.ini", sep = "")
+  print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
+  print("If you need to do something else with R, please open another session")
+  system(command = cmd, wait = TRUE)
+
+  unlink(wk_folder_del, recursive = TRUE)
+  setwd(wkd)
+  # return(so_res[["Summary"]])
+}

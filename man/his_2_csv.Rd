@@ -2,9 +2,9 @@
 % Please edit documentation in R/read-his.R
 \name{his_2_csv}
 \alias{his_2_csv}
-\title{Convert his file to csv}
+\title{Convert his file to CSV, for one parameter}
 \usage{
-his_2_csv(his.file = NULL, output = NULL, param = 1L)
+his_2_csv(his.file = NULL, output = NULL, param = 1L, ...)
 }
 \arguments{
 \item{his.file}{Path to his file}
@@ -12,7 +12,9 @@ his_2_csv(his.file = NULL, output = NULL, param = 1L)
 \item{output}{Path to output file}
 
 \item{param}{Index or Name of parameter to get value}
+
+\item{...}{Other parameters passing to data.table::fwrite function}
 }
 \description{
-Convert his file to csv
+Convert his file to CSV, for one parameter
 }
