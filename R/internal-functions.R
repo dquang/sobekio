@@ -136,6 +136,96 @@
 }
 
 
+.his_df2 <- function(his.file, param = 1L) {
+  # param: index of the parameter
+  if (!file.exists(his.file)) {
+    stop(paste("HIS file:", his.file, "does not exit!"))
+  }
+  con <- file(his.file, open = "rb", encoding = "native.enc")
+  # check .HIS file simple way
+  his_title <- readBin(con, "character", size = 160, endian = "little")
+  if (length(his_title) == 0) {
+    close(con)
+    stop(paste("HIS file:", his.file, "has wrong format"))
+  }
+  if (!grepl("SOBEK[[:space:]]{1,}", his_title)) {
+    close(con)
+    stop(paste("HIS file:", his.file, "has wrong format"))
+  }
+  # get the total bytes of the his file
+  his_fsize <- file.size(his.file)
+  # get number of parameters and number of locations
+  seek(con, 160)
+  param_nr <- readBin(con, "int", size = 4, endian = "little")
+  total_loc <- readBin(con, "int", size = 4, endian = "little")
+  seek(con, 168)
+  # read parameter names
+  params_str <- readBin(con, what = "character", size = 20*param_nr,
+                        endian = "little")
+  # each parameter name is stored in a fixed string having length = 20
+  param_names <- vector(mode = "character", length = param_nr)
+  # removing padding strings at the end
+  for (i in 1:param_nr) param_names[i] <- substr(params_str,
+                                                 start = 20*(i - 1) + 1,
+                                                 stop = 20*i)
+  if (is.numeric(param)) param <- as.integer(param)
+  if (is.integer(param)){
+    if (param > param_nr) stop("param cannot bigger than total parameters")
+    work_param <- param
+  } else{
+    if (!is.character(param)) stop("param must be given as the index (integer)",
+                                   " or as name (characters)")
+    work_param <- grep(tolower(param), tolower(param_names), fixed = TRUE)
+    if (length(work_param) == 0) stop("Parameter: ", param, " not found")
+    if (length(work_param) > 1) stop("Parameter: ", param, " is ambiguous")
+  }
+  # get the number of time steps
+  data_bytes <- file.size(his.file) -
+    (160 + # for the .HIS information ("title")
+       2 * 4 + # for total parameters & total locations
+       20 * param_nr + # for the paramter names
+       total_loc * (4 + 20)) # location table
+  # int(4) for time, double(4) for data
+  total_tstep <- data_bytes / (4 + 4 * param_nr * total_loc)
+  # searching the start time (t0) and time step (dt) in his_title
+  t0_pattern <- "[0-9]{4}.[0-9]{2}.[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}"
+  dt_pattern <- "scu=[[:space:]]{1,}([0-9]{1,})s"
+  his_t0 <- regmatches(his_title, regexpr(t0_pattern, his_title))
+  his_t0 <- as.POSIXct(his_t0, format = "%Y.%m.%d %H:%M:%S", tz = "GMT")
+  his_dt <- as.integer(gsub(
+    dt_pattern,
+    "\\1",
+    regmatches(
+      his_title,
+      gregexpr(dt_pattern, his_title)
+    )[[1]]
+  ))
+  his_lines <- matrix(nrow = total_tstep, ncol = param_nr * total_loc + 1)
+  his_time <- matrix(
+    nrow = total_tstep, ncol = 1,
+    dimnames = list(list(), "ts")
+  )
+  seek(con, where = 168 + 20 * param_nr + 24 * total_loc)
+  # this reading can be done with chunk = max 1000.
+  for (i in 1:total_tstep) {
+    # seek(con, where = 4, origin = "current")
+    his_lines[i, ] <- readBin(con, what = "double", size = 4,
+                              n = param_nr * total_loc + 1,
+                              endian = "little"
+    )
+  }
+  close(con)
+  # creating a mask for the matrix, to get only columns for the param
+  # print(paste("Param given: ", param, "Param index: ", work_param))
+  his_mask <- seq.int(
+    from = work_param + 1,
+    to = param_nr * total_loc + 1,
+    by = param_nr
+  )
+  his_lines <- his_lines[, his_mask]
+  return(his_lines)
+}
+
 ################################################################################
 # Return data matrix of the .HIS file for one parameter
 # @param his.file Path to .HIS file, string
