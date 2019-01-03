@@ -11,8 +11,6 @@ vignette: >
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-install.packages("~/sobekio_0.0.0.9003.zip", repos = NULL, type = "win.binary")
-
 library(sobekio)
 ```
 
@@ -26,22 +24,19 @@ Development is currently for output, input was written but not yet tested.
 | 2   | his_location    | Get the location table from a .his file. Return a data.table with two column: location (the index), and sobek.id. Sobek.id is id of elements (node/reach)... in Sobek Network written in the file. Sobek.id are trimmed to only max. 20 characters. If there is a relevant .hia file, a long.id column with be added, this contains full name of the id. |   |   |
 | 3   | his_from_list   | Get the values of sobek.id(s) from a .his file. The ids must be given as a, or can be unlist() to one, character vector.                                                                                                                                                                                                                                 |   |   |
 | 4   | his_from_file   | Get the values of sobek.id(s) from a .his file. The ids are listed in a file, with path to the file given as input.                                                                                                                                                                                                                                      |   |   |
-| 5   | his_single_case | Get values of sobek.id(s) from a single Sobek case - indentified by case.name and path to sobek.project folder. Ids can be given as a list, a data.frame or a path to files                                                                                                                                                                              |   |   |
-| 6   | his_from_case   | Get values from sobek.id(s) for multiple Sobek cases, like his_single_case but the case.list can be more flexible. Actually, the function can replace his_single_case                                                                                                                                                                                    |   |   |
-| 7   | sobek_case_info | Get information for a single Sobek case. It gets his_info or his_location for different .his files (calcpnt.his, reachseg.his...) of the case                                                                                                                                                                                                            |   |   |
+| 5   | his_from_case   | Get values from sobek.id(s) for multiple Sobek cases, like his_single_case but the case.list can be more flexible. Actually, the function can replace his_single_case                                                                                                                                                                                    |   |   |
+| 6   | sobek_case_info | Get information for a single Sobek case. It gets his_info or his_location for different .his files (calcpnt.his, reachseg.his...) of the case                                                                                                                                                                                                            |   |   |
+| 7   | get_file_path | Get path to a file from case.name and sobek.project. File type can be (node, reach, lateral, setting, boundary, control, casedesc)                                                                                                                                                                                                           |   |   |
 
-# Setting some parameters for testing
-```{r}
+```{r include=FALSE}
 so_prj <- "d:/so21302/rhein29a.lit"
 # case list as list
-case_list <- list(
-  "2013_Basis_V6_hist_HW1999",
-  "2013_Basis_V6_hist_HW2003"
-  )
-single_case <- "2013_Basis_V6_hist_HW1999"
-# case list as a path to file containing list of cases,
-# with second column can be used as folders for storing .HIS file
-case_file <- "Z:/M/M2/work/duong/rPackage/clist.txt"
+case_list <- c('2013_Basis_V6_hist_HW1988_lubw180830_mittel',
+          '2013_Basis_V6_hist_HW1988_lubw180830_selten',
+          '2013_Basis_V6_hist_HW1995_lubw180830_selten',
+          '2013_Basis_V6_hist_HW2003_lubw180830_mittel',
+          '2013_Basis_V6_hist_HW2003_lubw180830_selten')
+case_file <- "D:/Users/Duong/Documents/sobekio/tmp/cases.txt"
 # case list as data.frame
 case_df <- data.table::fread(case_file,
                              header = FALSE,
@@ -56,23 +51,31 @@ hfile <- "d:/so21302/rhein29a.lit/200/reachseg.his"
 # list of qid
 qid_list <- c("46", "176", "Rhe_528.95_3929_Rhe_" )
 # file to qid
-qid_file <- "Z:/M/M2/work/duong/rPackage/qid.txt"
+qid_file <- "D:/Users/Duong/Documents/sobekio/tmp/qids.txt"
+wid_file <- "D:/Users/Duong/Documents/sobekio/tmp/wids.txt"
 ```
 
-# Testing
-## Test function his_info
+# Functions
+## Function `his_info`
+
+
 ```{r}
 his_info(hfile)
 ```
-## Test function his_location
+## Function `his_location`
+This function is useful for getting a table of all IDs in a his file, for testing or verification.
 ```{r}
 hfile_loc <- his_location(hfile)
 head(hfile_loc)
 ```
 
-## Test function his_from_list
+## Function `his_from_list`
+
+If Sobek IDs are already in a vector, and path to .HIS file is known, this function will read data of the IDs for a specific parameter. \n
+The path to his file of a case can be acquired using the function `get_file_path`
+
 ```{r}
-# does not work, id.list only accepted as list for this function
+# does not work
 his_list <- his_from_list(his.file = hfile,
                           id.list = qid_file,
                           param = "discharge")
@@ -89,104 +92,56 @@ head(his_list)
 
 As seen above, the function returns a data.table with the first column is time series (ts). Other columns are data of the sobek.id given in the id.list. Parameter can be given by name, or by an index. By giving parameter as an index, be carefull with the parameter ordering. It can be check with the his_info or sobek_case_info function.
 
-### Working with a long list
+### Performance
 
-How long does it take to get 1000 nodes from a his file containing 3014 nodes and 374 time steps?
+How long does it take to get data for all nodes from a his file containing 3014 nodes and 374 time steps?
 
 
 ```{r}
 system.time(hlist1 <- his_from_list(his.file = hfile,
-                          id.list = hfile_loc$sobek.id[1:1000],
+                          id.list = hfile_loc$sobek.id,
                           param = "discharge"
                           )
             )
 
 ```
 
-```{r}
-system.time(hlist2 <- his_from_list_2(his.file = hfile,
-                          id.list = hfile_loc$sobek.id[1:1000],
-                          param = "discharge"
-                          )
-            )
+It takes less than a second to read data for more than 3000 ids from a .HIS file. Parameter `param` can be given as a number (index) or as a string (name). If the parameter is not found, a message will be displayed with a table of available parameters stored in the .HIS file.
 
+```{r eval=FALSE}
+his_from_list(his.file = hfile,
+                          id.list = hfile_loc$sobek.id,
+                          param = "dischargeNo"
+                          )
 ```
 
+## Function `his_from_case`
 
-```{r}
-system.time(hlist3 <- his_from_list(his.file = hfile,
-                          id.list = hfile_loc$sobek.id[1000],
-                          param = "discharge"
-                          )
-            )
+This is the most useful function, getting results from one or more Sobek cases, with Sobek IDs given as a list, a path to a file or a data.frame (data.table). If IDs are stored in a file, the file should have one or 2 columns, first column is for the IDs, second column for the names, they are used as column names in the output table.
 
-```
+Cases can be given also as a list or a path to a file contain list of cases, one line for one case.
 
-```{r}
-system.time(hlist4 <- his_from_list_2(his.file = hfile,
-                          id.list = hfile_loc$sobek.id[1000],
-                          param = "discharge"
-                          )
-            )
+Commenting character, header, or column seperation in the file can be given.
 
-```
-
-## Test function his_from_case
+Output of this function will be a data.table if only one type of IDs (i.e. qID or wID) was given, or a list of data.table if more than one types of IDs were given.
 
 ### case input as list & qID also as list
 
 ```{r}
-his_case <- his_from_case(case.list = case_list,
+system.time(his_case <- his_from_case(case.list = case_list,
                           sobek.project = so_prj,
-                          qID = qid_list)
-head(his_case$discharge)
+                          qID = qid_list))
+head(his_case)
 ```
 
-Output is a list of one or more data.table, depending on the if one or many qID, wID... were given. There is a little problem here, the default parameter is first one (1). It could be not the case because different parameter is wanted that do not have same order in the .his files. Therefore, it is better to get data with single type. In future, there will be an improvement to solve this problem. Currently, to get direct result:
-
 ```{r}
-his_discharge <- his_from_case(case.list = case_list,
+his_results <- his_from_case(case.list = case_list,
                           sobek.project = so_prj,
-                          qID = qid_file)$discharge
-head(his_discharge)
+                          qID = qid_list,
+                          wID = wid_file)
+head(his_results$waterlevel)
+head(his_results$discharge)
 ```
 
 Notice the \$discharge at the end? Replace it with \$waterlevel, \$structure, \$measstation, or \$lateral respectively to get the data.table directly
-
-## Case input as file, id input as file
-
-```{r}
-his_discharge <- his_from_case(case.list = case_file,
-                               sobek.project = so_prj,
-                               qID = qid_file)$discharge
-head(his_discharge)
-```
-
-
-## Test function his_single_case
-
-This function is approriate for working with one Sobek case at a time, ex. while calibrating or check some special values
-
-### id from list
-
-```{r}
-# test function his_single_case
-his_1_case <- his_single_case(case.name = single_case,
-                              sobek.project = so_prj,
-                              qID = qid_list,
-                              param = "discharge"
-                              )
-head(his_1_case$discharge)
-```
-
-### id from file
-
-```{r}
-his_1_case <- his_single_case(case.name = single_case,
-                              sobek.project = so_prj,
-                              qID = qid_file,
-                              param = "discharge"
-                              )
-head(his_1_case$discharge)
-```
 

@@ -1,7 +1,0 @@
-"0","# test function his_single_case"
-"0","his_1_case <- his_single_case(case.name = single_case,"
-"0","                              sobek.project = so_prj,"
-"0","                              qID = qid_list,"
-"0","                              param = ""discharge"""
-"0","                              )"
-"0","head(his_1_case$discharge)"

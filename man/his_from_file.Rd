@@ -4,24 +4,25 @@
 \alias{his_from_file}
 \title{Export data for nodes/reaches using IDs from a file}
 \usage{
-his_from_file(his.file, id.file, f.header = FALSE, f.sep = "\\t",
-  param = 1L)
+his_from_file(his.file, id.file, param = 1L, f.header = FALSE,
+  f.sep = "\\t", f.comment = "#")
 }
 \arguments{
-\item{his.file}{Path to the .HIS file, string}
+\item{his.file}{Path to the .HIS file}
 
-\item{id.file}{Path to file contain list of IDs \n
-IDs list shoulde have the first column with IDs(col.name = "sobek.id")\n
-Second column (col.name = "name") is for Names correspond to the IDs}
+\item{id.file}{Path to file contain list of IDs \n.
+ID file should have one-two columns, first for the sobek ID and the second (optional) for names that will be column names in the output data.table.}
 
-\item{f.header}{If the id.file contain header?, boolean, default = FALSE}
+\item{param}{Index/Name of the Paramter to get the data, default = 1}
 
-\item{f.sep}{Seperator of the id.file, default = '\t'}
+\item{f.header}{The id.file contain header?, boolean, default = FALSE}
 
-\item{param}{Index of the Paramter to get the data, default = 1}
+\item{f.sep}{Seperator of the id.file, default = 'TAB'}
+
+\item{f.comment}{Commment character of the file, default = '#'}
 }
 \value{
-A data.frame
+A data.table
 }
 \description{
 Export data for nodes/reaches using IDs from a file

@@ -2,7 +2,7 @@
 % Please edit documentation in R/sobek-case-info.R
 \name{sobek_case_info}
 \alias{sobek_case_info}
-\title{Export .HIS information for a case}
+\title{Read .HIS information for a case}
 \usage{
 sobek_case_info(case.name = NULL, sobek.project = NULL,
   his.type = NULL, info = NULL)
@@ -17,5 +17,5 @@ sobek_case_info(case.name = NULL, sobek.project = NULL,
 \item{info}{c("location", "general")}
 }
 \description{
-Export .HIS information for a case
+Read .HIS information for a case
 }

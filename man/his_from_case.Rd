@@ -4,13 +4,17 @@
 \alias{his_from_case}
 \title{Export data for nodes/reaches for multiple SOBEK Cases}
 \usage{
-his_from_case(case.list = "", sobek.project = "", qID = NULL,
-  wID = NULL, lID = NULL, sID = NULL, mID = NULL, f.sep = "\\t",
-  f.header = FALSE, param = 1, copy.his = FALSE, out.folder = ".",
-  verbose = TRUE)
+his_from_case(case.list = "", sobek.project = "", param = 1,
+  qID = NULL, wID = NULL, lID = NULL, sID = NULL, mID = NULL,
+  f.sep = "\\t", f.header = FALSE, f.comment = "#",
+  copy.his = FALSE, out.folder = ".", verbose = TRUE)
 }
 \arguments{
 \item{case.list}{Path to the file containing SOBEK Cases to work with}
+
+\item{sobek.project}{Path to Sobek Project folder}
+
+\item{param}{Index of the Paramter to get the data, default = 1}
 
 \item{qID}{Path to file containing list of reach IDs for struct.his}
 
@@ -28,7 +32,7 @@ Second column (col.name = "name") is for Names correspond to the IDs}
 
 \item{f.header}{Logical. Has id.file header?}
 
-\item{param}{Index of the Paramter to get the data, default = 1}
+\item{f.comment}{Comment character of the files. Default "#"}
 
 \item{copy.his}{Should .HIS files copied to the output folders?}
 

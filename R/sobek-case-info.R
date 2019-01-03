@@ -1,4 +1,4 @@
-#' Export .HIS information for a case
+#' Read .HIS information for a case
 #' @param case.name Name of Sobek case
 #' @param sobek.project Sobek Folder
 #' @param his.type c("node", "reach", "lateral", "struct", "measstation")
@@ -15,7 +15,6 @@ sobek_case_info <- function(
 	if (!file.exists(sobek_cmt)) {
 		stop("Case list or Sobek Caselist.cmt does not exist!")
 	}
-
 	# reading SOBEK caselist.cmt
 	sobek_clist <- data.table::fread(
 		file = sobek_cmt,
@@ -37,7 +36,6 @@ sobek_case_info <- function(
 										 struct = "struc.his",
 										 measstation = "measstat.his")
 	his_file <- paste(sobek.project, case_number, his_file, sep = "/")
-
 	if (tolower(info) == "location"){
 		tmp <- his_location(his.file = his_file)
 		return(tmp)
@@ -49,10 +47,9 @@ sobek_case_info <- function(
 				return(NULL)
 			}
 	}
-
 }
 
-################################################################################
+
 #' Get file path from sobek case name
 #' @param case.name Name of the case
 #' @param sobek.project Path to Sobek project folder
@@ -67,7 +64,6 @@ get_file_path <- function(case.name = NULL,
   if (!file.exists(sobek_cmt)) {
     stop("Case list or Sobek Caselist.cmt does not exist!")
   }
-
   # reading SOBEK caselist.cmt
   sobek_clist <- data.table::fread(
     file = sobek_cmt,
@@ -96,7 +92,5 @@ get_file_path <- function(case.name = NULL,
                      )
   his_file <- paste(sobek.project, case_number, his_file, sep = "/")
   his_file <- ifelse(file.exists(his_file), his_file, NA)
-
   return(his_file)
-
 }

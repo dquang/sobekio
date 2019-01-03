@@ -2,6 +2,8 @@
 #'
 #' For all .HIS files subfolders.
 #' @param case.list Path to the file containing SOBEK Cases to work with
+#' @param sobek.project Path to Sobek Project folder
+#' @param param Index of the Paramter to get the data, default = 1
 #' @param qID Path to file containing list of reach IDs for struct.his
 #' @param wID Path to file containing list of node IDs for calcpnt.his
 #' @param lID Path to file containing list of node IDs for lateral.his
@@ -11,15 +13,17 @@
 #' Second column (col.name = "name") is for Names correspond to the IDs
 #' @param f.sep Seperator of the id.file, default = 'TAB'
 #' @param f.header Logical. Has id.file header?
-#' @param param Index of the Paramter to get the data, default = 1
+#' @param f.comment Comment character of the files. Default "#"
 #' @param copy.his Should .HIS files copied to the output folders?
 #' @param out.folder Parent folder for the output.
 #' @param verbose Should message be displayed?
 #' @return A list of data.table
 #' @export
+#' @import data.table
 his_from_case<- function(
                           case.list = "", # path to list of cases to work with
                           sobek.project = "", # path to Sobek Project folder
+                          param = 1, # index of the paramter to get data from .HIS file
                           qID = NULL, # path to list of sobek_ids for Discharge
                           wID = NULL, # path to list of sobek_ids for Water level
                           lID = NULL, # path to list of sobek_ids for Lateral
@@ -27,7 +31,7 @@ his_from_case<- function(
                           mID = NULL, # path to list of sobek_ids for Measstation
                           f.sep = "\t", # seperation of node list
                           f.header = FALSE,
-                          param = 1, # index of the paramter to get data from .HIS file
+                          f.comment = "#",
                           copy.his = FALSE, # copy .HIS file to destination folder?
                           out.folder = ".",
                           verbose = TRUE) {
@@ -35,30 +39,26 @@ his_from_case<- function(
   str_as_factor <- default.stringsAsFactors()
   options("stringsAsFactors" = FALSE)
   if (!dir.exists(out.folder)) {
-    dir.create(out.folder, recursive = FALSE, showWarnings = FALSE)
+    dir.create(out.folder, recursive = TRUE, showWarnings = FALSE)
   }
-
-  # setwd(out.folder)
-
   # check SOBEK project
   sobek_cmt <- paste(sobek.project, "caselist.cmt", sep = "/")
-
   if (!file.exists(sobek_cmt)) {
     stop("Sobek Caselist.cmt does not exist! Check sobek.project Folder")
   }
-
   case.list <- unlist(case.list)
-
   if (is.character(case.list) && length(case.list) == 1 && file.exists(case.list)){
     # reading case.list
-    clist <- data.table::fread(
+    clist <- read.table(
       file = case.list,
-      header = FALSE,
+      header = f.header,
       sep = f.sep,
       quote = "",
+      comment.char = f.comment,
       stringsAsFactors = FALSE,
       blank.lines.skip = TRUE
     )
+    clist <- data.table(clist)
   } else {
     if (is.vector(case.list)){
       clist <- data.table(matrix(case.list,
@@ -75,7 +75,6 @@ his_from_case<- function(
   }
   # first column in the clist is case_name
   colnames(clist)[1] <- "case_name"
-
   if (ncol(clist) >= 2){
     if(!"case_folder" %in% colnames(clist)) colnames(clist)[2] <- "case_folder"
   }
@@ -83,7 +82,7 @@ his_from_case<- function(
                            TRUE, FALSE
                            )
   # reading SOBEK caselist.cmt
-  sobek_clist <-data.table::fread(file = sobek_cmt,
+  sobek_clist <- data.table::fread(file = sobek_cmt,
                                   header = FALSE,
                                   sep = " ",
                                   quote = "'",
@@ -189,10 +188,7 @@ his_from_case<- function(
             id.file = wID[[1]],
             param = param
           )
-          tmp$case <- ifelse(col_case_folder,
-                             clist$case_folder[clist$case_number == i],
-                             clist$case_name[clist$case_number == i]
-          )
+          tmp$case <- clist$case_name[clist$case_number == i]
           wID_res[[i]] <- tmp
         } else {
           if (is.vector(wID)){
@@ -201,10 +197,7 @@ his_from_case<- function(
               id.list = unlist(wID),
               param = param
             )
-            tmp$case <- ifelse(col_case_folder,
-                               clist$case_folder[clist$case_number == i],
-                               clist$case_name[clist$case_number == i]
-            )
+            tmp$case <- clist$case_name[clist$case_number == i]
             wID_res[[i]] <- tmp
           }
         }
@@ -218,10 +211,7 @@ his_from_case<- function(
             id.file = qID[[1]],
             param = param
           )
-          tmp$case <- ifelse(col_case_folder,
-                             clist$case_folder[clist$case_number == i],
-                             clist$case_name[clist$case_number == i]
-          )
+          tmp$case <- clist$case_name[clist$case_number == i]
           qID_res[[i]] <- tmp
         } else {
           if (is.vector(qID)){
@@ -230,10 +220,7 @@ his_from_case<- function(
               id.list = unlist(qID),
               param = param
             )
-            tmp$case <- ifelse(col_case_folder,
-                               clist$case_folder[clist$case_number == i],
-                               clist$case_name[clist$case_number == i]
-            )
+            tmp$case <- clist$case_name[clist$case_number == i]
             qID_res[[i]] <- tmp
           }
         }
@@ -247,10 +234,7 @@ his_from_case<- function(
             id.file = lID[[1]],
             param = param
           )
-          tmp$case <- ifelse(col_case_folder,
-                             clist$case_folder[clist$case_number == i],
-                             clist$case_name[clist$case_number == i]
-          )
+          tmp$case <- clist$case_name[clist$case_number == i]
           lID_res[[i]] <- tmp
         } else {
           if (is.vector(lID)){
@@ -259,10 +243,7 @@ his_from_case<- function(
               id.list = unlist(lID),
               param = param
             )
-            tmp$case <- ifelse(col_case_folder,
-                               clist$case_folder[clist$case_number == i],
-                               clist$case_name[clist$case_number == i]
-            )
+            tmp$case <- clist$case_name[clist$case_number == i]
             lID_res[[i]] <- tmp
           }
         }
@@ -276,10 +257,7 @@ his_from_case<- function(
             id.file = sID[[1]],
             param = param
           )
-          tmp$case <- ifelse(col_case_folder,
-                             clist$case_folder[clist$case_number == i],
-                             clist$case_name[clist$case_number == i]
-          )
+          tmp$case <- clist$case_name[clist$case_number == i]
           sID_res[[i]] <- tmp
         } else {
           if (is.vector(sID)){
@@ -288,10 +266,7 @@ his_from_case<- function(
               id.list = unlist(sID),
               param = param
             )
-            tmp$case <- ifelse(col_case_folder,
-                               clist$case_folder[clist$case_number == i],
-                               clist$case_name[clist$case_number == i]
-            )
+            tmp$case <- clist$case_name[clist$case_number == i]
             sID_res[[i]] <- tmp
           }
         }
@@ -305,10 +280,7 @@ his_from_case<- function(
             id.file = mID[[1]],
             param = param
           )
-          tmp$case <- ifelse(col_case_folder,
-                             clist$case_folder[clist$case_number == i],
-                             clist$case_name[clist$case_number == i]
-          )
+          tmp$case <- clist$case_name[clist$case_number == i]
           mID_res[[i]] <- tmp
         } else {
           if (is.vector(mID)){
@@ -317,10 +289,7 @@ his_from_case<- function(
               id.list = unlist(mID),
               param = param
             )
-            tmp$case <- ifelse(col_case_folder,
-                               clist$case_folder[clist$case_number == i],
-                               clist$case_name[clist$case_number == i]
-            )
+            tmp$case <- clist$case_name[clist$case_number == i]
             mID_res[[i]] <- tmp
           }
         }
@@ -352,6 +321,7 @@ his_from_case<- function(
   }
   options("stringsAsFactors" = str_as_factor)
   setwd(wk_dir)
+  if (length(result) == 1) result <- result[[1]]
   return(result)
 }
 

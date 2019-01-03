@@ -1,10 +1,9 @@
-#' read a .HIS file and return a data.frame of location and sobek.id
+#' Read location table from .HIS file
 #' Locations are SOBEK's internal index of the node/reach IDs
 #' sobek.ids are IDs of nodes/reaches in the River Network
 #' sobek.id are automatically truncated to max. length of 20 characters by SOBEK
 #' @param his.file Path to the .HIS file
 #' @return a data.table with two column: location & sobek.id
-#' example his_loc("c:/sobek21302/rhein.lit/110/reachseg.his")
 #' @export
 #' @import data.table
 his_location <- function(his.file = "") {
@@ -15,9 +14,7 @@ his_location <- function(his.file = "") {
   if (!file.exists(his.file)) {
     stop(paste("HIS file:", his.file, "does not exit!"))
   }
-
   con <- file(his.file, open = "rb", encoding = "native.enc")
-
   # check .HIS file simple way
   his_title <- vector(mode = "character", length = 4)
   txt_title <- readBin(con, "character", size = 160, endian = "little")
@@ -71,7 +68,7 @@ his_location <- function(his.file = "") {
     hia_check <- TRUE %in% grepl("^\\[Long Locations]", hia_dt$V1)
     # check if Long Locations is the last section, and empty?
     if (hia_check){
-      long_loc_pos <- hia_dt[V1 == "[Long Locations]", which = TRUE]
+      long_loc_pos <- which(hia_dt$V1 == "[Long Locations]")
       if (long_loc_pos > length(hia_dt$V1)) hia_check <- FALSE
     }
     # check if Long Locations is an empty section in between
@@ -92,22 +89,20 @@ his_location <- function(his.file = "") {
         long_loc[, c("location", "long.id") := data.table::tstrsplit(V1, "=",
                                                                      fixed = TRUE)]
         long_loc[, V1 := NULL]
-        # data.table::setkey(long_loc, location)
-        # data.table::setkey(his.locs, location)
         his.locs <- merge(his.locs, long_loc, all.x = TRUE,
                           by = "location",
                           sort = FALSE)
-        his.locs[which(is.na(long.id)), long.id := sobek.id]
+        # his.locs[which(is.na(long.id)), long.id := sobek.id]
       }
     }
   }
   options("stringsAsFactors" = str_as_factor)
+  if (!'long.id' %in% colnames(his.locs)) his.locs[, long.id:='']
   return(his.locs)
 }
 
 
-################################################################################
-#' get basic information of the .HIS file
+#' Read basic information of the .HIS file
 #' @param his.file Path to the .HIS file
 #' @return A list of basic information, includes:
 #' \itemize{
@@ -186,365 +181,112 @@ his_info <- function(his.file = "") {
 }
 
 
-################################################################################
-#' Export data for nodes/reaches using IDs from a file
-#' @param his.file Path to the .HIS file, string
-#' @param id.file Path to file contain list of IDs \n
-#' IDs list shoulde have the first column with IDs(col.name = "sobek.id")\n
-#' Second column (col.name = "name") is for Names correspond to the IDs
-#' @param f.header If the id.file contain header?, boolean, default = FALSE
-#' @param f.sep Seperator of the id.file, default = '\t'
-#' @param param Index of the Paramter to get the data, default = 1
-#' @return A data.frame
-#' @export
-his_from_file <- function(
-                          his.file, # path to .HIS file
-                          id.file, # path to list of sobek.ids file
-                          f.header = FALSE, # does node list contain header
-                          f.sep = "\t", # seperation of node list
-                          param = 1L) {
-  str_as_factor <- default.stringsAsFactors()
-  options("stringsAsFactors" = FALSE)
-  if (!file.exists(his.file) || !file.exists(id.file)) {
-    stop(paste("HIS file: ", his.file,
-               " and/or id.file: ", id.file,
-               " does not exit!"))
-  }
-  id.list <- data.table::fread(file = id.file,
-                                 header = f.header,
-                                 sep = f.sep,
-                                 stringsAsFactors = FALSE,
-                                 quote = ""
-                                 )
-  df_out <- his_from_list(his.file = his.file,
-                          id.list = id.list$V1,
-                          param = param)
-
-  if (ncol(id.list) == 1){
-    colnames(df_out) <- c("ts", id.list$V1)
-  } else {
-    colnames(df_out) <- c("ts", id.list$V2)
-  }
-  options("stringsAsFactors" = str_as_factor)
-  return(df_out)
-}
-
-################################################################################
-#' Export data for nodes/reaches using IDs from a file
-#' @param his.file Path to the .HIS file, string
-#' @param id.file Path to file contain list of IDs \n
-#' IDs list shoulde have the first column with IDs(col.name = "sobek.id")\n
-#' Second column (col.name = "name") is for Names correspond to the IDs
-#' @param f.header If the id.file contain header?, boolean, default = FALSE
-#' @param f.sep Seperator of the id.file, default = '\t'
-#' @param param Index of the Paramter to get the data, default = 1
-#' @return A data.frame
-#' @export
-his_from_file_1 <- function(
-  his.file, # path to .HIS file
-  id.file, # path to list of sobek.ids file
-  f.header = FALSE, # does node list contain header
-  f.sep = "\t", # seperation of node list
-  param = 1L) {
-  str_as_factor <- default.stringsAsFactors()
-  options("stringsAsFactors" = FALSE)
-  if (!file.exists(his.file) || !file.exists(id.file)) {
-    stop(paste("HIS file: ", his.file,
-               " and/or id.file: ", id.file,
-               " does not exit!"))
-  }
-  con <- file(his.file, open = "rb", encoding = "native.enc")
-  his_title <- readBin(con, "character", size = 160, endian = "little")
-  seek(con, where = 160, origin = "start")
-  param_nr <- readBin(con, "int", size = 4, endian = "little")
-  total_loc <- readBin(con, "int", size = 4, endian = "little")
-  data_bytes <- file.size(his.file) -
-    (160 + # for the .HIS information ("title")
-       2 * 4 + # for total parameters & total locations
-       20 * param_nr + # for the paramter names
-       total_loc * (4 + 20)) # location table
-  # int(4) for time, double(4) for data
-  total_tstep <- data_bytes / (4 + 4 * param_nr * total_loc)
-  if (length(his_title) == 0) {
-    close(con)
-    stop(paste("HIS file:", his.file, "has wrong format"))
-  }
-  if (!grepl("SOBEK[[:space:]]{1,}", his_title)) {
-    close(con)
-    stop(paste("HIS file:", his.file, "has wrong format"))
-  }
-  close(con)
-  id.list <- data.table::fread(file = id.file,
-                               header = f.header,
-                               sep = f.sep,
-                               stringsAsFactors = FALSE,
-                               quote = ""
-  )
-  hia_file <- paste(substr(his.file, start = 1, stop = nchar(his.file) - 4),
-                    ".hia", sep = "")
-  if (!file.exists(hia_file)){
-    # if hia_file does not exist, we have to trim the node.id
-    # get only the first 20 characters because SOBEK fixed format
-    id.list[, 1] <- substring(id.list[, 1], first = 1, last = 20)
-    warning("Sobek IDs from the input list were cut to length of 20",
-            " because no .hia file found.")
-  }
-  # get location table
-  locs <- his_location(his.file)
-
-  id.list$sobek_loc <- lapply(id.list$V1,
-                              FUN = .id2loc,
-                              his.locs = locs
-  )
-  his_data <- .his_df(his.file = his.file,
-                      param = param
-  )
-
-  # +1 for the date.time column
-  df_out <- data.frame(matrix(ncol = length(id.list$sobek_loc),
-                              nrow = total_tstep
-  ),
-  stringsAsFactors = FALSE
-  )
-  for (i in 1:length(id.list[["sobek_loc", exact = TRUE]])) {
-    # id.list$sobek_loc[[i-1]] for the correct row in the id.list
-    # after that, +1 for the correct column in the his_data
-    # because the first column is the "ts"
-    col_id <- id.list[["sobek_loc", exact = TRUE]][[i]]
-    df_out[, i] <- his_data[, col_id]
-  }
-  rm(his_data)
-  his_ts <- .his_time_df(his.file)
-
-  df_out <- data.table::data.table(his_ts, df_out,
-                       stringsAsFactors = FALSE)
-
-  if (ncol(id.list)== 2){
-    colnames(df_out) <- c("ts", id.list$V1)
-  } else {
-    colnames(df_out) <- c("ts", id.list$V2)
-  }
-  options("stringsAsFactors" = str_as_factor)
-  return(df_out)
-}
-
-
-################################################################################
 #' Export data for nodes/reaches using IDs from a list
 #' @param his.file Path to the .HIS file, string
-#' @param id.list List of IDs to search for data
-#' IDs list shoulde have the first column with IDs(col.name = "sobek.id")\cr
-#' Second column (col.name = "name") is for Names correspond to the IDs\cr
-#' @param param Index of the Paramter to get the data, default = 1\cr
-#' Name of the parameter can be given instead of index
-#' @return A data.frame
-#' @export
-his_from_list_2 <- function(
-                          his.file = NULL, # path to .HIS file
-                          id.list = NULL, # list of node ids to get data
-                          param = 1L) {
-  str_as_factor <- default.stringsAsFactors()
-  options("stringsAsFactors" = FALSE)
-  if (!file.exists(his.file)) {
-    stop(paste("HIS file:", his.file, "does not exist!"))
-  }
-  if(!is.vector("id.list")) stop("id.list must be a character vector")
-  con <- file(his.file, open = "rb", encoding = "native.enc")
-  seek(con, where = 160, origin = "start")
-  param_nr <- readBin(con, what = "int", size = 4, endian = "little")
-  total_loc <- readBin(con, what = "int", size = 4, endian = "little")
-  close(con)
-  # The rest is for numerical data with the following structure
-  data_bytes <- file.size(his.file) -
-    (160 + # for the .HIS information ("title")
-       2 * 4 + # for total parameters & total locations
-       20 * param_nr + # for the paramter names
-       total_loc * (4 + 20)) # location table
-  # int(4) for time, double(4) for data
-  total_tstep <- data_bytes / (4 + 4 * param_nr * total_loc)
-  hia_file <- paste(substr(his.file, start = 1, stop = nchar(his.file) - 4),
-                    ".hia", sep = "")
-  if (!file.exists(hia_file)){
-    # if hia_file does not exist, we have to trim the node.id
-    # get only the first 20 characters because SOBEK fixed format
-    id.list <- lapply(id.list, FUN = substring, first = 1, last = 20)
-    warning("Sobek IDs from the input list were cut to length of 20",
-            " because no .hia file found.")
-  }
-  # get location table
-  locs <- his_location(his.file)
-  sobek_loc <- lapply(id.list,
-                      FUN = .id2loc,
-                      his.locs = locs
-                      )
-  hisdata <- .his_df(his.file = his.file,
-                     param = param
-                     )
-  df_out <- data.frame(matrix(ncol = length(id.list),
-                              nrow = total_tstep
-                              ),
-                       stringsAsFactors = FALSE
-                       )
-  colnames(df_out) <- id.list
-  for (i in 1:length(sobek_loc)) {
-    col_id <- sobek_loc[[i]]
-    df_out[, i] <- hisdata[, col_id]
-  }
-  rm(hisdata)
-  ts <- .his_time_df(his.file)
-  df_out <- data.frame(ts, df_out,
-                       stringsAsFactors = FALSE)
-  options("stringsAsFactors" = str_as_factor)
-  return(df_out)
-}
-
-
-################################################################################
-#' Export data for nodes/reaches using IDs from a list
-#' @param his.file Path to the .HIS file, string
-#' @param id an ID to search for data
-#' IDs list shoulde have the first column with IDs(col.name = "sobek.id")\cr
-#' Second column (col.name = "name") is for Names correspond to the IDs\cr
-#' @param param Index of the Paramter to get the data, default = 1\cr
-#' Name of the parameter can be given instead of index
-#' @return A data.frame
-#' @export
-his_single_id <- function(
-  his.file = NULL, # path to .HIS file
-  id = NULL, # list of node ids to get data
-  param = 1L) {
-  str_as_factor <- default.stringsAsFactors()
-  options("stringsAsFactors" = FALSE)
-  if (!file.exists(his.file)) {
-    stop(paste("HIS file:", his.file, "does not exist!"))
-  }
-  if(!is.character(id)) stop("id must be a string")
-
-  hisdata <- .his_id_df(his.file = his.file,
-                        id = id[[1]],
-                        param = param
-                        )
-  ts <- .his_time_df(his.file)
-  df_out <- data.table::data.table(ts, hisdata,
-                       stringsAsFactors = FALSE)
-  colnames(df_out) <- c("ts", id[[1]])
-  options("stringsAsFactors" = str_as_factor)
-  return(df_out)
-}
-
-
-################################################################################
-#' Export data for nodes/reaches using IDs from a list
-#' @param his.file Path to the .HIS file, string
-#' @param id.list List of IDs to search for data
-#' IDs list shoulde have the first column with IDs(col.name = "sobek.id")
-#' Second column (col.name = "name") is for Names correspond to the IDs
-#' @param param Index of the Paramter to get the data, default = 1.
-#' Name of the parameter can be given instead of index
-#' @param nmax Maximum length of list to switch the method of getting data.
+#' @param id.list List of Sobek IDs
+#' @param param Index or Name of the Paramter to get the data, default = 1.
 #' @return A data.table
 #' @export
 his_from_list <- function(
   his.file = NULL, # path to .HIS file
   id.list = NULL, # list of node ids to get data
-  param = 1L,
-  nmax = 70L) {
+  param = 1L) {
   str_as_factor <- default.stringsAsFactors()
   options("stringsAsFactors" = FALSE)
   if (!file.exists(his.file)) {
-    stop(paste("HIS file:", his.file, "does not exist!"))
+    stop("HIS file: ", his.file, " does not exist!")
   }
-  if(!is.vector(id.list)) stop("id must be a vector")
-  con <- file(his.file, open = "rb", encoding = "native.enc")
-  seek(con, where = 160, origin = "start")
-  param_nr <- readBin(con, what = "int", size = 4, endian = "little")
-  total_loc <- readBin(con, what = "int", size = 4, endian = "little")
+  con <- file(his.file, 'rb')
+  seek(con, 160)
+  param_nr <- readBin(con, 'int', n = 1L, size = 4)
   close(con)
-  # The rest is for numerical data with the following structure
-  data_bytes <- file.size(his.file) -
-    (160 + # for the .HIS information ("title")
-       2 * 4 + # for total parameters & total locations
-       20 * param_nr + # for the paramter names
-       total_loc * (4 + 20)) # location table
-  # int(4) for time, double(4) for data
-  total_tstep <- data_bytes / (4 + 4 * param_nr * total_loc)
-  hia_file <- paste(substr(his.file, start = 1, stop = nchar(his.file) - 4),
-                    ".hia", sep = "")
-  if (!file.exists(hia_file)){
-    # if hia_file does not exist, we have to trim the node.id
-    # get only the first 20 characters because SOBEK fixed format
-    id.list <- lapply(id.list, FUN = substring, first = 1, last = 20)
-    warning("Sobek IDs from the input list were cut to length of 20",
-            " because no .hia file found.")
-  }
-  # get location table
-  # locs <- his_location(his.file)
-  # sobek_loc <- lapply(id.list,
-                      # FUN = .id2loc,
-                      # his.locs = locs
-                      # )
-  if (length(id.list) <= nmax){
-    # print("from here")
-    hisdata <- .his_id_list_df(his.file = his.file,
-                          id.list = id.list,
-                          param = param
-                          )
-    df_out <- data.table(matrix(ncol = length(id.list),
-                                nrow = total_tstep
-                                ),
-                         stringsAsFactors = FALSE
-                         )
-    ts <- .his_time_df(his.file)
-    df_out <- data.table::data.table(ts, hisdata,
-                                     stringsAsFactors = FALSE)
-  } else {
-    locs <- his_location(his.file)
-    sobek_loc <- lapply(id.list,
-                        FUN = .id2loc,
-                        his.locs = locs
-                        )
-    # print("from there")
-    hisdata <- .his_df(his.file = his.file,
-                       param = param
-                       )
-    df_out <- data.frame(matrix(ncol = length(id.list),
-                                nrow = total_tstep
-                                ),
-                         stringsAsFactors = FALSE
-                         )
-    # colnames(df_out) <- id.list
-    for (i in 1:length(sobek_loc)) {
-      col_id <- sobek_loc[[i]]
-      df_out[, i] <- hisdata[, col_id]
+  if(!is.vector(id.list)) stop("id must be a vector")
+  if (!is.numeric(param)) {
+    pardf <- .his_parameter(his.file)
+    par <- .id2param(param, pardf)
+    if (is.na(par)) {
+      print('List of Parameters in the .HIS file')
+      print(pardf)
+      stop('Parameter: ', param, ' not found')
     }
-    ts <- .his_time_df(his.file)
-    df_out <- data.frame(ts, df_out,
-                         stringsAsFactors = FALSE)
+  } else {
+    par <- as.integer(param)
+    if (!par %in% seq.int(1, param_nr, 1)){
+      stop('Parameter: ', param, ' out of range(1, ', param_nr,')')
+    }
   }
-  colnames(df_out) <- c("ts", unlist(id.list))
+  locdf <- his_location(his.file)
+  locs <- sapply(id.list, .id2loc, locdf)
+  hisdf <- .his_from_locs(his.file = his.file, locs = locs, param = par)
+  tsdf <- .his_time_df(his.file = his.file)
+  df_out <- data.table(tsdf, hisdf, stringsAsFactors = FALSE)
   options("stringsAsFactors" = str_as_factor)
-  return(data.table(df_out))
-  # return(df_out)
+  colnames(df_out) <- c('ts', id.list)
+  return(df_out)
 }
 
-#' Convert his file to csv
+
+#' Export data for nodes/reaches using IDs from a file
+#' @param his.file Path to the .HIS file
+#' @param id.file Path to file contain list of IDs \n.
+#' ID file should have one-two columns, first for the sobek ID and the second (optional) for names that will be column names in the output data.table.
+#' @param param Index/Name of the Paramter to get the data, default = 1
+#' @param f.header The id.file contain header?, boolean, default = FALSE
+#' @param f.sep Seperator of the id.file, default = 'TAB'
+#' @param f.comment Commment character of the file, default = '#'
+#' @return A data.table
+#' @export
+his_from_file <- function(
+                          his.file, # path to .HIS file
+                          id.file, # path to list of sobek.ids file
+                          param = 1L,
+                          f.header = FALSE, # does node list contain header
+                          f.sep = "\t", # seperation of node list
+                          f.comment = '#'
+                          ) {
+  str_as_factor <- default.stringsAsFactors()
+  options("stringsAsFactors" = FALSE)
+  if (!file.exists(his.file) || !file.exists(id.file)) {
+    stop(paste("HIS file: ", his.file,
+               " and/or id.file: ", id.file,
+               " does not exit!"))
+  }
+  id.list <- read.table(
+    file = id.file,
+    header = f.header,
+    sep = f.sep,
+    quote = "",
+    comment.char = f.comment,
+    stringsAsFactors = FALSE,
+    blank.lines.skip = TRUE
+  )
+  df_out <- his_from_list(his.file = his.file,
+                          id.list = id.list[, 1],
+                          param = param)
+
+  if (ncol(id.list) > 1){
+    colnames(df_out) <- c("ts", id.list[, 2])
+  }
+  options("stringsAsFactors" = str_as_factor)
+  return(df_out)
+}
+
+
+#' Convert his file to CSV, for one parameter
 #' @param his.file Path to his file
 #' @param output Path to output file
 #' @param param Index or Name of parameter to get value
+#' @param ... Other parameters passing to data.table::fwrite function
 #' @export
 his_2_csv <- function(his.file = NULL,
                       output = NULL,
-                      param = 1L){
+                      param = 1L,
+                      ...){
   rloc <- his_location(his.file)
-  if(ncol(rloc) == 3) {
-    id_list <- rloc$long.id
-  } else{
-    id_list <- rloc$sobek.id
-  }
   # ifelse does not work, weird!
   rtble <- his_from_list(his.file = his.file,
-                         id.list = id_list,
+                         id.list = rloc$sobek.id,
                          param = param)
   if(!dir.exists(dirname(output))) dir.create(dirname(output), recursive = TRUE)
-  data.table::fwrite(rtble, file = output)
+  data.table::fwrite(rtble, file = output, ...)
 }

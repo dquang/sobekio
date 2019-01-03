@@ -4,20 +4,14 @@
 \alias{his_from_list}
 \title{Export data for nodes/reaches using IDs from a list}
 \usage{
-his_from_list(his.file = NULL, id.list = NULL, param = 1L,
-  nmax = 70L)
+his_from_list(his.file = NULL, id.list = NULL, param = 1L)
 }
 \arguments{
 \item{his.file}{Path to the .HIS file, string}
 
-\item{id.list}{List of IDs to search for data
-IDs list shoulde have the first column with IDs(col.name = "sobek.id")
-Second column (col.name = "name") is for Names correspond to the IDs}
+\item{id.list}{List of Sobek IDs}
 
-\item{param}{Index of the Paramter to get the data, default = 1.
-Name of the parameter can be given instead of index}
-
-\item{nmax}{Maximum length of list to switch the method of getting data.}
+\item{param}{Index or Name of the Paramter to get the data, default = 1.}
 }
 \value{
 A data.table

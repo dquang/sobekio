@@ -1,8 +1,0 @@
-"0","his_1_case <- his_single_case(case.name = single_case,"
-"0","                              sobek.project = so_prj,"
-"0","                              qID = qid_file,"
-"0","                              param = ""discharge"""
-"0","                              )"
-"2","sobek.id: 'id' does not found in the location table"
-"2","sobek.id: 'id' does not found in the location table"
-"0","head(his_1_case$discharge)"

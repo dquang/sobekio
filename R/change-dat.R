@@ -30,7 +30,6 @@ get_data_from_id <- function(dat.file = NULL,
   id_data_begin <- id_pos + 2
   # index of the s.id in the id_tbl
   id_idx <- which(id_line == id_pos)
-
   # data table of the s.id with header & footer
   id_data <- lat_dat[id_pos:id_line_shift[id_idx], ]
   # search last "tble..." line, to avoid commenting line at the end
@@ -46,7 +45,6 @@ get_data_from_id <- function(dat.file = NULL,
 }
 
 
-################################################################################
 #' Set Value of an element in .DAT file to constant, and remove the time serie table
 #' @param dat.file Path to .DAT file
 #' @param s.id ID of the element to get data
@@ -120,7 +118,6 @@ set_const_id <- function(dat.file = NULL,
 }
 
 
-################################################################################
 #' Set Value of an element in .DAT file to constant, and remove the time serie table
 #' @param dat.file Path to .DAT file
 #' @param s.id ID of the element to get data

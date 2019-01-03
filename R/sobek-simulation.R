@@ -215,7 +215,7 @@ sobek_view <- function(case.name = NULL,
   cmt_folder <- paste(sobek.path, tmp_folder, "cmtwork", sep = "/")
   wk_folder <- paste(sobek.path, tmp_folder, "work", sep = "/")
   if (!dir.exists(wk_folder)) dir.create(wk_folder)
-  dir.create(cmt_folder)
+  if (!dir.exists(wk_folder)) dir.create(cmt_folder)
   file.copy(from = dir(cmtwork.path, full.names = TRUE,
                        recursive = TRUE,
                        all.files = TRUE,
@@ -236,14 +236,12 @@ sobek_view <- function(case.name = NULL,
   to = wk_folder)
   file.copy(from = paste(sobek.path, "programs/simulate.ini", sep = "/"),
             to = wk_folder)
-  # fwrite(list())
   setwd(cmt_folder)
   cmd <- paste("cmd.exe /c ", sobek.path, "/programs/netter.exe ntrpluv.ini", sep = "")
   print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
   print("If you need to do something else with R, please open another session")
   system(command = cmd, wait = TRUE)
-  # setwd(sobek.path)
-  unlink(wk_folder_del, recursive = TRUE)
   setwd(wkd)
-  # return(so_res[["Summary"]])
+  # removing temp. data
+  unlink(wk_folder_del, recursive = TRUE)
 }
