@@ -1,9 +1,8 @@
-^.*\.Rproj$
-^\.Rproj\.user$
-<<<<<<< HEAD
-=======
 .RData
 ^.*Rhistory
 test.Rmd
 .git
->>>>>>> 61ea959... working
+.Rproj.user/
+.Rhistory
+*.RData
+*.Rproj

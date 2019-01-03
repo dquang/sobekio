@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1546382677991.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "594781595",
+    "id" : "7FE0796E",
+    "lastKnownWriteTime" : 1546384143,
+    "last_content_update" : -2147483648,
+    "path" : "C:/Users/quang/Documents/sobekio/R/internal-functions.R",
+    "project_path" : "R/internal-functions.R",
+    "properties" : {
+        "cursorPosition" : "3,21",
+        "docOutlineVisible" : "1",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
