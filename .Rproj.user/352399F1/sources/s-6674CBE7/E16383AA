@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1546382730388.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "158417210",
+    "id" : "E16383AA",
+    "lastKnownWriteTime" : 1546384180,
+    "last_content_update" : -2147483648,
+    "path" : "C:/Users/quang/Documents/sobekio/R/his-from-case.R",
+    "project_path" : "R/his-from-case.R",
+    "properties" : {
+        "cursorPosition" : "21,21",
+        "docOutlineVisible" : "1",
+        "scrollLine" : "10"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
