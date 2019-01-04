@@ -188,21 +188,24 @@ sobek_view <- function(case.name = NULL,
                       sobek.path = NULL,
                       clear.temp = TRUE,
                       external = TRUE){
-  clist <- fread(file = paste(sobek.project, "caselist.cmt", sep = "/"),
+  sobek.path <- gsub("/", "\\\\", sobek.path)
+  sobek.project <- gsub("/", "\\\\", sobek.project)
+  clist <- fread(file = paste(sobek.project, "caselist.cmt", sep = "\\"),
                  header = FALSE,
                  sep = " ",
                  quote = "'",
                  col.names = c("case_number", "case_name")
   )
   c_number <- .get_case_number(case.name, clist)
-  c_folder <- paste(sobek.project, c_number, sep = "/")
+  c_folder <- paste(sobek.project, c_number, sep = "\\")
   wkd <- getwd()
+  on.exit(setwd(wkd))
   # copy relative file to working folder
   setwd(sobek.path)
   tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
   dir.create(tmp_folder)
   prj_files <- dir(sobek.project, full.names = TRUE)
-  prj_files <- prj_files[!grepl("/[0-9]{1,}$", prj_files)]
+  prj_files <- prj_files[!grepl("[\\/][0-9]{1,}$", prj_files)]
   file.copy(from = prj_files,
             to = tmp_folder,
             recursive = TRUE)
@@ -211,27 +214,26 @@ sobek_view <- function(case.name = NULL,
             to = tmp_folder,
             recursive = TRUE
   )
-  wk_folder_del <- paste(sobek.path, tmp_folder, sep = "/")
-  cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "/")
-  wk_folder <- paste(sobek.path, tmp_folder, "WORK", sep = "/")
+  wk_folder_del <- paste(sobek.path, tmp_folder, sep = "\\")
+  cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "\\")
+  wk_folder <- paste(sobek.path, tmp_folder, "WORK", sep = "\\")
   if (!dir.exists(wk_folder)) dir.create(wk_folder)
   if (!dir.exists(wk_folder)) dir.create(cmt_folder)
   cmt_files <- list.files(system.file(package = 'sobekio'), full.names = TRUE,
                           pattern = "\\.[:alnum:]*",
                           no.. = TRUE)
-  sobek.path.c <- gsub("/", "\\\\", sobek.path)
   for (i in cmt_files){
     # print(i)
 
     f1 <- fread(file = i, sep = "\n", quote = "", header = F)
-    f1[, V1 := gsub("_replace_this_", sobek.path.c, V1,
+    f1[, V1 := gsub("_replace_this_", sobek.path, V1,
                  fixed = TRUE)]
-    f2 <- paste(cmt_folder, basename(i), sep = "/")
+    f2 <- paste(cmt_folder, basename(i), sep = "\\")
     fwrite(x = f1, file = f2, quote = F, row.names = F, col.names = F)
   }
-  file.copy(from = paste(c_folder, "casedesc.cmt", sep = "/"),
+  file.copy(from = paste(c_folder, "casedesc.cmt", sep = "\\"),
             to = cmt_folder)
-  file.copy(from = paste(sobek.path, "programs/simulate.ini", sep = "/"),
+  file.copy(from = paste(sobek.path, "programs\\simulate.ini", sep = "\\"),
             to = wk_folder)
   file.copy(from = dir(c_folder, full.names = TRUE,
                        recursive = TRUE,
@@ -240,7 +242,7 @@ sobek_view <- function(case.name = NULL,
                        no.. = TRUE
   ),
   to = wk_folder)
-  file.copy(from = paste(sobek.path, "programs/simulate.ini", sep = "/"),
+  file.copy(from = paste(sobek.path, "programs\\simulate.ini", sep = "\\"),
             to = wk_folder)
   setwd(cmt_folder)
   if (!external){
@@ -260,18 +262,21 @@ sobek_view <- function(case.name = NULL,
       unlink(wk_folder_del, recursive = TRUE)
     }
   } else {
-    cmd0 <- paste('cd ', gsub("/", "\\\\", cmt_folder))
+    cmd0 <- paste('cd ', cmt_folder)
     cmd1 <- paste("call ",
-                  sobek.path.c,
-                 "\\programs\\netter.exe ntrpluv.ini ",
-                 '..\\WORK\\NETWORK.NTW',
+                  sobek.path,
+                 "\\programs\\netter.exe ",
+                 cmt_folder,
+                 '\\ntrpluv.ini ',
+                 wk_folder,
+                 '\\NETWORK.NTW',
                  sep = "")
-    cmd2 <- paste('cd ', sobek.path.c)
+    cmd2 <- paste('cd ', sobek.path)
     cmd3 <- 'echo the temporary folder was not deleted!'
-    cmd4 <- paste('del ', sobek.path.c, '\\', tmp_folder, '.cmd', sep = '')
+    cmd4 <- paste('del ', sobek.path, '\\', tmp_folder, '.cmd', sep = '')
     # check the nchar(tmp_folder) to make sure not to delete anything incorrectly
     if (nchar(tmp_folder) > 0 && clear.temp) {
-      cmd3 <- paste('rmdir ', sobek.path.c, "\\", tmp_folder,
+      cmd3 <- paste('rmdir ', sobek.path, "\\", tmp_folder,
                     ' /s /q', sep = '')
     }
     cmd.file <- data.table(
@@ -282,10 +287,10 @@ sobek_view <- function(case.name = NULL,
         cmd1, cmd2, cmd3, cmd4,
         'pause') # does not work
                            )
-    fwrite(cmd.file, file = paste(sobek.path, '/', tmp_folder, '.cmd', sep = ''),
+    fwrite(cmd.file, file = paste(sobek.path, '\\', tmp_folder, '.cmd', sep = ''),
            col.names = F, quote = F)
-    cmd <- paste('cmd.exe /c ',  sobek.path.c, '\\', tmp_folder, '.cmd', sep = '')
-    setwd(wkd)
+    cmd <- paste('cmd.exe /c ',  sobek.path, '\\', tmp_folder, '.cmd', sep = '')
     system(command = cmd, wait = FALSE, invisible = FALSE)
+    print('If something went wrong with CMD, try the function again with option \'external = FALSE\'')
   }
 }
