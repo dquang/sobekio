@@ -5,8 +5,7 @@
 \title{Run Sobek Simulation for single case}
 \usage{
 sobek_view(case.name = NULL, sobek.project = NULL, sobek.path = NULL,
-  overwrite = TRUE, clear.temp = TRUE,
-  cmtwork.path = "d:/so21302/cmtwork/")
+  clear.temp = TRUE, external = TRUE)
 }
 \arguments{
 \item{case.name}{Name of the Case}
@@ -15,9 +14,10 @@ sobek_view(case.name = NULL, sobek.project = NULL, sobek.path = NULL,
 
 \item{sobek.path}{Path to Sobek Program Folder (ex. d:/so21302)}
 
-\item{overwrite}{Should simulation result overwrite back to Case folder?}
-
 \item{clear.temp}{Should temp directory to be clear?}
+
+\item{external}{If TRUE, R will use a CMD session to start NETTER,
+and the current R session is available to user immediately.}
 }
 \description{
 Run Sobek Simulation for single case

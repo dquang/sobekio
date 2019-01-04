@@ -9,7 +9,8 @@ sobek_sim <- function(case.name = NULL,
                       sobek.project = NULL,
                       sobek.path = NULL,
                       overwrite = TRUE,
-                      clear.temp = TRUE){
+                      clear.temp = TRUE
+                      ){
   clist <- fread(file = paste(sobek.project, "caselist.cmt", sep = "/"),
                  header = FALSE,
                  sep = " ",
@@ -171,7 +172,6 @@ sobek_sim <- function(case.name = NULL,
       if (clear.temp) unlink(wk_folder_del, recursive = TRUE)
       setwd(wkd)
   }
-  # return(so_res[["Summary"]])
 }
 
 
@@ -179,15 +179,15 @@ sobek_sim <- function(case.name = NULL,
 #' @param case.name Name of the Case
 #' @param sobek.project Path to Sobek Project Folder
 #' @param sobek.path Path to Sobek Program Folder (ex. d:/so21302)
-#' @param overwrite Should simulation result overwrite back to Case folder?
 #' @param clear.temp Should temp directory to be clear?
+#' @param external If TRUE, R will use a CMD session to start NETTER,
+#' and the current R session is available to user immediately.
 #' @export
 sobek_view <- function(case.name = NULL,
                       sobek.project = NULL,
                       sobek.path = NULL,
-                      overwrite = TRUE,
                       clear.temp = TRUE,
-                      cmtwork.path = "d:/so21302/cmtwork/"){
+                      external = TRUE){
   clist <- fread(file = paste(sobek.project, "caselist.cmt", sep = "/"),
                  header = FALSE,
                  sep = " ",
@@ -212,17 +212,23 @@ sobek_view <- function(case.name = NULL,
             recursive = TRUE
   )
   wk_folder_del <- paste(sobek.path, tmp_folder, sep = "/")
-  cmt_folder <- paste(sobek.path, tmp_folder, "cmtwork", sep = "/")
-  wk_folder <- paste(sobek.path, tmp_folder, "work", sep = "/")
+  cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "/")
+  wk_folder <- paste(sobek.path, tmp_folder, "WORK", sep = "/")
   if (!dir.exists(wk_folder)) dir.create(wk_folder)
   if (!dir.exists(wk_folder)) dir.create(cmt_folder)
-  file.copy(from = dir(cmtwork.path, full.names = TRUE,
-                       recursive = TRUE,
-                       all.files = TRUE,
-                       include.dirs = TRUE,
-                       no.. = TRUE
-  ),
-  to = cmt_folder)
+  cmt_files <- list.files(system.file(package = 'sobekio'), full.names = TRUE,
+                          pattern = "\\.[:alnum:]*",
+                          no.. = TRUE)
+  sobek.path.c <- gsub("/", "\\\\", sobek.path)
+  for (i in cmt_files){
+    # print(i)
+
+    f1 <- fread(file = i, sep = "\n", quote = "", header = F)
+    f1[, V1 := gsub("_replace_this_", sobek.path.c, V1,
+                 fixed = TRUE)]
+    f2 <- paste(cmt_folder, basename(i), sep = "/")
+    fwrite(x = f1, file = f2, quote = F, row.names = F, col.names = F)
+  }
   file.copy(from = paste(c_folder, "casedesc.cmt", sep = "/"),
             to = cmt_folder)
   file.copy(from = paste(sobek.path, "programs/simulate.ini", sep = "/"),
@@ -237,11 +243,49 @@ sobek_view <- function(case.name = NULL,
   file.copy(from = paste(sobek.path, "programs/simulate.ini", sep = "/"),
             to = wk_folder)
   setwd(cmt_folder)
-  cmd <- paste("cmd.exe /c ", sobek.path, "/programs/netter.exe ntrpluv.ini", sep = "")
-  print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
-  print("If you need to do something else with R, please open another session")
-  system(command = cmd, wait = TRUE)
-  setwd(wkd)
-  # removing temp. data
-  unlink(wk_folder_del, recursive = TRUE)
+  if (!external){
+    cmd <- paste("cmd.exe /c ",
+                 sobek.path.c,
+                 "\\programs\\netter.exe ntrpluv.ini ",
+                 '..\\WORK\\NETWORK.NTW',
+                 sep = "")
+    print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
+    print("If you need to do something else with R, please open another session")
+    # print(paste('Please using NETTER to open the network file in folder: ',
+    #       wk_folder, 'for Viewing'))
+    system(command = cmd, wait = TRUE)
+    # removing temp. data
+    setwd(wkd)
+    if (clear.temp) {
+      unlink(wk_folder_del, recursive = TRUE)
+    }
+  } else {
+    cmd0 <- paste('cd ', gsub("/", "\\\\", cmt_folder))
+    cmd1 <- paste("call ",
+                  sobek.path.c,
+                 "\\programs\\netter.exe ntrpluv.ini ",
+                 '..\\WORK\\NETWORK.NTW',
+                 sep = "")
+    cmd2 <- paste('cd ', sobek.path.c)
+    cmd3 <- 'echo the temporary folder was not deleted!'
+    cmd4 <- paste('del ', sobek.path.c, '\\', tmp_folder, '.cmd', sep = '')
+    # check the nchar(tmp_folder) to make sure not to delete anything incorrectly
+    if (nchar(tmp_folder) > 0 && clear.temp) {
+      cmd3 <- paste('rmdir ', sobek.path.c, "\\", tmp_folder,
+                    ' /s /q', sep = '')
+    }
+    cmd.file <- data.table(
+      V1=list(
+        '@echo off',
+        cmd0,
+        'echo DO NOT close this windows until you have finished with NETTER',
+        cmd1, cmd2, cmd3, cmd4,
+        'pause') # does not work
+                           )
+    fwrite(cmd.file, file = paste(sobek.path, '/', tmp_folder, '.cmd', sep = ''),
+           col.names = F, quote = F)
+    cmd <- paste('cmd.exe /c ',  sobek.path.c, '\\', tmp_folder, '.cmd', sep = '')
+    setwd(wkd)
+    system(command = cmd, wait = FALSE, invisible = FALSE)
+  }
 }

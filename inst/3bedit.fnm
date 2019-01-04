@@ -1,0 +1,255 @@
+[General]
+language=0
+hlp3bedit0=_replace_this_\Programs\help\SOBEK_User_Manual.pdf
+hlp3bedit1=_replace_this_\Programs\help\SOBEK_User_Manual.pdf
+Settingsfile=..\WORK\SETTINGS.DAT
+Settingsini=_replace_this_\Programs\settings.ini
+UnitIni=_replace_this_\Programs\3b\3bedit.ini
+
+[3B Ascii Layer definition]
+Model=Delft3B
+version=2.0
+type=Sobek-Delft_3B
+format=WL
+config=vhg/ovh/kas/ow/bnd/plv/pmp/ove/ond/Man/qh/
+; number of layers are related to the model
+; for example Layer1 corresponds always to the model node type1
+NrofLayers=16
+Layer0=RR-Topography layer
+Layer1=RR-Paved area layer
+Layer2=RR-Unpaved area layer
+Layer3=RR-Greenhouse layer
+Layer4=RR-Open water layer
+Layer5=RR-Structure layer
+Layer6=RR-Boundary layer
+Layer7=RR-NWRW layer
+Layer8=RR-Control layer
+Layer9=RR-Industry layer
+Layer10=RR-WWTP layer
+Layer11=RR-Sacramento layer
+Layer12=RR-Routing layer
+Layer13=RR-External Runoff layer
+Layer14=RR-HBV layer
+Layer15=RR-SCS layer
+Layer16=RR-NAM layer
+UseFormat=0
+
+[RR-Topography layer]
+NrOfFiles=4
+config=net/cpt/dat/brdat
+net=..\WORK\NETWORK.TP
+cpt=..\WORK\NETWORK.CP
+dat=..\WORK\3B_NOD.TP
+brdat=..\WORK\3B_LINK.TP
+rfdat=..\WORK\3BRUNOFF.TP
+
+[RR-Paved area layer]
+NrOfFiles=4
+mainfile=dat
+connectionfile=sd-sto,dw-dwa,qc-tab
+; here the connection to the files are mentioned
+;
+dat=..\WORK\PAVED.3B
+; search token in dat
+TokenDAT=PAVE
+sto=..\WORK\PAVED.STO
+TokenSTO=STDF
+dwa=..\WORK\PAVED.DWA
+TokenDWA=DWA
+tab=..\WORK\PAVED.TBL
+TokenTAB=QC_T
+
+[RR-Unpaved area layer]
+NrOfFiles=9
+config=dat/sto/alf/inf/sep/tab/obc/ocf/sct
+mainfile=dat
+connectionfile=sd-sto,ad-alf,sp-sep,ic-inf,ig-tab,su-sct
+dat=..\WORK\UNPAVED.3B
+TokenDAT=UNPV
+sto=..\WORK\UNPAVED.STO
+TokenSTO=STDF
+alf=..\WORK\UNPAVED.ALF
+TokenALF=ALFA
+inf=..\WORK\UNPAVED.INF
+TokenINF=INFC
+sep=..\WORK\UNPAVED.SEP
+TokenSEP=SEEP
+tab=..\WORK\UNPAVED.TBL
+TokenTAB=IG_T
+sct=..\WORK\UNPAVED.TBL
+TokenSCT=SC_T
+obc=_replace_this_\fixed\3b\bergcoef
+obcap=_replace_this_\fixed\3b\bergcoef.cap
+ocf=_replace_this_\fixed\3b\cropfact
+TokenH0Tab=H0_T
+
+[RR-Greenhouse layer]
+NrOfFiles=7
+config=dat/dak/sil/tab/kk/ki/kg
+mainfile=dat
+connectionfile=sd-dak,si-sil
+dat=..\WORK\GREENHSE.3B
+TokenDAT=GRHS
+dak=..\WORK\GREENHSE.RF
+TokenDAK=STDF
+sil=..\WORK\GREENHSE.SIL
+TokenSIL=SILO
+tab=..\WORK\GREENHSE.TBL
+kk=_replace_this_\fixed\3b\kasklass
+ki=_replace_this_\fixed\3b\kasinit
+kg=_replace_this_\fixed\3b\kasgebr
+
+[RR-Open water layer]
+NrOfFiles=4
+config=dat/sep/tab/ocf
+mainfile=dat
+connectionfile=sp-sep,tl-tab
+dat=..\WORK\OPENWATE.3B
+TokenDAT=OPWA
+sep=..\WORK\OPENWATE.SEP
+TokenSEP=SEEP
+tab=..\WORK\OPENWATE.TBL
+TokenTAB=OW_T
+ocf=_replace_this_\fixed\3b\crop_ow
+
+[RR-Structure layer]
+NrOfFiles=4
+config=dat/def/con/tab
+mainfile=dat
+connectionfile=dd-def,cj-con,gs-set,ws-set
+dat=..\WORK\STRUCT3B.DAT
+TokenDAT=STRU
+def=..\WORK\STRUCT3B.DEF
+TokenDef=STDS
+con=..\WORK\CONTR3B.DEF
+TokenCON=CNTL
+tab=..\WORK\STRUCT3B.TBL
+TokenTAB=SWLV
+set=..\WORK\STRUCT3B.TBL
+TokenSET=INST
+
+[RR-Boundary layer]
+NrOfFiles=3
+config=dat/tab/sbk
+mainfile=dat
+connectionfile=bl-tab
+dat=..\WORK\BOUND3B.3B
+TokenDAT=BOUN
+tab=..\WORK\BOUND3B.TBL
+TokenTAB=BN_T
+sbk=..\WORK\SBK_LOC.RTC
+TokenSBK=SBKO
+
+[RR-Industry layer]
+NrOfFiles=3
+config=dat/dis/dem
+mainfile=dat
+connectionfile=ds-dis, dm-dem
+dat=..\WORK\INDUSTRY.3B
+TokenDAT=INDU
+dis=..\WORK\INDUSTRY.TBL
+TokenDIS=DISC
+dem=..\WORK\INDUSTRY.TBL
+TokenDEM=DEMD
+
+[RR-NWRW layer]
+NrOfFiles=3
+config=dat/dwa/alg
+mainfile=dat
+connectionfile=dw-dwa
+dat=..\WORK\PLUVIUS.3B
+TokenDAT=NWRW
+dwa=..\WORK\PLUVIUS.DWA
+TokenDWA=DWA
+alg=..\WORK\PLUVIUS.ALG
+TokenALG=PLVG
+TokenSPAREA=PLVA
+TokenGRAREA=PLGR
+
+[RR-WWTP layer]
+NrOfFiles=2
+config=dat/tab
+mainfile=dat
+connectionfile=tb-tab
+dat=..\WORK\WWTP.3B
+TokenDAT=WWTP
+tab=..\WORK\WWTP.TBL
+TokenTAB=MEAS
+
+[RR-Sacramento layer]
+NrOfFiles=4
+config=dat/cap/uh/oth
+TokenDAT=SACR
+TokenCAP=CAPS
+TokenUH=UNIH
+TokenOTH=OPAR
+mainfile=dat
+dat=..\WORK\SACRMNTO.3B
+oth=..\WORK\SACRMNTO.3B
+uh=..\WORK\SACRMNTO.3B
+cap=..\WORK\SACRMNTO.3B
+
+[RR-External Runoff layer]
+NrOfFiles=1
+config=dat
+TokenDAT=EXTR
+mainfile=dat
+dat=..\WORK\SACRMNTO.3B
+
+[RR-HBV layer]
+NrOfFiles=5
+config=dat/snow/soil/flow/hini
+TokenDAT=HBV
+TokenSNOW=SNOW
+TokenSOIL=SOIL
+TokenFLOW=FLOW
+TokenHINI=HINI
+mainfile=dat
+dat=..\WORK\SACRMNTO.3B
+snow=..\WORK\SACRMNTO.3B
+soil=..\WORK\SACRMNTO.3B
+flow=..\WORK\SACRMNTO.3B
+hini=..\WORK\SACRMNTO.3B
+
+[RR-SCS layer]
+NrOfFiles=1
+config=dat
+TokenDAT=SCS
+mainfile=dat
+dat=..\WORK\SACRMNTO.3B
+
+[RR-NAM layer]
+NrOfFiles=5
+config=dat/capa/runo/nini
+TokenDAT=NAM
+TokenCAPA=NAMC
+TokenRUNO=NAMR
+TokenNINI=NAMI
+mainfile=dat
+dat=..\WORK\SACRMNTO.3B
+capa=..\WORK\SACRMNTO.3B
+runo=..\WORK\SACRMNTO.3B
+nini=..\WORK\SACRMNTO.3B
+
+[RR-Routing layer]
+NrOfFiles=2
+config=dat/def
+TokenDAT=ROUT
+TokenDEF=RDEF
+mainfile=dat
+dat=..\WORK\3B_ROUT.3B
+def=..\WORK\3B_ROUT.3B
+
+[3B-Control layer]
+NrOfFiles=3
+config=cnt/rai/evp/def
+cnt=..\WORK\DELFT_3B.INI
+rai=_replace_this_\FIXED\DEFAULT.BUI
+evp=_replace_this_\FIXED\3B\EVAPOR.GEM
+tmp=_replace_this_\FIXED\DEFAULT.TMP
+rnf=_replace_this_\FIXED\DEFAULT.RNF
+def=..\fixed\3bedit.def
+
+[Switches]
+TableAddNrRows=1
+TableAddRows=-1

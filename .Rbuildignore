@@ -4,5 +4,7 @@ test.Rmd
 .git
 .Rproj.user/
 .Rhistory
-*.RData
-*.Rproj
+.RData
+.Rproj
+^.*\.Rproj$
+^\.Rproj\.user$
