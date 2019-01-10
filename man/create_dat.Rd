@@ -30,3 +30,13 @@ create_dat(id.file = "", data.file = "", bnd.header = NULL,
 \description{
 Create Sobek Input .DAT from
 }
+\details{
+Example for id.file
+\tabular{llllrr}{
+Ahr           \tab ahr_mess_fv_q         \tab FLBR id Ahr sc 0 lt 0 dc lt 1 0 0 PDIN 0 0  pdin              \tab Lateral  \tab 1 \tab 100\cr
+Mai_23        \tab bad_vibel_mess_fv_q   \tab FLBO id Mai_23 st 0 ty 1 q_ dt 1 0 0 PDIN 0 0  pdin           \tab Boundary \tab 1 \tab 100\cr
+L_10014432    \tab cochem_mess_q         \tab FLBO id Mosel_RE_N_P_P_0 st 0 ty 1 q_ dt 1 0 0 PDIN 0 0  pdin \tab Boundary \tab 1 \tab 100\cr
+Modau         \tab modau_mess_fv_q       \tab FLBR id Modau sc 0 lt 0 dc lt 1 0 0 PDIN 0 0  pdin            \tab Lateral  \tab 1 \tab 100\cr
+Mai_Lat_Schwb \tab schwarzbach_mess_fv_q \tab FLBR id Mai_Lat_Schwb sc 0 lt 0 dc lt 1 0 0 PDIN 0 0  pdin    \tab Lateral  \tab 1 \tab 100
+}
+}

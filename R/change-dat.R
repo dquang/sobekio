@@ -161,20 +161,10 @@ change_tble <- function(dat.file = NULL,
   id_data <- lat_dat[id_pos:id_line_shift[id_idx], ]
   # search last "tble..." line, to avoid commenting line at the end
   id_data_tble <- id_data[grepl("^tble", V1), which = TRUE]
+  if (length(id_data_tble) == 0) id_data_tble = 0
   # position of the line tble for the s.id in the lat_dat
   id_pos_end <- id_pos + id_data_tble - 1
   s.id_line <- id_tbl$V1[[id_idx]]
-  # s.id_line <- sub("dc lt 1 0",
-  #                  paste("dc lt 0", value, sep = " "),
-  #                  s.id_line)
-  # s.id_line <- sub("PDIN 0 0 '' pdin",
-  #                  tolower(substring(s.id_line, 1, 4)),
-  #                  s.id_line)
-  # s.id_line <- list(
-  #   paste("* data table of", s.id, "was remove"),
-  #   paste("* value of", s.id, "is now constant =", value),
-  #   s.id_line
-  # )
   if (is.null(output)) output <- paste(substr(dat.file,
                                               start = 1,
                                               stop = nchar(dat.file) - 4),
@@ -198,13 +188,14 @@ change_tble <- function(dat.file = NULL,
          col.names = FALSE
          )
   # get the ending line based on id type
-  tble_footer <- id_data[grepl("^tble", V1)]
-  fwrite(data.table(list(tble_footer)),
+  tble_footer <- list(paste("tble", tolower(substr(id_data[1,1], 1, 4)),
+                            sep = " "))
+  fwrite(data.table(tble_footer),
          file = output,
          append = TRUE,
          quote = FALSE,
          col.names = FALSE
-         )
+  )
 
   return(TRUE)
 }

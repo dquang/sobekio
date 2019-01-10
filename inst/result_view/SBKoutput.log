@@ -1,0 +1,12 @@
+RECEIVED 39410,71 
+HWND 4194304
+
+ReceivedByOLE: 39410,71 
+SetParentHwnd : 4194304
+
+ReceivedByOLE: 39411,05 
+CloseConnection
+
+ReceivedByOLE: 39411,05 
+Terminate
+

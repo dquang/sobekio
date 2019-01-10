@@ -1,0 +1,137 @@
+[Sobek Ascii Layer definition]
+version=2.0
+type=Pluvius
+format=DHV
+
+[General]
+language=0
+lngsbkcheck=_so_folder_\Programs\flow\sbkcheck.lng
+logsbkcheck=sbkcheck.log
+viewlog=0
+rtnsbkcheck=sbkcheck.rtn
+hlpsbkedit0=_so_folder_\Programs\help\SOBEK_User_Manual.pdf
+hlpsbkedit1=
+hlp3bedit0=_so_folder_\Programs\help\SOBEK_User_Manual.pdf
+hlp3bedit1=_so_folder_\Programs\help\SOBEK_User_Manual.pdf
+ViewExe=_so_folder_\Programs\viewtext.exe
+Settingsfile=_work_folder_\SETTINGS.DAT
+Settingsini=_so_folder_\Programs\settings.ini
+NetworkStatusFile=_case_folder_\STATUS.CAS
+NetterRtnFile=netter.rtn
+
+[Initial Conditions layer]
+NrOfFiles=1
+dat=_case_folder_\INITIAL.DAT
+
+[Topography layer]
+NrOfFiles=3
+net=_case_folder_\NETWORK.TP
+cpt=_case_folder_\NETWORK.CP
+dat=_case_folder_\NODES.DAT
+
+[Grid layer]
+NrOfFiles=1
+net=_case_folder_\NETWORK.GR
+
+[Cross Section layer]
+NrOfFiles=3
+net=_case_folder_\NETWORK.CR
+def=_case_folder_\PROFILE.DEF
+dat=_case_folder_\PROFILE.DAT
+
+[Condition layer]
+NrOfFiles=4
+net=_case_folder_\NETWORK.CN
+dat=_case_folder_\BOUNDARY.DAT
+lat=_case_folder_\LATERAL.DAT
+tbl=_case_folder_\BOUNDLAT.DAT
+
+[Structure layer]
+NrOfFiles=7
+net=_case_folder_\NETWORK.ST
+def=_case_folder_\STRUCT.DEF
+cnt=_case_folder_\CONTROL.DEF
+trg=_case_folder_\TRIGGER.DEF
+cmp=_case_folder_\STRUCT.CMP
+dat=_case_folder_\STRUCT.DAT
+vlv=_case_folder_\VALVE.TAB
+
+[Friction layer]
+NrOfFiles=1
+dat=_case_folder_\FRICTION.DAT
+exr=_case_folder_\FRICTION.DAT
+wnd=_case_folder_\WND_LOC.DAT
+
+[Meteo layer]
+NrOfFiles=1
+rai=_so_folder_\FIXED\DEFAULT.BUI
+
+[Dispersion layer]
+NrOfFiles=0
+
+[Transport layer]
+NrOfFiles=0
+
+[Substance layer]
+NrOfFiles=0
+
+[Measurements]
+NrOfFiles=0
+net=_case_folder_\NETWORK.ME
+
+[Defaults]
+NrOfFiles=1
+dat=..\fixed\sbkedit.def
+ReplaceDefaults=-1
+DeleteUnusedProfile=0
+
+[Switches]
+AllLatStructModified=-1
+UseRiverProfile=0
+TableAddNrRows=3
+TableAddRows=-1
+
+[Report]
+Generate=2
+Name=
+Options=6
+
+[Quality Layer]
+NrofFiles=1
+net=
+dat=_case_folder_\BOUNDWQ.DAT
+glb=_case_folder_\BOUNDWQ.GLB
+sub=_case_folder_\SUBSTANC.DWQ
+bnd=_case_folder_\BOUNDWQ.TYP
+mnt=_case_folder_\MONSTAT.WQ
+cof=_so_folder_\Programs\Delwaq\fixed\coefedit.dat
+const=_case_folder_\CONSTANT.DWQ
+prc=_case_folder_\COEFX.DAT
+def=_case_folder_\SUBSTANC.DEF
+gdisp=_case_folder_\DELWAQ3.INP
+dwldat=_case_folder_\LOADSWQ.DAT
+dwltyp=_case_folder_\LOADSWQ.TYP
+
+[2D Quality Layer]
+NrofFiles=1
+net=
+dat=_case_folder_\2DBNDWQ.DAT
+glb=_case_folder_\2DBNDWQ.GLB
+sub=_case_folder_\SUBSTANC.DWQ
+state=_case_folder_\SUBSTATE.SUB
+bnd=_case_folder_\2DBNDWQ.TYP
+mnt=_case_folder_\2DMONST.WQ
+cof=_so_folder_\Programs\Delwaq\fixed\coefedit.dat
+const=_case_folder_\2DCONST.DWQ
+prc=_case_folder_\2DCOEFX.DAT
+def=_case_folder_\SUBSTANC.DEF
+gdisp=_case_folder_\2DDLWQ3.INP
+ldisp=_case_folder_\2DDISPX.DAT
+init=_case_folder_\2DINIT.DAT
+par=_case_folder_\2DPARAM.DAT
+
+[FLS layer]
+NrofFiles=1
+net=_case_folder_\NETWORK.D12
+dat=_case_folder_\NETWORK.D12
+

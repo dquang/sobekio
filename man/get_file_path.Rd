@@ -11,8 +11,28 @@ get_file_path(case.name = NULL, sobek.project = NULL, type = NULL)
 
 \item{sobek.project}{Path to Sobek project folder}
 
-\item{type}{Type of file to get path (lateral, boundary, reach, node, structure...)}
+\item{type}{Type of file to get path (lat.dat, bnd.dat, reach, node, structure...)}
+}
+\value{
+Path to the needed file
 }
 \description{
 Get file path from sobek case name
+}
+\details{
+type -> file
+\itemize{
+\item bnd.dat: get path to boundary.dat
+\item lat.dat: get path to lateral.dat
+\item reach: get path to reachseg.his
+\item node: get path to calcpnt.his
+\item structure: get path to struc.his
+\item measstation: get path to measstat.his
+\item control: get path to controll.def
+\item trigger: get path to trigger.def
+\item setting: get path to settings.dat
+}
+}
+\examples{
+get_file_path(case.name = 'Default', sobek.project = 'd:/so21302/rhein.lit', type = 'bnd.dat')
 }

@@ -1,0 +1,255 @@
+[General]
+language=0
+hlp3bedit0=_so_folder_\Programs\help\SOBEK_User_Manual.pdf
+hlp3bedit1=_so_folder_\Programs\help\SOBEK_User_Manual.pdf
+Settingsfile=_work_folder_\SETTINGS.DAT
+Settingsini=_so_folder_\Programs\settings.ini
+UnitIni=_so_folder_\Programs\3b\3bedit.ini
+
+[3B Ascii Layer definition]
+Model=Delft3B
+version=2.0
+type=Sobek-Delft_3B
+format=WL
+config=vhg/ovh/kas/ow/bnd/plv/pmp/ove/ond/Man/qh/
+; number of layers are related to the model
+; for example Layer1 corresponds always to the model node type1
+NrofLayers=16
+Layer0=RR-Topography layer
+Layer1=RR-Paved area layer
+Layer2=RR-Unpaved area layer
+Layer3=RR-Greenhouse layer
+Layer4=RR-Open water layer
+Layer5=RR-Structure layer
+Layer6=RR-Boundary layer
+Layer7=RR-NWRW layer
+Layer8=RR-Control layer
+Layer9=RR-Industry layer
+Layer10=RR-WWTP layer
+Layer11=RR-Sacramento layer
+Layer12=RR-Routing layer
+Layer13=RR-External Runoff layer
+Layer14=RR-HBV layer
+Layer15=RR-SCS layer
+Layer16=RR-NAM layer
+UseFormat=0
+
+[RR-Topography layer]
+NrOfFiles=4
+config=net/cpt/dat/brdat
+net=_case_folder_\NETWORK.TP
+cpt=_case_folder_\NETWORK.CP
+dat=_case_folder_\3B_NOD.TP
+brdat=_case_folder_\3B_LINK.TP
+rfdat=_case_folder_\3BRUNOFF.TP
+
+[RR-Paved area layer]
+NrOfFiles=4
+mainfile=dat
+connectionfile=sd-sto,dw-dwa,qc-tab
+; here the connection to the files are mentioned
+;
+dat=_case_folder_\PAVED.3B
+; search token in dat
+TokenDAT=PAVE
+sto=_case_folder_\PAVED.STO
+TokenSTO=STDF
+dwa=_case_folder_\PAVED.DWA
+TokenDWA=DWA
+tab=_case_folder_\PAVED.TBL
+TokenTAB=QC_T
+
+[RR-Unpaved area layer]
+NrOfFiles=9
+config=dat/sto/alf/inf/sep/tab/obc/ocf/sct
+mainfile=dat
+connectionfile=sd-sto,ad-alf,sp-sep,ic-inf,ig-tab,su-sct
+dat=_case_folder_\UNPAVED.3B
+TokenDAT=UNPV
+sto=_case_folder_\UNPAVED.STO
+TokenSTO=STDF
+alf=_case_folder_\UNPAVED.ALF
+TokenALF=ALFA
+inf=_case_folder_\UNPAVED.INF
+TokenINF=INFC
+sep=_case_folder_\UNPAVED.SEP
+TokenSEP=SEEP
+tab=_case_folder_\UNPAVED.TBL
+TokenTAB=IG_T
+sct=_case_folder_\UNPAVED.TBL
+TokenSCT=SC_T
+obc=_so_folder_\fixed\3b\bergcoef
+obcap=_so_folder_\fixed\3b\bergcoef.cap
+ocf=_so_folder_\fixed\3b\cropfact
+TokenH0Tab=H0_T
+
+[RR-Greenhouse layer]
+NrOfFiles=7
+config=dat/dak/sil/tab/kk/ki/kg
+mainfile=dat
+connectionfile=sd-dak,si-sil
+dat=_case_folder_\GREENHSE.3B
+TokenDAT=GRHS
+dak=_case_folder_\GREENHSE.RF
+TokenDAK=STDF
+sil=_case_folder_\GREENHSE.SIL
+TokenSIL=SILO
+tab=_case_folder_\GREENHSE.TBL
+kk=_so_folder_\fixed\3b\kasklass
+ki=_so_folder_\fixed\3b\kasinit
+kg=_so_folder_\fixed\3b\kasgebr
+
+[RR-Open water layer]
+NrOfFiles=4
+config=dat/sep/tab/ocf
+mainfile=dat
+connectionfile=sp-sep,tl-tab
+dat=_case_folder_\OPENWATE.3B
+TokenDAT=OPWA
+sep=_case_folder_\OPENWATE.SEP
+TokenSEP=SEEP
+tab=_case_folder_\OPENWATE.TBL
+TokenTAB=OW_T
+ocf=_so_folder_\fixed\3b\crop_ow
+
+[RR-Structure layer]
+NrOfFiles=4
+config=dat/def/con/tab
+mainfile=dat
+connectionfile=dd-def,cj-con,gs-set,ws-set
+dat=_case_folder_\STRUCT3B.DAT
+TokenDAT=STRU
+def=_case_folder_\STRUCT3B.DEF
+TokenDef=STDS
+con=_case_folder_\CONTR3B.DEF
+TokenCON=CNTL
+tab=_case_folder_\STRUCT3B.TBL
+TokenTAB=SWLV
+set=_case_folder_\STRUCT3B.TBL
+TokenSET=INST
+
+[RR-Boundary layer]
+NrOfFiles=3
+config=dat/tab/sbk
+mainfile=dat
+connectionfile=bl-tab
+dat=_case_folder_\BOUND3B.3B
+TokenDAT=BOUN
+tab=_case_folder_\BOUND3B.TBL
+TokenTAB=BN_T
+sbk=_case_folder_\SBK_LOC.RTC
+TokenSBK=SBKO
+
+[RR-Industry layer]
+NrOfFiles=3
+config=dat/dis/dem
+mainfile=dat
+connectionfile=ds-dis, dm-dem
+dat=_case_folder_\INDUSTRY.3B
+TokenDAT=INDU
+dis=_case_folder_\INDUSTRY.TBL
+TokenDIS=DISC
+dem=_case_folder_\INDUSTRY.TBL
+TokenDEM=DEMD
+
+[RR-NWRW layer]
+NrOfFiles=3
+config=dat/dwa/alg
+mainfile=dat
+connectionfile=dw-dwa
+dat=_case_folder_\PLUVIUS.3B
+TokenDAT=NWRW
+dwa=_case_folder_\PLUVIUS.DWA
+TokenDWA=DWA
+alg=_case_folder_\PLUVIUS.ALG
+TokenALG=PLVG
+TokenSPAREA=PLVA
+TokenGRAREA=PLGR
+
+[RR-WWTP layer]
+NrOfFiles=2
+config=dat/tab
+mainfile=dat
+connectionfile=tb-tab
+dat=_case_folder_\WWTP.3B
+TokenDAT=WWTP
+tab=_case_folder_\WWTP.TBL
+TokenTAB=MEAS
+
+[RR-Sacramento layer]
+NrOfFiles=4
+config=dat/cap/uh/oth
+TokenDAT=SACR
+TokenCAP=CAPS
+TokenUH=UNIH
+TokenOTH=OPAR
+mainfile=dat
+dat=_case_folder_\SACRMNTO.3B
+oth=_case_folder_\SACRMNTO.3B
+uh=_case_folder_\SACRMNTO.3B
+cap=_case_folder_\SACRMNTO.3B
+
+[RR-External Runoff layer]
+NrOfFiles=1
+config=dat
+TokenDAT=EXTR
+mainfile=dat
+dat=_case_folder_\SACRMNTO.3B
+
+[RR-HBV layer]
+NrOfFiles=5
+config=dat/snow/soil/flow/hini
+TokenDAT=HBV
+TokenSNOW=SNOW
+TokenSOIL=SOIL
+TokenFLOW=FLOW
+TokenHINI=HINI
+mainfile=dat
+dat=_case_folder_\SACRMNTO.3B
+snow=_case_folder_\SACRMNTO.3B
+soil=_case_folder_\SACRMNTO.3B
+flow=_case_folder_\SACRMNTO.3B
+hini=_case_folder_\SACRMNTO.3B
+
+[RR-SCS layer]
+NrOfFiles=1
+config=dat
+TokenDAT=SCS
+mainfile=dat
+dat=_case_folder_\SACRMNTO.3B
+
+[RR-NAM layer]
+NrOfFiles=5
+config=dat/capa/runo/nini
+TokenDAT=NAM
+TokenCAPA=NAMC
+TokenRUNO=NAMR
+TokenNINI=NAMI
+mainfile=dat
+dat=_case_folder_\SACRMNTO.3B
+capa=_case_folder_\SACRMNTO.3B
+runo=_case_folder_\SACRMNTO.3B
+nini=_case_folder_\SACRMNTO.3B
+
+[RR-Routing layer]
+NrOfFiles=2
+config=dat/def
+TokenDAT=ROUT
+TokenDEF=RDEF
+mainfile=dat
+dat=_case_folder_\3B_ROUT.3B
+def=_case_folder_\3B_ROUT.3B
+
+[3B-Control layer]
+NrOfFiles=3
+config=cnt/rai/evp/def
+cnt=_work_folder_\DELFT_3B.INI
+rai=_so_folder_\FIXED\DEFAULT.BUI
+evp=_so_folder_\FIXED\3B\EVAPOR.GEM
+tmp=_so_folder_\FIXED\DEFAULT.TMP
+rnf=_so_folder_\FIXED\DEFAULT.RNF
+def=..\fixed\3bedit.def
+
+[Switches]
+TableAddNrRows=1
+TableAddRows=-1

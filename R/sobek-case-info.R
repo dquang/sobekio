@@ -3,6 +3,7 @@
 #' @param sobek.project Sobek Folder
 #' @param his.type c("node", "reach", "lateral", "struct", "measstation")
 #' @param info c("location", "general")
+#' @return A list of general information or a data.table of location
 #' @export
 sobek_case_info <- function(
 	case.name = NULL,
@@ -53,8 +54,21 @@ sobek_case_info <- function(
 #' Get file path from sobek case name
 #' @param case.name Name of the case
 #' @param sobek.project Path to Sobek project folder
-#' @param type Type of file to get path (lateral, boundary, reach, node, structure...)
-#' @result Path to the needed file
+#' @param type Type of file to get path (lat.dat, bnd.dat, reach, node, structure...)
+#' @details type -> file
+#' * bnd.dat: get path to boundary.dat
+#' * lat.dat: get path to lateral.dat
+#' * reach: get path to reachseg.his
+#' * node: get path to calcpnt.his
+#' * structure: get path to struc.his
+#' * measstation: get path to measstat.his
+#' * control: get path to controll.def
+#' * trigger: get path to trigger.def
+#' * setting: get path to settings.dat
+#' @examples
+#' get_file_path(case.name = 'Default', sobek.project = 'd:/so21302/rhein.lit', type = 'bnd.dat')
+#' @md
+#' @return Path to the needed file
 #' @export
 get_file_path <- function(case.name = NULL,
                           sobek.project = NULL,

@@ -16,6 +16,9 @@ sobek_case_info(case.name = NULL, sobek.project = NULL,
 
 \item{info}{c("location", "general")}
 }
+\value{
+A list of general information or a data.table of location
+}
 \description{
 Read .HIS information for a case
 }
