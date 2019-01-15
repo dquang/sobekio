@@ -44,7 +44,7 @@ create_dat <- function(id.file = "",
 		if (!file.exists(lat.header)) stop(lat.header, " does not exist")
 	}
 
-  if (is.null(bnd.out) || is.null(lat.out)) stop("Please give output names for .dat files")
+  if (is.null(bnd.out) && is.null(lat.out)) stop("Please give output names for .dat files")
 
 	# if (!is.null(bnd.header) && !is.null(lat.header)){
 	# 	stop("only accept either lat- or bnd.header, not both at the same time")
@@ -129,7 +129,7 @@ create_dat <- function(id.file = "",
     nfile <- NULL
     if (ntype == "lateral") nfile <- lat.out
     if (ntype == "boundary") nfile <- bnd.out
-    if (is.null(ntype)){
+    if (is.null(nfile)){
       warning("node ", i, " is neither Lateral nor Boundary")
       next
     }

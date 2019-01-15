@@ -62,9 +62,13 @@ sobek_case_info <- function(
 #' * node: get path to calcpnt.his
 #' * structure: get path to struc.his
 #' * measstation: get path to measstat.his
-#' * control: get path to controll.def
+#' * control: get path to control.def
 #' * trigger: get path to trigger.def
 #' * setting: get path to settings.dat
+#' * profile.dat: get path to profile.dat
+#' * profile.def: get path to profile.def
+#' * struct.dat: get path to struct.dat
+#' * struct.def: get path to struct.def
 #' @examples
 #' get_file_path(case.name = 'Default', sobek.project = 'd:/so21302/rhein.lit', type = 'bnd.dat')
 #' @md
@@ -102,7 +106,11 @@ get_file_path <- function(case.name = NULL,
                      lat.dat = "lateral.dat",
                      setting = "settings.dat",
                      trigger = "trigger.def",
-                     control = "controll.def"
+                     control = "control.def",
+                     profile.dat = "profile.dat",
+                     profile.def = "profile.def",
+                     struct.dat = "struct.dat",
+                     struct.def = "struct.def"
                      )
   his_file <- paste(sobek.project, case_number, his_file, sep = "/")
   his_file <- ifelse(file.exists(his_file), his_file, NA)

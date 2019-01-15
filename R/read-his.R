@@ -261,7 +261,7 @@ his_from_file <- function(
     blank.lines.skip = TRUE
   )
   df_out <- his_from_list(his.file = his.file,
-                          id.list = id.list[, 1],
+                          id.list = as.character(id.list[, 1]),
                           param = param)
 
   if (ncol(id.list) > 1){

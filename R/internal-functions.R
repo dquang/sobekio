@@ -2,18 +2,16 @@
 # @param sobek.id Node/Reach ID
 # @param his.locs Location table
 #' @import data.table
-.id2loc <- function(sobek.id, his.locs) {
-  location <- NA_integer_
+.id2loc <- function(id, his.locs) {
   # using exact matching to prevent potential problem caused by special characters
-  if(sobek.id %in% his.locs$sobek.id){
-    location <- his.locs$location[his.locs$sobek.id == sobek.id]
-  } else {
-      location <- ifelse(sobek.id %in% his.locs$long.id,
-                         yes = his.locs$location[his.locs$long.id == sobek.id],
-                         no = NA_integer_
-      )
-    }
-  if (is.na(location[[1]])) warning("sobek.id: '", sobek.id,
+  location <- his.locs[sobek.id == id, location]
+  if (length(location) == 0){
+    location <- his.locs[long.id == id, location]
+  }
+  if (length(location) == 0){
+    location <- NA_integer_
+  }
+  if (is.na(location[[1]])) warning("sobek.id: '", id,
                                "' does not found in the location table")
   return(as.integer(location[[1]]))
 }
