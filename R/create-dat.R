@@ -51,6 +51,9 @@ create_dat <- function(id.file = "",
 	# }
   if(!dir.exists(dirname(bnd.out))) dir.create(dirname(bnd.out), recursive = TRUE)
   if(!dir.exists(dirname(lat.out))) dir.create(dirname(lat.out), recursive = TRUE)
+  outDec <- getOption("OutDec")
+  options(OutDec = ".")
+  on.exit(options(OutDec = outDec))
   node_id     <- fread(file = id.file, header = FALSE,
                        sep = col.sep, dec = dec.char)
   input_data  <- fread(file = data.file, header = TRUE,

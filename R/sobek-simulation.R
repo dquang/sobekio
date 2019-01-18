@@ -69,6 +69,9 @@ sobek_sim <- function(case.name = NULL,
     } else{
       print("Error message: ")
       print(so_res[["Summary"]][["ErrorSourceMsg"]])
+      setwd(wkd)
+      unlink(wk_folder_del, recursive = TRUE)
+      return(parsen_msg)
     }
     setwd(wkd)
     unlink(wk_folder_del, recursive = TRUE)

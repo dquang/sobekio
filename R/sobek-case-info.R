@@ -62,8 +62,9 @@ sobek_case_info <- function(
 #' * node: get path to calcpnt.his
 #' * structure: get path to struc.his
 #' * measstation: get path to measstat.his
-#' * control: get path to control.def
 #' * trigger: get path to trigger.def
+#' * control.def: get path to control.def
+#' * control.dat: get path to control.dat
 #' * setting: get path to settings.dat
 #' * profile.dat: get path to profile.dat
 #' * profile.def: get path to profile.def
@@ -106,7 +107,8 @@ get_file_path <- function(case.name = NULL,
                      lat.dat = "lateral.dat",
                      setting = "settings.dat",
                      trigger = "trigger.def",
-                     control = "control.def",
+                     control.def = "control.def",
+                     control.dat = "control.dat",
                      profile.dat = "profile.dat",
                      profile.def = "profile.def",
                      struct.dat = "struct.dat",

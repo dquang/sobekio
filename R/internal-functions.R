@@ -1,6 +1,6 @@
-# Convert Sobek ID to location index
-# @param sobek.id Node/Reach ID
-# @param his.locs Location table
+#' Convert Sobek ID to location index
+#' @param sobek.id Node/Reach ID
+#' @param his.locs Location table
 #' @import data.table
 .id2loc <- function(id, his.locs) {
   # using exact matching to prevent potential problem caused by special characters
@@ -67,7 +67,7 @@
 # @return a numeric matrix with ncol = total_loc*total_param, nrow = total_tstep
 .his_df <- function(his.file) {
   con <- file(his.file, open = "rb", encoding = "native.enc")
-  his_fsize <- file.size(his.file)
+  # his_fsize <- file.size(his.file)
   seek(con, 160)
   param_nr <- readBin(con, "int", size = 4, endian = "little")
   total_loc <- readBin(con, "int", size = 4, endian = "little")
@@ -173,7 +173,7 @@
   # read total number of parameters
   param_nr <- readBin(con, what = "int", n = 1, size = 4, endian = "little")
   # read total number of locations
-  total_loc <- readBin(con, what = "int", n = 1, size = 4, endian = "little")
+  # total_loc <- readBin(con, what = "int", n = 1, size = 4, endian = "little")
   param_id <- vector(mode = "integer", length = param_nr)
   param_name <- vector(mode = "character", length = param_nr)
   seek(con, where = 168, origin = "start")
