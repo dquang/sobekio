@@ -21,12 +21,18 @@ create_dat <- function(id.file = "",
                        data.file = "",
                        bnd.header = NULL,
                        lat.header = NULL,
-                       factor = 1L,
+                       factor = 1.0,
                        bnd.out = NULL,
-                       lat.out = NULL,
+                       lat.out = sub('boundary.dat',
+                                     'lateral.dat',
+                                     bnd.out,
+                                     ignore.case = TRUE,
+                                     fixed = TRUE),
                        col.sep = "\t",
                        dec.char = ","){
-
+  if (tolower(bnd.out) == tolower(lat.out)){
+    stop('output for boundary and lateral should be different')
+  }
   # checking availability of the files
   if (FALSE %in% file.exists(id.file,
                              data.file

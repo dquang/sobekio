@@ -50,15 +50,23 @@
 
 
 # Get case number from case name
+# .get_case_number <- function(case.name, case.list) {
+#   if (typeof(case.list) != "list") stop("case.list must be a list")
+#   if (case.name %in% case.list$case_name){
+#     x <- case.list$case_number[case.list$case_name == case.name]
+#     return(x)
+#   } else{
+#     warning("case ", case.name, " not found in the case list")
+#     return(NA_integer_)
+#   }
+# }
+
 .get_case_number <- function(case.name, case.list) {
+  setkey(case.list, case_name)
   if (typeof(case.list) != "list") stop("case.list must be a list")
-  if (case.name %in% case.list$case_name){
-    x <- case.list$case_number[case.list$case_name == case.name]
-    return(x)
-  } else{
-    warning("case ", case.name, " not found in the case list")
-    return(NA_integer_)
-  }
+  x  <-  as.integer(case.list[case.name, case_number])
+  if (is.na(x)) warning("case ", case.name, " not found in the case list")
+  return(x)
 }
 
 

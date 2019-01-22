@@ -101,3 +101,219 @@ plot_wirkung <- function(indt = NULL,
   if (faced) g <- g + facet_wrap(.~case, scales = 'free')
   return(g)
 }
+
+
+#' Plot Q/W hydrograph for the
+#' @import grid
+#' @export
+#' @param indt Input data
+#' @param pos Names of columns to draw
+#' @param peak.duration Halftime of the flooding period, default 5 days
+#' @param x.lab Label for x axis, default 'Lage'
+#' @param y.lab Label for y axis, default 'Discharge (m³/s)'
+#' @param title Graphic title
+#' @param x.angle Rotation angle of x label
+#' @param x.hjust hjust of x label
+#' @size size of the line
+#' @param y.min ymin
+#' @param delta Annotate Delta value, if only for one case and two columns
+#' @param h.line Numeric vector for adding HLINE
+#' @param y.interval Tick interval for y axis
+#' @param faced faced by case, default FALSE
+#' @return a ggplot2 graphic
+plot_polder <- function(indt = NULL,
+                        pos = NULL,
+                        peak.duration = 5L,
+                        x.lab = 'Lage',
+                        y.lab = 'Discharge (m³/s)',
+                        title = '',
+                        x.angle = 90L,
+                        x.hjust = 1L,
+                        size = 1L,
+                        y.min = NULL,
+                        delta = FALSE,
+                        h.line = NULL,
+                        y.interval = 500L,
+                        faced = FALSE){
+  data_tb <- data.table(indt)
+  lage_all <- colnames(data_tb)
+  lage_all <- lage_all[-grep("ts|case", lage_all)]
+  data_tb <- data_tb[, c('ts', pos, 'case'), with = FALSE]
+  q_max <- melt(data_tb[, lapply(.SD, max, na.rm = TRUE), .SDcols = pos],
+                measure.vars = pos, variable.factor = F)
+  col_has_max <- q_max[value == max(value), variable]
+  time_at_peak <- data_tb[get(col_has_max)==max(get(col_has_max)), ts]
+  t_min <- time_at_peak - peak.duration*24*3600
+  t_max <- time_at_peak + peak.duration*24*3600
+  q_min <- as.integer(data_tb[ts == t_min,
+                              get(col_has_max)])
+  y_min <- ifelse(is.null(y.min), q_min, y.min)
+  # print(data_tb)
+  data_tb <- melt(data_tb,
+                  id.vars = c('ts', 'case'),
+                  variable.name = 'Lage'
+  )
+  # if (max(qmax$value)>300 & y.lab == 'Wasserstand (m+NHN)'){
+  #   warning('check y label again')
+  # }
+  # print(data_tb)
+  g <- ggplot(data = data_tb,
+              mapping = aes(x = ts,
+                            # y = get_column_by_name(p, data_tb),
+                            y = value,
+                            color = Lage,
+                            linetype = case
+              )) +
+    scale_x_datetime(date_breaks = '1 days',
+                     limits = c(t_min, t_max)
+                     # minor_breaks = "6 hours"
+    ) + theme_bw() +
+    theme(legend.position = 'bottom',
+          axis.text.x = element_text(angle = x.angle, hjust = x.hjust)
+    ) +
+    xlab(x.lab) +
+    ylab(y.lab) +
+    ggtitle(title) +
+    geom_line(size = size) + ylim(y_min, NA)
+  if (delta & length(pos) == 2 & length(unique(indt$case)) == 1){
+    my_grob = grobTree(textGrob(paste("Delta:",
+                                      round(max(q_max$value) - min(q_max$value), 2)),
+                                x = 0.6,  y = 0.95, hjust = 0,
+                                gp = gpar(col = "blue",
+                                          fontsize = 15, fontface="bold")))
+    g <- g+
+      annotation_custom(my_grob)
+    # annotate("text",
+    #          x = time_at_peak,
+    #          y = max(q_max$value) + 0.02*(max(q_max$value) - y_min),
+    #          label = paste("Delta:",
+    #                        round(max(q_max$value) - min(q_max$value), 2)
+    #          )
+    #          )
+
+  }
+  if(!is.null(h.line)){
+    y_min <- round((y_min - 50)/100)*100
+    y_max <- round((max(q_max$value) + 50)/100)*100
+    y_break <- sort(c(seq.int(y_min, y_max, y.interval),
+                      h.line))
+    for (i in h.line){
+      g <- g + geom_hline(yintercept = h.line, linetype="dashed")
+    }
+    g <- g + scale_y_continuous(breaks = y_break, limits = c(y_min, NA))
+
+  }
+  if(faced) g <- g + facet_wrap(.~case, scales = "free")
+  return(g)
+}
+
+
+#' Plot peak difference at one place
+#' @import grid
+#' @export
+#' @param indt Input data
+#' @param pos Names of columns to draw
+#' @param peak.duration Halftime of the flooding period, default 5 days
+#' @param x.lab Label for x axis, default 'Lage'
+#' @param y.lab Label for y axis, default 'Discharge (m³/s)'
+#' @param title Graphic title
+#' @param x.angle Rotation angle of x label
+#' @param x.hjust hjust of x label
+#' @size size of the line
+#' @param y.min ymin
+#' @param delta Annotate Delta value, if only for one case and two columns
+#' @param h.line Numeric vector for adding HLINE
+#' @param y.interval Tick interval for y axis
+#' @param faced faced by case, default FALSE
+#' @return a ggplot2 graphic
+plot_scheitel_delta <- function(
+  indt = NULL,
+  pos = '',
+  peak.duration = 5L,
+  x.lab = 'Zeit',
+  y.lab = 'Discharge (m³/s)',
+  title = paste('Ganglinie an der Lage:', pos) ,
+  x.angle = 90L,
+  x.hjust = 1L,
+  size = 1L,
+  y.min = NULL,
+  delta = TRUE,
+  h.line = NULL,
+  y.interval = 500L,
+  faced = FALSE){
+  data_tb <- data.table(indt)
+  lage_all <- colnames(data_tb)
+  lage_all <- lage_all[-grep("ts|case", lage_all)]
+  data_tb <- data_tb[, c('ts', pos, 'case'), with = FALSE]
+  q_max <- data_tb[, lapply(.SD, max, na.rm = TRUE), .SDcols = pos, by = case]
+  # col_has_max <- q_max[value == max(value), variable]
+  time_at_peak <- data_tb[get(pos)==max(get(pos)), ts]
+  t_min <- time_at_peak - peak.duration*24*3600
+  t_max <- time_at_peak + peak.duration*24*3600
+  q_min <- as.integer(data_tb[ts == t_min,
+                              get(pos)])
+  y_min <- ifelse(is.null(y.min), q_min, y.min)
+  # print(data_tb)
+  data_tb <- melt(data_tb,
+                  id.vars = c('ts', 'case'),
+                  variable.name = 'Lage'
+  )
+  # if (max(qmax$value)>300 & y.lab == 'Wasserstand (m+NHN)'){
+  #   warning('check y label again')
+  # }
+  # print(data_tb)
+  g <- ggplot(data = data_tb,
+              mapping = aes(x = ts,
+                            # y = get_column_by_name(p, data_tb),
+                            y = value,
+                            color = case,
+                            linetype = case
+              )) +
+    scale_x_datetime(date_breaks = '1 days',
+                     limits = c(t_min, t_max)
+                     # minor_breaks = "6 hours"
+    ) + theme_bw() +
+    theme(legend.position = 'bottom',
+          axis.text.x = element_text(angle = x.angle, hjust = x.hjust)
+    ) +
+    xlab(x.lab) +
+    ylab(y.lab) +
+    ggtitle(title) +
+    geom_line(size = size) + ylim(y_min, NA)
+  if (delta & length(pos) == 1){
+    my_grob = grobTree(textGrob(paste("Delta:",
+                                      round(max(q_max[,get(pos)]) -
+                                              min(q_max[,get(pos)]), 2
+                                      )
+    ),
+    x = 0.6,  y = 0.95, hjust = 0,
+    gp = gpar(col = "blue",
+              fontsize = 15, fontface="bold")
+    )
+    )
+
+    g <- g +
+      annotation_custom(my_grob)
+    # annotate("text",
+    #          x = time_at_peak,
+    #          y = max(q_max$value) + 0.02*(max(q_max$value) - y_min),
+    #          label = paste("Delta:",
+    #                        round(max(q_max$value) - min(q_max$value), 2)
+    #          )
+    #          )
+
+  }
+  if(!is.null(h.line)){
+    y_min <- round((y_min - 50)/100)*100
+    y_max <- round((max(q_max[, get(pos)]) + 50)/100)*100
+    y_break <- sort(c(seq.int(y_min, y_max, y.interval),
+                      h.line))
+    for (i in h.line){
+      g <- g + geom_hline(yintercept = h.line, linetype="dashed")
+    }
+    g <- g + scale_y_continuous(breaks = y_break, limits = c(y_min, NA))
+
+  }
+  if(faced) g <- g + facet_wrap(.~case, scales = "free")
+  return(g)
+}

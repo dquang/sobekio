@@ -10,7 +10,7 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 6.1.1
 Imports:
-	data.table (>= 1.12.0),
+	data.table,
 	XML,
 	ggplot2,
 	stringi

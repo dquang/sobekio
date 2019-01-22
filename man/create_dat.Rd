@@ -5,8 +5,9 @@
 \title{Create Sobek Input .DAT from}
 \usage{
 create_dat(id.file = "", data.file = "", bnd.header = NULL,
-  lat.header = NULL, factor = 1L, bnd.out = NULL, lat.out = NULL,
-  col.sep = "\\t", dec.char = ",")
+  lat.header = NULL, factor = 1, bnd.out = NULL,
+  lat.out = sub("boundary.dat", "lateral.dat", bnd.out, ignore.case =
+  TRUE, fixed = TRUE), col.sep = "\\t", dec.char = ",")
 }
 \arguments{
 \item{id.file}{Path to ID file}
