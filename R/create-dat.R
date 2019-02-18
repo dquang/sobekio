@@ -8,6 +8,9 @@
 #' @param lat.out Output path for Lateral.dat (full file path)
 #' @param col.sep Column seperator of ID & Input Data files. Default TAB.
 #' @param dec.char Decimal character of ID & Input Data files. Default ","
+#' @param output.case Write output (boundary.dat, lateral.dat) direct to the case.\n
+#' Output.case must be a character vector combine (case.name, sobek.project)
+#'  like c('case name', 'd:/so21302/main.lit')
 #' @details Example for id.file
 #'\tabular{llllrr}{
 #'Ahr           \tab ahr_mess_fv_q         \tab FLBR id Ahr sc 0 lt 0 dc lt 1 0 0 PDIN 0 0  pdin              \tab Lateral  \tab 1 \tab 100\cr
@@ -29,7 +32,18 @@ create_dat <- function(id.file = "",
                                      ignore.case = TRUE,
                                      fixed = TRUE),
                        col.sep = "\t",
-                       dec.char = ","){
+                       dec.char = ",",
+                       output.case = NULL){
+  if (!is.null(output.case)){
+    bnd.out = get_file_path(output.case[[1]],
+                            output.case[[2]],
+                            type = "bnd.dat"
+                            )
+    lat.out = get_file_path(output.case[[1]],
+                            output.case[[2]],
+                            type = "lat.dat"
+    )
+  }
   if (tolower(bnd.out) == tolower(lat.out)){
     stop('output for boundary and lateral should be different')
   }
@@ -41,20 +55,12 @@ create_dat <- function(id.file = "",
                              )){
     stop("id and/or data file does not exist")
   }
-
-
 	if (!is.null(bnd.header)){
 		if (!file.exists(bnd.header)) stop(bnd.header, " does not exist")
 	}
 	if (!is.null(lat.header)){
 		if (!file.exists(lat.header)) stop(lat.header, " does not exist")
 	}
-
-  if (is.null(bnd.out) && is.null(lat.out)) stop("Please give output names for .dat files")
-
-	# if (!is.null(bnd.header) && !is.null(lat.header)){
-	# 	stop("only accept either lat- or bnd.header, not both at the same time")
-	# }
   if(!dir.exists(dirname(bnd.out))) dir.create(dirname(bnd.out), recursive = TRUE)
   if(!dir.exists(dirname(lat.out))) dir.create(dirname(lat.out), recursive = TRUE)
   outDec <- getOption("OutDec")
@@ -74,6 +80,7 @@ create_dat <- function(id.file = "",
                             format = "%Y/%m/%d"
                             )
              ]
+  input_data <- input_data[order(date, time, decreasing = F), ]
   # sep = "\n" make sure that we read all lines in one column
   # file.copy(from = bnd.header,
   #           to = bnd.out,
@@ -185,6 +192,46 @@ create_dat <- function(id.file = "",
   }
 }
 
-# system.time(creat_data(id.file = "ID_ohne_Worms_FRA.txt",
-           # data.file = "inputRhein.txt"))
 
+#' Change Rhein Modell Boundary 'Frankfurt Ost (66) by ts from Main Output
+#' This function is to extract Main Model output at Frankfurt Osthafen
+#' and paste it as input to Rhein Model (boundary node '66')
+#' @param main.case Name of case in Main Model
+#' @param rhein.case Name of case in Rhein Model
+#' @param main.prj Path to Main Model (default d:/so21302/main2015.lit)
+#' @param rhein.prj Path to Rhein Model (default d:/so21302/rhein29a.lit)
+#' @result Modified boundary.dat for the rhein.case
+#' @export
+transfer_fra <- function(
+  main.case = '',
+  rhein.case = '',
+  main.prj = 'd:/so21302/main2015.lit',
+  rhein.prj = "d:/so21302/rhein29a.lit"
+){
+  fra_main_id <- 'Pegel_F-Ost'
+  fra_main <- his_from_case(case.list = main.case,
+                            sobek.project = main.prj,
+                            param = "discharge",
+                            mID = fra_main_id)
+  colnames(fra_main) <- c('ts', 'fra', 'case')
+  # worms_pz27_lubw[, ts:=strptime(ts, format = '%d.%m.%Y %H:%M:%S', tz = 'GMT')]
+  fra_main[, fra_prn := paste("'",
+                              format(ts,
+                                     format = '%Y/%m/%d;%H:%M:%S', tz = 'GMT'),
+                              "' ",
+                              fra,
+                              " <",
+                              sep = ""
+  )
+  ]
+  bnd_file <- get_file_path(case.name = rhein.case,
+                            sobek.project = rhein.prj,
+                            type = "bnd.dat")
+  sobekio::change_tble(dat.file = bnd_file,
+                       s.id = '66',
+                       tble = fra_main[, c("fra_prn")],
+                       output = bnd_file,
+                       comments = c('Frankfurt Ost from Main Modell',
+                                    main.case))
+
+}

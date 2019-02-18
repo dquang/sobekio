@@ -33,7 +33,7 @@ sobek_case_info <- function(
 	his_file <- switch(his.type,
 										 node = "calcpnt.his",
 										 reach = "reachseg.his",
-										 lateral = "lateral.his",
+										 lateral = "qlat.his",
 										 struct = "struc.his",
 										 measstation = "measstat.his")
 	his_file <- paste(sobek.project, case_number, his_file, sep = "/")
@@ -100,7 +100,7 @@ get_file_path <- function(case.name = NULL,
   his_file <- switch(type,
                      node = "calcpnt.his",
                      reach = "reachseg.his",
-                     lateral = "lateral.his",
+                     lateral = "qlat.his",
                      struct = "struc.his",
                      measstation = "measstat.his",
                      bnd.dat = "boundary.dat",

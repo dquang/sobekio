@@ -5,7 +5,7 @@
 \title{Plot Q/W hydrograph for the}
 \usage{
 plot_polder(indt = NULL, pos = NULL, peak.duration = 5L,
-  x.lab = "Lage", y.lab = "Discharge (m³/s)", title = "",
+  x.lab = "Lage", y.lab = "Abfluss (m³/s)", title = "",
   x.angle = 90L, x.hjust = 1L, size = 1L, y.min = NULL,
   delta = FALSE, h.line = NULL, y.interval = 500L, faced = FALSE)
 }
@@ -25,6 +25,8 @@ plot_polder(indt = NULL, pos = NULL, peak.duration = 5L,
 \item{x.angle}{Rotation angle of x label}
 
 \item{x.hjust}{hjust of x label}
+
+\item{size}{size of the line}
 
 \item{y.min}{ymin}
 

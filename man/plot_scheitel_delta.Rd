@@ -5,10 +5,10 @@
 \title{Plot peak difference at one place}
 \usage{
 plot_scheitel_delta(indt = NULL, pos = "", peak.duration = 5L,
-  x.lab = "Zeit", y.lab = "Discharge (m³/s)",
+  x.lab = "Zeit", y.lab = "Abfluss (m³/s)",
   title = paste("Ganglinie an der Lage:", pos), x.angle = 90L,
   x.hjust = 1L, size = 1L, y.min = NULL, delta = TRUE,
-  h.line = NULL, y.interval = 500L, faced = FALSE)
+  max.zulauf = "", h.line = NULL, y.interval = 500L, faced = FALSE)
 }
 \arguments{
 \item{indt}{Input data}
@@ -26,6 +26,8 @@ plot_scheitel_delta(indt = NULL, pos = "", peak.duration = 5L,
 \item{x.angle}{Rotation angle of x label}
 
 \item{x.hjust}{hjust of x label}
+
+\item{size}{size of the line}
 
 \item{y.min}{ymin}
 

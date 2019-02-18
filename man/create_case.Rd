@@ -21,6 +21,9 @@ create_case(old.name = "", new.name = "",
 
 \item{new.desc}{Character vector, for new case description, one element for each line}
 }
+\value{
+A Sobek Case
+}
 \description{
 Create new Sobek Case from existing Case
 }

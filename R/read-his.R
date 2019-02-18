@@ -64,12 +64,13 @@ his_location <- function(his.file = "") {
                                 quote = "")
     # remove blank lines
     hia_dt <- na.omit(hia_dt)
+    hia_dt <- hia_dt[!grepl("^\\ {1,}$", V1), ]
     # check if there is a Long Location Section
     hia_check <- TRUE %in% grepl("^\\[Long Locations]", hia_dt$V1)
     # check if Long Locations is the last section, and empty?
     if (hia_check){
       long_loc_pos <- which(hia_dt$V1 == "[Long Locations]")
-      if (long_loc_pos > length(hia_dt$V1)) hia_check <- FALSE
+      if (long_loc_pos >= length(hia_dt$V1)) hia_check <- FALSE
     }
     # check if Long Locations is an empty section in between
     if (hia_check){

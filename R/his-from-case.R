@@ -230,7 +230,7 @@ his_from_case<- function(
       if (!is.null(lID)) {
         if(length(lID)==1 && file.exists(lID)){
           tmp <- his_from_file(
-            his.file = paste(his_folder, "lateral.his", sep = "/"),
+            his.file = paste(his_folder, "qlat.his", sep = "/"),
             id.file = lID[[1]],
             param = param
           )
@@ -239,7 +239,7 @@ his_from_case<- function(
         } else {
           if (is.vector(lID)){
             tmp <- his_from_list(
-              his.file = paste(his_folder, "lateral.his", sep = "/"),
+              his.file = paste(his_folder, "qlat.his", sep = "/"),
               id.list = unlist(lID),
               param = param
             )

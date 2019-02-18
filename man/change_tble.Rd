@@ -5,7 +5,7 @@
 \title{change table value of one id in the DAT file}
 \usage{
 change_tble(dat.file = NULL, s.id = NULL, tble = NULL,
-  output = NULL)
+  output = NULL, comments = NULL)
 }
 \arguments{
 \item{dat.file}{Path to .DAT file}

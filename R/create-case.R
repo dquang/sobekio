@@ -124,7 +124,7 @@
 #' @param new.begin New simulation starting time (in format dd.mm.yyyy hh:mm:ss)
 #' @param new.end New simulation starting time (in format dd.mm.yyyy hh:mm:ss)
 #' @param new.desc Character vector, for new case description, one element for each line
-#' @result A Sobek Case
+#' @return A Sobek Case
 #' @export
 create_case <- function(
                         old.name = "",

@@ -98,7 +98,7 @@ plot_wirkung <- function(indt = NULL,
       ggtitle(title) +
       geom_line(size = size)
   }
-  if (faced) g <- g + facet_wrap(.~case, scales = 'free')
+  if (faced) g <- g + facet_wrap(.~case)
   return(g)
 }
 
@@ -114,7 +114,7 @@ plot_wirkung <- function(indt = NULL,
 #' @param title Graphic title
 #' @param x.angle Rotation angle of x label
 #' @param x.hjust hjust of x label
-#' @size size of the line
+#' @param size size of the line
 #' @param y.min ymin
 #' @param delta Annotate Delta value, if only for one case and two columns
 #' @param h.line Numeric vector for adding HLINE
@@ -125,7 +125,7 @@ plot_polder <- function(indt = NULL,
                         pos = NULL,
                         peak.duration = 5L,
                         x.lab = 'Lage',
-                        y.lab = 'Discharge (m³/s)',
+                        y.lab = 'Abfluss (m³/s)',
                         title = '',
                         x.angle = 90L,
                         x.hjust = 1L,
@@ -142,7 +142,7 @@ plot_polder <- function(indt = NULL,
   q_max <- melt(data_tb[, lapply(.SD, max, na.rm = TRUE), .SDcols = pos],
                 measure.vars = pos, variable.factor = F)
   col_has_max <- q_max[value == max(value), variable]
-  time_at_peak <- data_tb[get(col_has_max)==max(get(col_has_max)), ts]
+  time_at_peak <- data_tb[get(col_has_max)==max(get(col_has_max)), ts][1]
   t_min <- time_at_peak - peak.duration*24*3600
   t_max <- time_at_peak + peak.duration*24*3600
   q_min <- as.integer(data_tb[ts == t_min,
@@ -177,7 +177,9 @@ plot_polder <- function(indt = NULL,
     geom_line(size = size) + ylim(y_min, NA)
   if (delta & length(pos) == 2 & length(unique(indt$case)) == 1){
     my_grob = grobTree(textGrob(paste("Delta:",
-                                      round(max(q_max$value) - min(q_max$value), 2)),
+                                      round(max(q_max$value)
+                                            - min(q_max$value))
+                                      ),
                                 x = 0.6,  y = 0.95, hjust = 0,
                                 gp = gpar(col = "blue",
                                           fontsize = 15, fontface="bold")))
@@ -193,15 +195,18 @@ plot_polder <- function(indt = NULL,
 
   }
   if(!is.null(h.line)){
-    y_min <- round((y_min - 50)/100)*100
-    y_max <- round((max(q_max$value) + 50)/100)*100
-    y_break <- sort(c(seq.int(y_min, y_max, y.interval),
-                      h.line))
-    for (i in h.line){
-      g <- g + geom_hline(yintercept = h.line, linetype="dashed")
+    y_max <- round(max(q_max$value))
+    y_break <- sort(c(pretty(y_min:y_max, 5),
+                      unlist(h.line, use.names = F)))
+    for (i in seq_along(h.line)){
+      g <- g + geom_hline(yintercept = h.line[[i]], linetype="dashed")+
+        annotate("text",
+                 x = t_min,
+                 y = h.line[[i]] + round(0.1(y_max - ymin)),
+                 label = names(h.line)[i]
+                 )
     }
     g <- g + scale_y_continuous(breaks = y_break, limits = c(y_min, NA))
-
   }
   if(faced) g <- g + facet_wrap(.~case, scales = "free")
   return(g)
@@ -219,7 +224,7 @@ plot_polder <- function(indt = NULL,
 #' @param title Graphic title
 #' @param x.angle Rotation angle of x label
 #' @param x.hjust hjust of x label
-#' @size size of the line
+#' @param size size of the line
 #' @param y.min ymin
 #' @param delta Annotate Delta value, if only for one case and two columns
 #' @param h.line Numeric vector for adding HLINE
@@ -231,13 +236,14 @@ plot_scheitel_delta <- function(
   pos = '',
   peak.duration = 5L,
   x.lab = 'Zeit',
-  y.lab = 'Discharge (m³/s)',
+  y.lab = 'Abfluss (m³/s)',
   title = paste('Ganglinie an der Lage:', pos) ,
   x.angle = 90L,
   x.hjust = 1L,
   size = 1L,
   y.min = NULL,
   delta = TRUE,
+  max.zulauf = "",
   h.line = NULL,
   y.interval = 500L,
   faced = FALSE){
@@ -246,22 +252,17 @@ plot_scheitel_delta <- function(
   lage_all <- lage_all[-grep("ts|case", lage_all)]
   data_tb <- data_tb[, c('ts', pos, 'case'), with = FALSE]
   q_max <- data_tb[, lapply(.SD, max, na.rm = TRUE), .SDcols = pos, by = case]
-  # col_has_max <- q_max[value == max(value), variable]
   time_at_peak <- data_tb[get(pos)==max(get(pos)), ts]
   t_min <- time_at_peak - peak.duration*24*3600
   t_max <- time_at_peak + peak.duration*24*3600
   q_min <- as.integer(data_tb[ts == t_min,
                               get(pos)])
   y_min <- ifelse(is.null(y.min), q_min, y.min)
-  # print(data_tb)
+
   data_tb <- melt(data_tb,
                   id.vars = c('ts', 'case'),
                   variable.name = 'Lage'
   )
-  # if (max(qmax$value)>300 & y.lab == 'Wasserstand (m+NHN)'){
-  #   warning('check y label again')
-  # }
-  # print(data_tb)
   g <- ggplot(data = data_tb,
               mapping = aes(x = ts,
                             # y = get_column_by_name(p, data_tb),
@@ -281,35 +282,38 @@ plot_scheitel_delta <- function(
     ggtitle(title) +
     geom_line(size = size) + ylim(y_min, NA)
   if (delta & length(pos) == 1){
-    my_grob = grobTree(textGrob(paste("Delta:",
-                                      round(max(q_max[,get(pos)]) -
-                                              min(q_max[,get(pos)]), 2
-                                      )
-    ),
+    my_grob = grobTree(
+      textGrob(paste("Delta:",
+                     round(max(q_max[,get(pos)]) -
+                             min(q_max[,get(pos)])),
+                                      "m³/s"),
     x = 0.6,  y = 0.95, hjust = 0,
     gp = gpar(col = "blue",
-              fontsize = 15, fontface="bold")
+              fontsize = 12, fontface="bold")
     )
+    )
+    max_zulauf = grobTree(
+      textGrob(paste("Max. Zulauf:",
+                     max.zulauf,
+                     "m³/s"),
+               x = 0.6,  y = 0.90, hjust = 0,
+               gp = gpar(col = "blue",
+                         fontsize = 12, fontface="bold")
+      )
     )
 
     g <- g +
-      annotation_custom(my_grob)
-    # annotate("text",
-    #          x = time_at_peak,
-    #          y = max(q_max$value) + 0.02*(max(q_max$value) - y_min),
-    #          label = paste("Delta:",
-    #                        round(max(q_max$value) - min(q_max$value), 2)
-    #          )
-    #          )
-
+      annotation_custom(my_grob) + annotation_custom(max_zulauf)
   }
   if(!is.null(h.line)){
-    y_min <- round((y_min - 50)/100)*100
-    y_max <- round((max(q_max[, get(pos)]) + 50)/100)*100
-    y_break <- sort(c(seq.int(y_min, y_max, y.interval),
-                      h.line))
-    for (i in h.line){
-      g <- g + geom_hline(yintercept = h.line, linetype="dashed")
+    y_max <- max(q_max[, get(pos)])
+    y_break <- sort(c(pretty(y_min:y_max, 5),
+                      unlist(h.line, use.names = F)))
+    for (i in seq_along(h.line)){
+      g <- g + geom_hline(yintercept = h.line[[i]], linetype="dashed")+
+        annotate('text', x = t_min,
+                 y = h.line[[i]]+ round(0.04*(y_max - y_min)),
+                 label = names(h.line)[i])
     }
     g <- g + scale_y_continuous(breaks = y_break, limits = c(y_min, NA))
 

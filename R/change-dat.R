@@ -131,7 +131,8 @@ set_q_const <- function(dat.file = NULL,
 change_tble <- function(dat.file = NULL,
                         s.id = NULL,
                         tble = NULL,
-                        output = NULL
+                        output = NULL,
+                        comments = NULL
 ){
   # check input
   outDec <- getOption("OutDec")
@@ -182,6 +183,14 @@ change_tble <- function(dat.file = NULL,
          quote = FALSE,
          col.names = FALSE,
          sep = " ")
+  if (!is.null(comments)){
+    fwrite(list(paste("*", comments)),
+           file = output,
+           append = TRUE,
+           quote = FALSE,
+           col.names = FALSE
+    )
+  }
   fwrite(data.table(list(s.id_line, "TBLE")),
          file = output,
          append = TRUE,

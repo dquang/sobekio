@@ -11,6 +11,8 @@ sobek_sim <- function(case.name = NULL,
                       overwrite = TRUE,
                       clear.temp = TRUE
                       ){
+  sobek.path <- gsub("/", "\\\\", sobek.path)
+  sobek.project <- gsub("/", "\\\\", sobek.project)
   clist <- fread(file = paste(sobek.project, "caselist.cmt", sep = "/"),
                  header = FALSE,
                  sep = " ",
@@ -20,22 +22,26 @@ sobek_sim <- function(case.name = NULL,
   c_number <- .get_case_number(case.name, clist)
   c_folder <- paste(sobek.project, c_number, sep = "/")
   wkd <- getwd()
+  on.exit(setwd(wkd))
   # copy relative file to working folder
   setwd(sobek.path)
-  wk_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
-  dir.create(wk_folder)
+  tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
+  wk_folder_del <- paste(sobek.path, tmp_folder, sep = "\\")
+  dir.create(tmp_folder)
+  # on.exit(unlink(wk_folder_del, recursive = T))
+  # on.exit(unlink(paste(sobek.path, wk_folder, sep ="/"), recursive = T))
   prj_files <- dir(sobek.project, full.names = TRUE)
   prj_files <- prj_files[!grepl("/[0-9]{1,}$", prj_files)]
   file.copy(from = prj_files,
-            to = wk_folder,
+            to = tmp_folder,
             recursive = TRUE)
   # copy case folder to work folder
   file.copy(from = c_folder,
-            to = wk_folder,
+            to = tmp_folder,
             recursive = TRUE
             )
-  wk_folder_del <- wk_folder
-  wk_folder <- paste(wk_folder, "work", sep = "/")
+  # cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "\\")
+  wk_folder <- paste(sobek.path, tmp_folder, "WORK", sep = "\\")
   if(!dir.exists(wk_folder)) dir.create(wk_folder)
   file.copy(from = dir(c_folder, full.names = TRUE,
                        recursive = TRUE,
@@ -59,9 +65,12 @@ sobek_sim <- function(case.name = NULL,
   if (so_res[["Summary"]][["Succesfull"]] == "false"){
     print("Simulation was not successful")
     if (so_res[["Summary"]][["ErrorSourceMsg"]]=="parsen"){
-      parsen_msg <- fread(file = "parsen.msg",
+      # print(getwd())
+      parsen_msg <- fread(file = paste(wk_folder, "parsen.msg", sep = "\\"),
+                          blank.lines.skip = F,
                           sep = "\n", header = F)
-      parsen_msg <- parsen_msg[grep("Error", V1),]
+      print(parsen_msg)
+      # parsen_msg <- parsen_msg[grep("Error", V1),]
       # cleaning before return
       setwd(wkd)
       unlink(wk_folder_del, recursive = TRUE)
@@ -71,7 +80,7 @@ sobek_sim <- function(case.name = NULL,
       print(so_res[["Summary"]][["ErrorSourceMsg"]])
       setwd(wkd)
       unlink(wk_folder_del, recursive = TRUE)
-      return(parsen_msg)
+      return(NA)
     }
     setwd(wkd)
     unlink(wk_folder_del, recursive = TRUE)

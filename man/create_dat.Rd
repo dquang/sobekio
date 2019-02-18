@@ -7,7 +7,8 @@
 create_dat(id.file = "", data.file = "", bnd.header = NULL,
   lat.header = NULL, factor = 1, bnd.out = NULL,
   lat.out = sub("boundary.dat", "lateral.dat", bnd.out, ignore.case =
-  TRUE, fixed = TRUE), col.sep = "\\t", dec.char = ",")
+  TRUE, fixed = TRUE), col.sep = "\\t", dec.char = ",",
+  output.case = NULL)
 }
 \arguments{
 \item{id.file}{Path to ID file}
@@ -27,6 +28,10 @@ create_dat(id.file = "", data.file = "", bnd.header = NULL,
 \item{col.sep}{Column seperator of ID & Input Data files. Default TAB.}
 
 \item{dec.char}{Decimal character of ID & Input Data files. Default ","}
+
+\item{output.case}{Write output (boundary.dat, lateral.dat) direct to the case.\n
+Output.case must be a character vector combine (case.name, sobek.project)
+like c('case name', 'd:/so21302/main.lit')}
 }
 \description{
 Create Sobek Input .DAT from
