@@ -125,19 +125,22 @@ set_q_const <- function(dat.file = NULL,
 #' change table value of one id in the DAT file
 #' @param dat.file Path to .DAT file
 #' @param s.id ID of the element to get data
-#' @param tble data.frame with in PRN format
+#' @param tble a data.frame/data.table of one column with PRN format
+#' If tble is given as data.frame of two columns, the first one is time serie and the second one is the value, it will be converted to PRN format.
 #' @param output Path to write output file. Use the same path as dat.file to overwrite
 #' @export
 change_tble <- function(dat.file = NULL,
+                        output = dat.file,
                         s.id = NULL,
                         tble = NULL,
-                        output = NULL,
                         comments = NULL
 ){
-  # check input
+
   outDec <- getOption("OutDec")
   options(OutDec = ".")
   on.exit(options(OutDec = outDec))
+  # check input
+  if (!is.data.frame(tble)) stop('tble must be a data.frame/data.table')
   if (!file.exists(dat.file)) stop(dat.file, " file does not exist!")
   # out.file <- ifelse(is.null(output),
   #                    paste(dat.file, ".mod", sep = ""),
@@ -197,12 +200,53 @@ change_tble <- function(dat.file = NULL,
          quote = FALSE,
          col.names = FALSE
   )
-  fwrite(tble,
-         file = output,
-         append = TRUE,
-         quote = FALSE,
-         col.names = FALSE
-  )
+  # checking tble input
+  prn_pattern <- "[\"\'][0-9]{4}/[0-9]{2}/[0-9]{2};[0-9]{2}:[0-9]{2}:[0-9]{2}[\"\'] [0-9]{1,}\\.?[0-9]{1,} <"
+  tble_sample <- sample(1:length(tble[, 1]), 5, replace = T)
+  tble_check <- FALSE %in% grepl(prn_pattern, tble[tble_sample, 1])
+  if (tble_check){
+    if (!is.data.table(tble)) tble <- as.data.table(tble)
+    if (ncol(tble) != 2) stop('tble should have 2 columns')
+    colnames(tble) <- c('ts', 'value')
+    ts_class_check <- FALSE %in% grepl("POSIX", tble[1, 1])
+    if (ts_class_check){
+      tble[, ts := as.POSIXct(ts, tz = 'GMT',
+                              tryFormats = c(
+                                "%Y-%m-%d %H:%M:%S",
+                                "%Y/%m/%d %H:%M:%S",
+                                "%d.%m.%Y %H:%M:%S",
+                                "%Y-%m-%d %H:%M",
+                                "%Y/%m/%d %H:%M",
+                                "%d.%m.%Y %H:%M",
+                                "%Y-%m-%d",
+                                "%Y/%m/%d",
+                                "%d.%m.%Y")
+                              )
+           ]
+    }
+    tble[ ,prn := paste("'",
+                        format(ts,
+                               format = '%Y/%m/%d;%H:%M:%S', tz = 'GMT'),
+                        "' ",
+                        value,
+                        " <",
+                        sep = ""
+                        )
+    ]
+    fwrite(tble[, c("prn")],
+           file = output,
+           append = TRUE,
+           quote = FALSE,
+           col.names = FALSE
+    )
+  } else{
+    fwrite(tble[, 1],
+           file = output,
+           append = TRUE,
+           quote = FALSE,
+           col.names = FALSE
+    )
+  }
   # get the ending line based on id type
   tble_footer <- list(paste("tble", tolower(substr(id_data[1,1], 1, 4)),
                             sep = " "))

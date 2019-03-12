@@ -32,11 +32,15 @@ sobek_sim <- function(case.name = NULL,
   # on.exit(unlink(paste(sobek.path, wk_folder, sep ="/"), recursive = T))
   prj_files <- dir(sobek.project, full.names = TRUE)
   prj_files <- prj_files[!grepl("/[0-9]{1,}$", prj_files)]
+  prj_files <- prj_files[!grepl("/WORK", prj_files, ignore.case = T)]
+  # prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = T)]
   file.copy(from = prj_files,
+            overwrite = T,
             to = tmp_folder,
             recursive = TRUE)
   # copy case folder to work folder
   file.copy(from = c_folder,
+            overwrite = T,
             to = tmp_folder,
             recursive = TRUE
             )
@@ -49,8 +53,10 @@ sobek_sim <- function(case.name = NULL,
                        include.dirs = TRUE,
                        no.. = TRUE
                        ),
+            overwrite = T,
             to = wk_folder)
   file.copy(from = paste(sobek.path, "programs/simulate.ini", sep = "/"),
+            overwrite = T,
             to = wk_folder)
   # fwrite(list())
   setwd(wk_folder)
@@ -167,7 +173,8 @@ sobek_sim <- function(case.name = NULL,
                      paste("\\", c_number,"\\REACHDIM.HIA", sep = ""),
                      V1, fixed = TRUE)
             ]
-      fwrite(cdesc, file = "casedesc.cmt", col.names = F, row.names = F)
+      fwrite(cdesc, file = "casedesc.cmt", col.names = F, row.names = F,
+             quote = F)
       # ask_cp <- readline("copy result back to the case folder? (y/n): ")
 
       if (overwrite){
@@ -218,12 +225,16 @@ sobek_view <- function(case.name = NULL,
   dir.create(tmp_folder)
   prj_files <- dir(sobek.project, full.names = TRUE)
   prj_files <- prj_files[!grepl("[\\/][0-9]{1,}$", prj_files)]
+  prj_files <- prj_files[!grepl("/WORK", prj_files, ignore.case = T)]
+  # prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = T)]
   file.copy(from = prj_files,
             to = tmp_folder,
+            overwrite = T,
             recursive = TRUE)
   # copy case folder to work folder
   file.copy(from = c_folder,
             to = tmp_folder,
+            overwrite = T,
             recursive = TRUE
   )
   wk_folder_del <- paste(sobek.path, tmp_folder, sep = "\\")
@@ -246,8 +257,10 @@ sobek_view <- function(case.name = NULL,
     fwrite(x = f1, file = f2, quote = F, row.names = F, col.names = F)
   }
   file.copy(from = paste(c_folder, "casedesc.cmt", sep = "\\"),
+            overwrite = T,
             to = cmt_folder)
   file.copy(from = paste(sobek.path, "programs\\simulate.ini", sep = "\\"),
+            overwrite = T,
             to = wk_folder)
   file.copy(from = dir(c_folder, full.names = TRUE,
                        recursive = TRUE,
@@ -255,8 +268,10 @@ sobek_view <- function(case.name = NULL,
                        include.dirs = TRUE,
                        no.. = TRUE
   ),
+  overwrite = T,
   to = wk_folder)
   file.copy(from = paste(sobek.path, "programs\\simulate.ini", sep = "\\"),
+            overwrite = T,
             to = wk_folder)
   setwd(cmt_folder)
   if (!external){

@@ -4,18 +4,16 @@
 \alias{plot_scheitel_delta}
 \title{Plot peak difference at one place}
 \usage{
-plot_scheitel_delta(indt = NULL, pos = "", peak.duration = 5L,
-  x.lab = "Zeit", y.lab = "Abfluss (m³/s)",
-  title = paste("Ganglinie an der Lage:", pos), x.angle = 90L,
-  x.hjust = 1L, size = 1L, y.min = NULL, delta = TRUE,
-  max.zulauf = "", h.line = NULL, y.interval = 500L, faced = FALSE)
+plot_scheitel_delta(pos = "", indt = NULL, x.lab = "Zeit",
+  y.lab = "Abfluss (m³/s)", title = paste("Ganglinie an der Lage:",
+  pos), x.angle = 90L, x.hjust = 1L, size = 1L, y.min = NULL,
+  delta = TRUE, addon.text = NULL, h.line = NULL,
+  y.interval = 500L, peak.duration = 5L, faced = NULL)
 }
 \arguments{
-\item{indt}{Input data}
-
 \item{pos}{Names of columns to draw}
 
-\item{peak.duration}{Halftime of the flooding period, default 5 days}
+\item{indt}{Input data}
 
 \item{x.lab}{Label for x axis, default 'Lage'}
 
@@ -33,9 +31,13 @@ plot_scheitel_delta(indt = NULL, pos = "", peak.duration = 5L,
 
 \item{delta}{Annotate Delta value, if only for one case and two columns}
 
+\item{addon.text}{Another text to be put under the Delta value (optional)}
+
 \item{h.line}{Numeric vector for adding HLINE}
 
 \item{y.interval}{Tick interval for y axis}
+
+\item{peak.duration}{Halftime of the flooding period, default 5 days}
 
 \item{faced}{faced by case, default FALSE}
 }

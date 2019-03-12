@@ -29,8 +29,8 @@ get_column_by_name <- function(column = NULL, df = NULL, suffix = "",
 #' Quick plot for long profile or pos (column name)
 #' @import ggplot2
 #' @export
-#' @param indt Input data.table or data.frame
 #' @param pos "longprofile" or list of list of column to plot
+#' @param indt Input data.table or data.frame
 #' @param x.lab x label
 #' @param y.lab y label
 #' @param title title
@@ -40,15 +40,16 @@ get_column_by_name <- function(column = NULL, df = NULL, suffix = "",
 #' @param faced default FALSE. If TRUE, faced by case
 #' @param sort to short longprofile by max value, not yet implemented
 #' @return a ggplot2 graphic object
-plot_wirkung <- function(indt = NULL,
-                         pos = "longprofile",
+plot_wirkung <- function(pos = "longprofile",
+                         indt = NULL,
                          x.lab = 'Lage',
                          y.lab = 'Wasserstand (m+NHN)',
                          title = '',
                          x.angle = 90L,
                          x.hjust = 1L,
                          size = 1L,
-                         faced = FALSE,
+                         h.line = NULL,
+                         faced = NULL,
                          sort = TRUE){
 
   data_tb <- data.table(indt)
@@ -97,8 +98,28 @@ plot_wirkung <- function(indt = NULL,
       ylab(y.lab) +
       ggtitle(title) +
       geom_line(size = size)
+
+    if(!is.null(h.line)){
+      t_min <- min(data_tb$ts)
+      y_min <- round(min(data_tb$value))
+      y_max <- round(max(data_tb$value))
+      y_break <- sort(c(pretty(y_min:y_max, 5),
+                        unlist(h.line, use.names = F)))
+      for (i in seq_along(h.line)){
+        g <- g + geom_hline(yintercept = h.line[[i]], linetype="dashed")+
+          annotate("text",
+                   x = t_min,
+                   y = h.line[[i]],
+                   label = names(h.line)[[i]]
+          )
+      }
+      g <- g + scale_y_continuous(breaks = y_break, limits = c(y_min, NA))
+    }
   }
-  if (faced) g <- g + facet_wrap(.~case)
+
+  if (!is.null(faced)){
+    g <- g + facet_wrap(.~case, scales = faced)
+  }
   return(g)
 }
 
@@ -106,8 +127,8 @@ plot_wirkung <- function(indt = NULL,
 #' Plot Q/W hydrograph for the
 #' @import grid
 #' @export
-#' @param indt Input data
 #' @param pos Names of columns to draw
+#' @param indt Input data
 #' @param peak.duration Halftime of the flooding period, default 5 days
 #' @param x.lab Label for x axis, default 'Lage'
 #' @param y.lab Label for y axis, default 'Discharge (m³/s)'
@@ -121,8 +142,8 @@ plot_wirkung <- function(indt = NULL,
 #' @param y.interval Tick interval for y axis
 #' @param faced faced by case, default FALSE
 #' @return a ggplot2 graphic
-plot_polder <- function(indt = NULL,
-                        pos = NULL,
+plot_polder <- function(pos = NULL,
+                        indt = NULL,
                         peak.duration = 5L,
                         x.lab = 'Lage',
                         y.lab = 'Abfluss (m³/s)',
@@ -134,7 +155,7 @@ plot_polder <- function(indt = NULL,
                         delta = FALSE,
                         h.line = NULL,
                         y.interval = 500L,
-                        faced = FALSE){
+                        faced = NULL){
   data_tb <- data.table(indt)
   lage_all <- colnames(data_tb)
   lage_all <- lage_all[-grep("ts|case", lage_all)]
@@ -202,13 +223,15 @@ plot_polder <- function(indt = NULL,
       g <- g + geom_hline(yintercept = h.line[[i]], linetype="dashed")+
         annotate("text",
                  x = t_min,
-                 y = h.line[[i]] + round(0.1(y_max - ymin)),
+                 y = h.line[[i]] + round(0.1*(y_max - y_min)),
                  label = names(h.line)[i]
                  )
     }
     g <- g + scale_y_continuous(breaks = y_break, limits = c(y_min, NA))
   }
-  if(faced) g <- g + facet_wrap(.~case, scales = "free")
+  if (!is.null(faced)){
+    g <- g + facet_wrap(.~case, scales = faced)
+  }
   return(g)
 }
 
@@ -216,9 +239,8 @@ plot_polder <- function(indt = NULL,
 #' Plot peak difference at one place
 #' @import grid
 #' @export
-#' @param indt Input data
 #' @param pos Names of columns to draw
-#' @param peak.duration Halftime of the flooding period, default 5 days
+#' @param indt Input data
 #' @param x.lab Label for x axis, default 'Lage'
 #' @param y.lab Label for y axis, default 'Discharge (m³/s)'
 #' @param title Graphic title
@@ -227,14 +249,15 @@ plot_polder <- function(indt = NULL,
 #' @param size size of the line
 #' @param y.min ymin
 #' @param delta Annotate Delta value, if only for one case and two columns
+#' @param addon.text Another text to be put under the Delta value (optional)
 #' @param h.line Numeric vector for adding HLINE
 #' @param y.interval Tick interval for y axis
+#' @param peak.duration Halftime of the flooding period, default 5 days
 #' @param faced faced by case, default FALSE
 #' @return a ggplot2 graphic
 plot_scheitel_delta <- function(
-  indt = NULL,
   pos = '',
-  peak.duration = 5L,
+  indt = NULL,
   x.lab = 'Zeit',
   y.lab = 'Abfluss (m³/s)',
   title = paste('Ganglinie an der Lage:', pos) ,
@@ -243,16 +266,17 @@ plot_scheitel_delta <- function(
   size = 1L,
   y.min = NULL,
   delta = TRUE,
-  max.zulauf = "",
+  addon.text = NULL,
   h.line = NULL,
   y.interval = 500L,
-  faced = FALSE){
+  peak.duration = 5L,
+  faced = NULL){
   data_tb <- data.table(indt)
   lage_all <- colnames(data_tb)
   lage_all <- lage_all[-grep("ts|case", lage_all)]
   data_tb <- data_tb[, c('ts', pos, 'case'), with = FALSE]
   q_max <- data_tb[, lapply(.SD, max, na.rm = TRUE), .SDcols = pos, by = case]
-  time_at_peak <- data_tb[get(pos)==max(get(pos)), ts]
+  time_at_peak <- data_tb[get(pos)==max(get(pos)), ts][1]
   t_min <- time_at_peak - peak.duration*24*3600
   t_max <- time_at_peak + peak.duration*24*3600
   q_min <- as.integer(data_tb[ts == t_min,
@@ -282,28 +306,29 @@ plot_scheitel_delta <- function(
     ggtitle(title) +
     geom_line(size = size) + ylim(y_min, NA)
   if (delta & length(pos) == 1){
+    delta_value <- max(q_max[,get(pos)]) - min(q_max[,get(pos)])
+    delta_value  <- ifelse(delta_value > 1, round(delta_value, 0),
+                           round(delta_value, 2))
     my_grob = grobTree(
-      textGrob(paste("Delta:",
-                     round(max(q_max[,get(pos)]) -
-                             min(q_max[,get(pos)])),
-                                      "m³/s"),
-    x = 0.6,  y = 0.95, hjust = 0,
-    gp = gpar(col = "blue",
-              fontsize = 12, fontface="bold")
-    )
-    )
-    max_zulauf = grobTree(
-      textGrob(paste("Max. Zulauf:",
-                     max.zulauf,
-                     "m³/s"),
-               x = 0.6,  y = 0.90, hjust = 0,
+      textGrob(paste("Delta:", delta_value),
+               x = 0.6,  y = 0.95, hjust = 0,
                gp = gpar(col = "blue",
                          fontsize = 12, fontface="bold")
-      )
+               )
     )
-
     g <- g +
-      annotation_custom(my_grob) + annotation_custom(max_zulauf)
+      annotation_custom(my_grob)
+    # insert Max. Zulauf if given
+    if (!is.null(addon.text)){
+      addon_text = grobTree(
+        textGrob(addon.text,
+                 x = 0.6,  y = 0.90, hjust = 0,
+                 gp = gpar(col = "blue",
+                           fontsize = 12, fontface="bold")
+        )
+      )
+      g <- g + annotation_custom(addon_text)
+    }
   }
   if(!is.null(h.line)){
     y_max <- max(q_max[, get(pos)])
@@ -316,8 +341,9 @@ plot_scheitel_delta <- function(
                  label = names(h.line)[i])
     }
     g <- g + scale_y_continuous(breaks = y_break, limits = c(y_min, NA))
-
   }
-  if(faced) g <- g + facet_wrap(.~case, scales = "free")
+  if (!is.null(faced)){
+    g <- g + facet_wrap(.~case, scales = faced)
+  }
   return(g)
 }

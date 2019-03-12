@@ -4,14 +4,15 @@
 \alias{plot_wirkung}
 \title{Quick plot for long profile or pos (column name)}
 \usage{
-plot_wirkung(indt = NULL, pos = "longprofile", x.lab = "Lage",
+plot_wirkung(pos = "longprofile", indt = NULL, x.lab = "Lage",
   y.lab = "Wasserstand (m+NHN)", title = "", x.angle = 90L,
-  x.hjust = 1L, size = 1L, faced = FALSE, sort = TRUE)
+  x.hjust = 1L, size = 1L, h.line = NULL, faced = NULL,
+  sort = TRUE)
 }
 \arguments{
-\item{indt}{Input data.table or data.frame}
-
 \item{pos}{"longprofile" or list of list of column to plot}
+
+\item{indt}{Input data.table or data.frame}
 
 \item{x.lab}{x label}
 

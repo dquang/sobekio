@@ -168,7 +168,8 @@ create_dat <- function(id.file = "",
                         ),
              file = nfile,
              append = TRUE,
-             col.names = FALSE
+             col.names = FALSE,
+             quote = FALSE
              )
       this_col <- input_data[, .(date, time, get(dcol))]
       this_col <- this_col[!is.na(V3), ] # removing all NA rows
@@ -179,12 +180,14 @@ create_dat <- function(id.file = "",
       fwrite(this_col[, .(txt_2_write)],
              file = nfile,
              append = TRUE,
-             col.names = FALSE
+             col.names = FALSE,
+             quote = F
              )
       fwrite(list(paste("tble", tolower(substr(nid, 1, 4)), sep = " ")),
              file = nfile,
              append = TRUE,
-             col.names = FALSE
+             col.names = FALSE,
+             quote = F
              )
     } else {
       warning("Node: ", i, " is not found in data file.")

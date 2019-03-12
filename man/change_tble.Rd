@@ -4,17 +4,18 @@
 \alias{change_tble}
 \title{change table value of one id in the DAT file}
 \usage{
-change_tble(dat.file = NULL, s.id = NULL, tble = NULL,
-  output = NULL, comments = NULL)
+change_tble(dat.file = NULL, output = dat.file, s.id = NULL,
+  tble = NULL, comments = NULL)
 }
 \arguments{
 \item{dat.file}{Path to .DAT file}
 
+\item{output}{Path to write output file. Use the same path as dat.file to overwrite}
+
 \item{s.id}{ID of the element to get data}
 
-\item{tble}{data.frame with in PRN format}
-
-\item{output}{Path to write output file. Use the same path as dat.file to overwrite}
+\item{tble}{a data.frame/data.table of one column with PRN format
+If tble is given as data.frame of two columns, the first one is time serie and the second one is the value, it will be converted to PRN format.}
 }
 \description{
 change table value of one id in the DAT file

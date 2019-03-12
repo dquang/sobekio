@@ -4,15 +4,15 @@
 \alias{plot_polder}
 \title{Plot Q/W hydrograph for the}
 \usage{
-plot_polder(indt = NULL, pos = NULL, peak.duration = 5L,
+plot_polder(pos = NULL, indt = NULL, peak.duration = 5L,
   x.lab = "Lage", y.lab = "Abfluss (m³/s)", title = "",
   x.angle = 90L, x.hjust = 1L, size = 1L, y.min = NULL,
-  delta = FALSE, h.line = NULL, y.interval = 500L, faced = FALSE)
+  delta = FALSE, h.line = NULL, y.interval = 500L, faced = NULL)
 }
 \arguments{
-\item{indt}{Input data}
-
 \item{pos}{Names of columns to draw}
+
+\item{indt}{Input data}
 
 \item{peak.duration}{Halftime of the flooding period, default 5 days}
 
