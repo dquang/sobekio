@@ -21,7 +21,9 @@ plot_long_profile <- function(
   vgf.pattern = "Selten|Mittel",
   zustand1 = 'Bezugszustand',
   zustand2 = 'Planzustand',
-  ncol = 1L
+  ncol = 1L,
+  x.text.size = 8,
+  save.tbl = NULL
 ){
   if (!is.data.table(indt)|FALSE %in% c('ts','case') %in% colnames(indt)){
     stop(indt, ' has wrong format')
@@ -58,30 +60,31 @@ plot_long_profile <- function(
   data_m[, VGF := str_extract(case, vgf.pattern)]
   data_m[, hwe := str_extract(case, 'HW[0-9]{4}')]
   data_m <- merge(data_m, code_tbl, by.x = 'ID', by.y = ID.col)
+  if(!is.null(save.tbl)){
+    fwrite(data_m, file = save.tbl,
+           sep = "\t", dec = ",")
+  }
   b_tick <- data_m[!is.na(besonderheit), c("km", "besonderheit")]
   b_tick <- b_tick[nchar(besonderheit) > 0, ]
   if (isTRUE(delta)){
-    # if (length(unique(data_m$case)) != 2){
-    #   stop('Delta can be calculated only when there are two cases')
-    # }
     x_min <- min(data_m$km, na.rm = TRUE)
     x_max <- max(data_m$km, na.rm = TRUE)
     y_min <- min(data_m$value, na.rm = TRUE)
     y_max <- max(data_m$value, na.rm = TRUE)
-    # print(colnames(data_m))
-    # print(unique(data_m$Zustand))
     data_m2 <- dcast(data_m, km + besonderheit + hwe + ID + VGF ~ Zustand,
                      value.var = 'value')
-    # print(colnames(data_m2))
+
     data_m2[, Delta := get(zustand2) - get(zustand1)]
+    # saving data file
+    if(!is.null(save.tbl)){
+      fwrite(data_m2, file = save.tbl,
+             sep = "\t", dec = ",")
+    }
     y2_scale <- y2.scale
-    # y_min1 <- min(data_tb[, .SD, .SDcols = c(zustand1, zustand2)], na.rm = TRUE)
-    # y_max <- max(data_tb[, .SD, .SDcols = c(zustand1, zustand2)], na.rm = TRUE)
     y2_min <- min(data_m2$Delta, na.rm = TRUE)
     y_pretty <- pretty(y_min:y_max, 5, 5)
     y2_shift <- y_pretty[2]
     y2_max <- y_max/y2_scale
-    # y2_min_shift <- y2_min - y2_shift/y2_scale
     y2_pretty <- pretty(y2_min:y2_max, 5, 5)
     g <- ggplot(data = data_m2,
                 aes(x = km,
@@ -91,7 +94,9 @@ plot_long_profile <- function(
                 ))+
       theme_bw()+
       theme(legend.position = 'bottom',
-            axis.text.x = element_text(angle = 90)) +
+            axis.text.x = element_text(angle = 90,
+                                       hjust = 0,
+                                       size = x.text.size)) +
       xlab(x.lab) + ylab(y.lab) +
       labs(title) +
       geom_line(size = 1) +
@@ -130,7 +135,8 @@ plot_long_profile <- function(
       theme_bw() +
       theme(legend.position = 'bottom',
             axis.text.x = element_text(angle = 90,
-                                       hjust = 0)) +
+                                       hjust = 0,
+                                       size = x.text.size)) +
       labs(title = title) +
       scale_x_reverse(
         name = x.lab,
@@ -148,6 +154,6 @@ plot_long_profile <- function(
       scale_linetype_discrete(name = 'Linienart')+
       facet_wrap(.~hwe, ncol = ncol)
   }
-  
+
   return(g)
 }
