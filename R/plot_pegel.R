@@ -33,7 +33,14 @@ plot_pegel <- function(
   data_tb <- data.table(indt)
   data_tb <- data_tb[, .SD, .SDcols = c('ts', pos, "case")]
   colnames(data_tb) <- c('ts', "pegel", "case")
-
+  # if (!is.null(outliner.prob)) {
+    data_tb[, ts_min := min(ts), by = case]
+    data_tb[year(ts)==1988, ts_min := ts_min + 24*5*3600]
+    data_tb[year(ts)==1995, ts_min := ts_min + 24*2*3600]
+    data_tb[year(ts)==2002, ts_min := ts_min + 24*3*3600]
+    data_tb[year(ts)==2003, ts_min := ts_min + 24*3*3600]
+    data_tb <- data_tb[ts > ts_min]
+    # }
   zustand_pattern = paste(zustand1, zustand2, sep = "|")
   data_tb[, Zustand := str_extract(case, zustand_pattern)]
   data_tb[, VGF := str_extract(case, vgf.pattern)]
@@ -46,14 +53,16 @@ plot_pegel <- function(
   # finding Delta am Scheitel
   data_tb[, max_value := max(get(zustand1)), by = c("hwe", 'VGF')]
   data_tb[max_value == get(zustand1), max_ts := ts]
-  data_tb[max_value == get(zustand1), 
+  data_tb[max_value == get(zustand1),
           max_delta := Delta
           ]
-  if (!is.null(outliner.prob)) {
-    data_tb <- data_tb[
-      abs(Delta) < abs(quantile(Delta, probs = outliner.prob)[[1]])
-                       ]
-  }
+
+  # if (!is.null(outliner.prob)) {
+  #   data_tb <- data_tb[
+  #     abs(Delta) < abs(quantile(Delta, probs = outliner.prob)[[1]])
+  #                      ]
+  # }
+
   # print(colnames(data_tb))
   # finding scale for both axis
   y2_scale <- y2.scale
@@ -78,10 +87,10 @@ plot_pegel <- function(
     theme_bw() +
     theme(legend.position = 'bottom',
           axis.text.x = element_text(angle = 90)) +
-    xlab(x.lab) + ylab(y.lab) + 
-    labs(title, 
+    xlab(x.lab) + ylab(y.lab) +
+    labs(title = title,
             caption = ifelse(!is.null(outliner.prob),
-                              "Notiz: sprunghafte Werte am Anfag wurde gelöst",
+                              "Notiz: sprunghafte Werte am Anfang wurde gelöst",
                               waiver()
                              )
             ) +

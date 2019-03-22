@@ -62,6 +62,7 @@ plot_long_profile <- function(
   data_m <- merge(data_m, code_tbl, by.x = 'ID', by.y = ID.col)
   if(!is.null(save.tbl)){
     fwrite(data_m, file = save.tbl,
+           quote = FALSE,
            sep = "\t", dec = ",")
   }
   b_tick <- data_m[!is.na(besonderheit), c("km", "besonderheit")]
@@ -78,6 +79,7 @@ plot_long_profile <- function(
     # saving data file
     if(!is.null(save.tbl)){
       fwrite(data_m2, file = save.tbl,
+             quote = FALSE,
              sep = "\t", dec = ",")
     }
     y2_scale <- y2.scale
