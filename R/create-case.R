@@ -140,7 +140,7 @@ create_case <- function(
     stop("Sobek Folder ", sobek.project, " does not exist!")
   }
   # reading SOBEK caselist.cmt
-  sobek_clist <- utils::read.table(
+  sobek_clist <- fread(
     file = sobek_cmt,
     header = FALSE,
     sep = " ",
@@ -149,7 +149,7 @@ create_case <- function(
     blank.lines.skip = TRUE,
     col.names = c("case_number", "case_name")
   )
-
+  sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
   if (old.name %in% sobek_clist$case_name) {
     if (new.name %in% sobek_clist$case_name) stop("Case: ", new.name, " existed!")
 

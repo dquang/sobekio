@@ -9,6 +9,8 @@ change_rl_rs(crsn.id, pf.df, rl.new = 0, rs.new = rl.new + 10)
 \arguments{
 \item{crsn.id}{ID of cross section}
 
+\item{pf.df}{data.frame or path to the table of cross sections (profile.dat)}
+
 \item{rl.new}{New value of bed level left}
 
 \item{rs.new}{New value of surface level right, default = rl.new + 10}

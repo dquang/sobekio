@@ -26,6 +26,7 @@ sobek_case_info <- function(
 		blank.lines.skip = TRUE,
 		col.names = c("case_number", "case_name")
 	)
+	sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
 	case_number <- .get_case_number(case.name = case.name,
 																	case.list = sobek_clist)
 	if (is.na(case_number)) stop("Case with name: ", case.name,

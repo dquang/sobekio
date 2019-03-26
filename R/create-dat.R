@@ -203,7 +203,7 @@ create_dat <- function(id.file = "",
 #' @param rhein.case Name of case in Rhein Model
 #' @param main.prj Path to Main Model (default d:/so21302/main2015.lit)
 #' @param rhein.prj Path to Rhein Model (default d:/so21302/rhein29a.lit)
-#' @result Modified boundary.dat for the rhein.case
+#' @return Modified boundary.dat for the rhein.case
 #' @export
 transfer_fra <- function(
   main.case = '',

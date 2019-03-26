@@ -79,7 +79,7 @@ pf_extract <- function(pf.str, ptype = 'id'){
 
 #' Change reference level of a cross section
 #' @param crsn.id ID of cross section
-#' @pf.df data.frame or path to the table of cross sections (profile.dat)
+#' @param pf.df data.frame or path to the table of cross sections (profile.dat)
 #' @param rl.new New value of bed level left
 #' @param rs.new New value of surface level right, default = rl.new + 10
 #' @export

@@ -1,6 +1,6 @@
 Package: sobekio
-Title: Input and Output support for Sobek 2
-Version: 0.1.0
+Title: Pre- and Post-Processing support for Sobek 2
+Version: 0.1.1
 Authors@R: person("D. Quang", "Duong", email = "dinhquanght@gmail.com", role = c("aut", "cre"))
 Description: This package provides functions to read the .HIS files and create .DAT files
 Depends: R (>= 3.3.0)

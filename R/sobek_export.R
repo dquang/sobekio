@@ -3,18 +3,20 @@
 #' @param sobek.project Path to current sobek project
 #' @param dest Destination folder
 #' @export
-export_sobek <- function(case.list, sobek.project, dest){
+sobek_export <- function(case.list, sobek.project, dest){
   if (!dir.exists(dest)) dir.create(dest)
   case.list <-  data.table(read.table(case.list,
-                        header = F, sep ="\n",
-                        encoding = "windows-1252", stringsAsFactors = F
+                        header = FALSE, sep ="\n",
+                        encoding = "windows-1252",
+                        stringsAsFactors = FALSE
                         )
                         )
   sobek_clist <- data.table(read.table(
     paste(sobek.project, "caselist.cmt", sep = "/"),
-    header = F, col.names = c('case_number', 'case_name'),
-    sep = " ", quote = "'"), stringsAsFactors = F
+    header = FALSE, col.names = c('case_number', 'case_name'),
+    sep = " ", quote = "'"), stringsAsFactors = FALSE
     )
+  sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
   all_files <- dir(path = sobek.project,
                    pattern = "^[^0-9]{1,}$",
                    full.names = T, no.. = T)
@@ -28,7 +30,9 @@ export_sobek <- function(case.list, sobek.project, dest){
     }
   # update register.cmt
   sobek_reg <- fread(file = paste(sobek.project, "register.cmt", sep = "\\"),
-                     header = F, sep = "\n", fill = F, stringsAsFactors = F)
+                     header = FALSE, sep = "\n", fill = FALSE,
+                     stringsAsFactors = FALSE
+                     )
   case_folders <- sapply(case.list$V1, .get_case_number, sobek_clist)
 
   for (i in case_folders){
@@ -40,13 +44,14 @@ export_sobek <- function(case.list, sobek.project, dest){
   print('updating register...')
   write.table(case_cmt,
          file = paste(dest, "caselist.cmt", sep = "\\"),
-         quote = T,
-         col.names = F, row.names = F,
+         quote = TRUE,
+         col.names = FALSE,
+         row.names = FALSE,
          fileEncoding = "windows-1252",
          sep = " ")
   fwrite(sobek_reg,
          file = paste(dest, "register.cmt", sep = "\\"),
-        col.names = F,
-        quote = F
+         col.names = FALSE,
+         quote = FALSE
          )
 }

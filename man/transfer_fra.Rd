@@ -19,6 +19,9 @@ transfer_fra(main.case = "", rhein.case = "",
 
 \item{rhein.prj}{Path to Rhein Model (default d:/so21302/rhein29a.lit)}
 }
+\value{
+Modified boundary.dat for the rhein.case
+}
 \description{
 Change Rhein Modell Boundary 'Frankfurt Ost (66) by ts from Main Output
 This function is to extract Main Model output at Frankfurt Osthafen

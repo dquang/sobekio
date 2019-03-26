@@ -21,20 +21,20 @@
 #' @export
 #' @import data.table
 his_from_case<- function(
-                          case.list = "", # path to list of cases to work with
-                          sobek.project = "", # path to Sobek Project folder
-                          param = 1, # index of the paramter to get data from .HIS file
-                          qID = NULL, # path to list of sobek_ids for Discharge
-                          wID = NULL, # path to list of sobek_ids for Water level
-                          lID = NULL, # path to list of sobek_ids for Lateral
-                          sID = NULL, # path to list of sobek_ids for Structure
-                          mID = NULL, # path to list of sobek_ids for Measstation
-                          f.sep = "\t", # seperation of node list
-                          f.header = FALSE,
-                          f.comment = "#",
-                          copy.his = FALSE, # copy .HIS file to destination folder?
-                          out.folder = ".",
-                          verbose = TRUE) {
+  case.list = "", # path to list of cases to work with
+  sobek.project = "", # path to Sobek Project folder
+  param = 1, # index of the paramter to get data from .HIS file
+  qID = NULL, # path to list of sobek_ids for Discharge
+  wID = NULL, # path to list of sobek_ids for Water level
+  lID = NULL, # path to list of sobek_ids for Lateral
+  sID = NULL, # path to list of sobek_ids for Structure
+  mID = NULL, # path to list of sobek_ids for Measstation
+  f.sep = "\t", # seperation of node list
+  f.header = FALSE,
+  f.comment = "#",
+  copy.his = FALSE, # copy .HIS file to destination folder?
+  out.folder = ".",
+  verbose = TRUE) {
   wk_dir <- getwd()
   str_as_factor <- default.stringsAsFactors()
   options("stringsAsFactors" = FALSE)
@@ -90,6 +90,7 @@ his_from_case<- function(
                                   blank.lines.skip = TRUE,
                                   col.names = c("case_number", "case_name")
                                   )
+  sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
   clist$case_number <- lapply(clist$case_name,
                               FUN = .get_case_number, case.list = sobek_clist)
   # check if clist contain a column for destination

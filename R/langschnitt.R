@@ -1,10 +1,11 @@
 #' Plot long profile of selected case
 #' @param indt Input data.table, which is the output from his_from_case function
-#' @case.list List of cases to plot, default is all
-#' @case.name Case display names, same values as case.list if not specified
+#' @param case.list List of cases to plot, default is all
+#' @param case.name Case display names, same values as case.list if not specified
 #' @param delta Should delta also plotted?
 #' @param code.tbl Coding table
-#'
+#' @return a ggplot2 graphic
+#' @export
 plot_long_profile <- function(
   indt = qt,
   case.list = NULL,
