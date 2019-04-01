@@ -39,9 +39,18 @@ sobek_sim <- function(case.name = NULL,
             to = tmp_folder,
             recursive = TRUE)
   # copy case folder to work folder
-  file.copy(from = c_folder,
+  c_folder_ohne_his <- dir(c_folder, full.names = TRUE)
+  c_folder_ohne_his <- c_folder_ohne_his[!grepl(pattern = '\\.his$',
+                                               x = c_folder_ohne_his,
+                                               ignore.case = TRUE
+                                               # fixed = TRUE
+                                               )
+                                         ]
+  c_folder_in_tmp <- paste(tmp_folder, c_number, sep = "\\")
+  if (!dir.exists(c_folder_in_tmp)) dir.create(c_folder_in_tmp)
+  file.copy(from = c_folder_ohne_his,
             overwrite = T,
-            to = tmp_folder,
+            to = c_folder_in_tmp,
             recursive = TRUE
             )
   # cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "\\")
@@ -232,9 +241,18 @@ sobek_view <- function(case.name = NULL,
             overwrite = T,
             recursive = TRUE)
   # copy case folder to work folder
-  file.copy(from = c_folder,
-            to = tmp_folder,
+  c_folder_ohne_his <- dir(c_folder, full.names = TRUE)
+  c_folder_ohne_his <- c_folder_ohne_his[!grepl(pattern = '\\.his$',
+                                                x = c_folder_ohne_his,
+                                                ignore.case = TRUE
+                                                # fixed = TRUE
+  )
+  ]
+  c_folder_in_tmp <- paste(tmp_folder, c_number, sep = "\\")
+  if (!dir.exists(c_folder_in_tmp)) dir.create(c_folder_in_tmp)
+  file.copy(from = c_folder_ohne_his,
             overwrite = T,
+            to = c_folder_in_tmp,
             recursive = TRUE
   )
   wk_folder_del <- paste(sobek.path, tmp_folder, sep = "\\")

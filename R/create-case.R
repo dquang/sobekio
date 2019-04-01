@@ -302,3 +302,44 @@ create_case <- function(
     stop("Case ", old.name, " does not found in caselist.cmt")
   }
 }
+
+#' This function change the output time steps
+#' @param case.list List of cases to change
+#' @param sobek.project Path to Sobek project
+#' @param n.tstep An integer - Number of time step to export result
+#' @export
+change_output_ntstep <- function(
+  case.list = NULL,
+  sobek.project = NULL,
+  n.tstep = NULL)
+{
+  n.tstep <- as.integer(n.tstep)
+  if (!is.integer(n.tstep)) stop("n.tstep must be an integer")
+  if (!is.vector(case.list)) stop('case.list must be a vector/list')
+  for (i in unlist(case.list)){
+    sfile <- get_file_path(case.name = i,
+                           sobek.project = sobek.project,
+                           type = 'setting')
+    s_dat <- utils::read.table(sfile,
+                               header = FALSE,
+                               sep = "\n",
+                               quote = "",
+                               comment.char = "",
+                               stringsAsFactors = FALSE,
+                               blank.lines.skip = FALSE,
+                               col.names = c("dat")
+    )
+    s_dat$dat <- sub("^NrOfTimesteps=[0-9]{1,}",
+                     paste("NrOfTimesteps=", n.tstep, sep = ""), s_dat$dat)
+    try_set <- try(utils::write.table(s_dat$dat,
+                                           file = sfile,
+                                           sep = "\n",
+                                           quote = FALSE,
+                                           col.names = FALSE,
+                                           row.names = FALSE
+    ))
+    if (class(try_set) == "try-error"){
+      warning(paste('writing output for case:', i, 'not successful!'))
+    }
+  }
+}
