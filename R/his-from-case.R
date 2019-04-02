@@ -93,6 +93,7 @@ his_from_case<- function(
   sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
   clist$case_number <- lapply(clist$case_name,
                               FUN = .get_case_number, case.list = sobek_clist)
+  clist[tolower(case_name) == 'work', case_number := 'work']
   # check if clist contain a column for destination
   if ("case_folder" %in% colnames(clist)){
     clist$case_dest_folder <- lapply(clist$case_folder,

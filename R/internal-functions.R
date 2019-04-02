@@ -180,8 +180,6 @@
   seek(con, where = 160, origin = "start")
   # read total number of parameters
   param_nr <- readBin(con, what = "int", n = 1, size = 4, endian = "little")
-  # read total number of locations
-  # total_loc <- readBin(con, what = "int", n = 1, size = 4, endian = "little")
   param_id <- vector(mode = "integer", length = param_nr)
   param_name <- vector(mode = "character", length = param_nr)
   seek(con, where = 168, origin = "start")
@@ -237,8 +235,8 @@
       i_long_loc <- which(hia_sbegin == pos_long_loc + 1)
       if (length(i_long_loc) > 0){
         long_loc <- hia_dt[hia_sbegin[i_long_loc]:hia_send[i_long_loc], ]
-        long_loc[, c("param_id", "param_long") := data.table::tstrsplit(V1, "=",
-                                                                     fixed = TRUE)]
+        long_loc[, c("param_id", "param_long") :=
+                   data.table::tstrsplit(V1, "=",                                                                     fixed = TRUE)]
         long_loc[, V1 := NULL]
         his.params <- merge(his.params, long_loc, all.x = TRUE,
                           by = "param_id",
@@ -251,19 +249,31 @@
   if (!"param_long" %in% colnames(his.params)) {
     his.params[, param_long := '']
   }
+  # correcting the 'water level' instead of 'waterlevel' in measstat.his
+  his.params[, param_short := sub('water level',
+                                  'Waterlevel',
+                                  ignore.case = TRUE,
+                                  param_short
+                                  )
+             ]
+  his.params[, param_long := sub('water level',
+                                  'Waterlevel',
+                                 param_long,
+                                 ignore.case = TRUE
+  )
+  ]
   options("stringsAsFactors" = str_as_factor)
   return(his.params)
 }
 
 
-# Get data of given locations and parameter
-# @param his.file Path to .HIS file, string
-# @param param Index of the parameter, integer
-# @return a data.table
+#' Get data of given locations and parameter
+#' @param his.file Path to .HIS file, string
+#' @param param Index of the parameter, integer
+#' @return a data.table
 .his_from_locs <- function(his.file, locs, param = 1L) {
   # get whole data matrix
   hisdf <- .his_df(his.file)
-  # timedf <- .his_time_df(his.file)
   con <- file(his.file, 'rb', encoding = 'native.enc')
   seek(con, 160)
   param_nr = readBin(con, 'int', n = 1, size = 4)
