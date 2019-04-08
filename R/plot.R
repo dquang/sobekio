@@ -569,6 +569,7 @@ plot_measure <- function(
       }
     }
     if (isTRUE(delta)){
+      y2_name <- 'Wasserstand Different'
       y2_min <- min(id_data$Delta, na.rm = TRUE)
       if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - y2_min*y2.scale
       g <- g + geom_line(aes(y = Delta * y2.scale + y2_shift,
@@ -591,23 +592,26 @@ plot_measure <- function(
       id_data[, Volume_max := round(polder.Z * polder.F / 100, 2)]
     }
   } else{
-    id_data[, Volume_max := Inf]
-    if (nrow(id_vol) >= 1){
+    if (nrow(id_vol) >= 1 & id_data$Q_in_max[1] > 0){
       p_volume <- his_from_case(case.list = case.name,
                                 sobek.project = sobek.project,
                                 param = 'Volume',
                                 wID = id_vol$ID, verbose = FALSE)
-      p_volume[, Volume := sum(.SD)/10^6, .SDcols = -c('ts', 'case')]
-      p_volume <- p_volume[, c('ts', 'Volume', 'case')]
+      p_volume <- p_volume[, rowSums(.SD, na.rm = TRUE), by = case,
+                           .SDcols = -c('ts')]
+      p_volume <- p_volume[, round(max(V1)/10^6, 2), by = case]
+      colnames(p_volume) <- c('case', 'Volume_max')
       id_data <- merge(id_data, p_volume,
-                       by = c('ts', 'case'))
-      id_data[, Volume_max := round(max(Volume), 2)]
+                       by = c('case'))
+    } else{
+      id_data[, Volume_max := Inf]
     }
   }
-  id_data_nrow <- id_data[, .N, by = case]
-  id_data_nrow[, x_min := as.integer(N * 0.2)]
-  id_max <- id_data[id_data_nrow$x_min,
-                    c('ts', 'Q_in_max', 'W_in_max', 'Volume_max', 'case')]
+  id_data[, N := as.integer(.N*0.2), by = case]
+  id_data[, ts_min := shift(ts, n = N, fill = NA, type = 'lead'), by = case]
+  id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
+  colnames(id_data_nrow) <- c('case', 'ts')
+  id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'))
   id_max[Volume_max != Inf, label := paste(
     'Volume Max: ', Volume_max, ' Mio. m³\n',
     'W_in Max:   ', round(W_in_max, 2), 'm + NHN\n',

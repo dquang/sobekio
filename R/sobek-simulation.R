@@ -33,17 +33,17 @@ sobek_sim <- function(case.name = NULL,
   prj_files <- dir(sobek.project, full.names = TRUE)
   prj_files <- prj_files[!grepl("/[0-9]{1,}$", prj_files)]
   prj_files <- prj_files[!grepl("/WORK", prj_files, ignore.case = T)]
-  # prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = T)]
+  prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = T)]
   file.copy(from = prj_files,
             overwrite = T,
             to = tmp_folder,
             recursive = TRUE)
   # copy case folder to work folder
   c_folder_ohne_his <- dir(c_folder, full.names = TRUE)
+  # removing old .HIS files to save HDD space
   c_folder_ohne_his <- c_folder_ohne_his[!grepl(pattern = '\\.his$',
                                                x = c_folder_ohne_his,
                                                ignore.case = TRUE
-                                               # fixed = TRUE
                                                )
                                          ]
   c_folder_in_tmp <- paste(tmp_folder, c_number, sep = "\\")
@@ -235,7 +235,7 @@ sobek_view <- function(case.name = NULL,
   prj_files <- dir(sobek.project, full.names = TRUE)
   prj_files <- prj_files[!grepl("[\\/][0-9]{1,}$", prj_files)]
   prj_files <- prj_files[!grepl("/WORK", prj_files, ignore.case = T)]
-  # prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = T)]
+  prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = T)]
   file.copy(from = prj_files,
             to = tmp_folder,
             overwrite = T,
@@ -259,7 +259,7 @@ sobek_view <- function(case.name = NULL,
   cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "\\")
   wk_folder <- paste(sobek.path, tmp_folder, "WORK", sep = "\\")
   if (!dir.exists(wk_folder)) dir.create(wk_folder)
-  if (!dir.exists(wk_folder)) dir.create(cmt_folder)
+  if (!dir.exists(cmt_folder)) dir.create(cmt_folder)
   cmt_files <- list.files(paste(system.file(package = 'sobekio'),
                                 'network_view', sep = '/'),
                           full.names = TRUE,
