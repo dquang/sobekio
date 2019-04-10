@@ -11,7 +11,7 @@ plot_long_profile <- function(
   case.list = NULL,
   case.name = case.list,
   delta = F,
-  code.tbl = qids_f,
+  code.tbl = NULL,
   ID.col = 'ID',
   x.lab = 'Lage (KM)',
   y.lab = 'Abfluss (m³/s)',
@@ -44,13 +44,13 @@ plot_long_profile <- function(
   }
 
   # lage_all <- colnames(indt[, -c('ts', 'case')])
-  if (file.exists(code.tbl)) {
+  if (!is.data.frame(code.tbl)) {
     code_tbl <- fread(file = code.tbl,
                       sep = "\t", header = T,
                       dec = ",")
     code_tbl[, km := as.numeric(km)]
   } else{
-    stop(code.tbl, ' not found')
+    code_tbl <- data.table(code.tbl)
   }
   data_m <- data_tb[, lapply(.SD, max, na.rm = TRUE),
                     .SDcols = -c('ts'), by = case]

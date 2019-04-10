@@ -129,7 +129,7 @@
 create_case <- function(
                         old.name = "",
                         new.name = "",
-                        sobek.project = "d:/so21302/rhein29A.lit",
+                        sobek.project = NULL,
                         new.begin = NULL,
                         new.end = NULL,
                         new.desc = NULL) {
@@ -163,9 +163,15 @@ create_case <- function(
         break
       }
     }
-
     # make a copy of old case folder
     dir.create(paste(sobek.project, new_folder, sep = "/"))
+    file.copy(
+      from = list.files(paste(sobek.project, "/", old_folder, "/", sep = ""),
+                        full.names = TRUE),
+      to = paste(sobek.project, "/", new_folder, "/", sep = ""),
+      recursive = TRUE,
+      overwrite = FALSE
+    )
     # update settings.dat
     if (!is.null(new.begin) && !is.null(new.end)) {
       file.copy(from = paste(sobek.project, old_folder, "settings.dat", sep = "/"),
@@ -174,19 +180,11 @@ create_case <- function(
       try_settime <- try(.set_time(sfile = setting_dat, begin = new.begin, end = new.end),
                          silent = FALSE)
       if (class(try_settime) == "try-error"){
-        unlink(paste(sobek.project, new_folder, sep = "/", force = T))
+        unlink(paste(sobek.project, new_folder, sep = "/", force = TRUE))
         stop('wrong time input')
       }
     }
-
-    file.copy(
-      from = list.files(paste(sobek.project, "/", old_folder, "/", sep = ""),
-        full.names = TRUE),
-      to = paste(sobek.project, "/", new_folder, "/", sep = ""),
-      recursive = TRUE,
-      overwrite = FALSE
-    )
-
+    # update casedesc.cmt
     cdesc <- utils::read.table(
       file = paste(sobek.project, old_folder, "casedesc.cmt", sep = "/"),
       header = FALSE,
@@ -197,89 +195,94 @@ create_case <- function(
       blank.lines.skip = FALSE,
       col.names = c("old")
     )
-
     # "SUFHYD 1" is the line of casedesc.cmt right after the case description
     cdesc_begin <- which(cdesc$old == "SUFHYD 1")
     new_cdesc <- paste(sobek.project, "/", new_folder,
     									 "/", "casedesc.cmt", sep = "")
 
-    utils::write.table(paste("#", new.name, sep = ""),
+    utils::write.table(
+      paste("#", new.name, sep = ""),
       file = new_cdesc,
-      quote = F, col.names = F, row.names = F, sep = ""
+      quote = FALSE,
+      col.names = FALSE,
+      row.names = FALSE,
+      sep = ""
     )
-
-
-
     if (class(new.desc) == "character") {
-
-    	utils::write.table("#Case description:",
-    										 file = new_cdesc,
-    										 append = TRUE,
-    										 quote = FALSE, col.names = FALSE,
-    										 row.names = FALSE, sep = ""
-    	)
-
-      utils::write.table(paste("#", new.desc, sep = ""),
+      utils::write.table(
+        "#Case description:",
         file = new_cdesc,
         append = TRUE,
-        quote = FALSE, col.names = FALSE,
-        row.names = FALSE, sep = ""
+        quote = FALSE,
+        col.names = FALSE,
+        row.names = FALSE,
+        sep = ""
       )
-
+      utils::write.table(
+        paste("#", new.desc, sep = ""),
+        file = new_cdesc,
+        append = TRUE,
+        quote = FALSE,
+        col.names = FALSE,
+        row.names = FALSE,
+        sep = ""
+      )
     } else {
-    	if (!is.null(new.desc)){
-	      warning(
-	        "For case: ", new.name,
-	        " Case description was not written,
-	  						new.desc must be a character vector"
-	      )
-    	}
-      utils::write.table(cdesc[2:cdesc_begin-1,],
+      if (!is.null(new.desc)) {
+        warning(
+          "For case: ",
+          new.name,
+          " Case description was not written,
+          new.desc must be a character vector"
+        )
+      }
+      utils::write.table(cdesc[2:(cdesc_begin-1),],
         file = new_cdesc,
         append = TRUE,
         quote = FALSE, col.names = FALSE,
         row.names = FALSE, sep = ""
       )
-
     }
     cdesc$old <- gsub(
       paste("\\\\", old_folder, "\\\\", sep = ""),
       paste("\\\\", new_folder, "\\\\", sep = ""),
       cdesc$old
     )
-
-    utils::write.table(cdesc$old[cdesc_begin:length(cdesc$old)],
+    utils::write.table(
+      cdesc$old[cdesc_begin:length(cdesc$old)],
       file = new_cdesc,
       append = TRUE,
-      quote = FALSE, col.names = FALSE,
-      row.names = FALSE, sep = ""
+      quote = FALSE,
+      col.names = FALSE,
+      row.names = FALSE,
+      sep = ""
     )
-
     # update caselist.cmt
-    utils::write.table(paste(new_folder, " ", "\'", new.name, "\'", sep = ""),
+    utils::write.table(
+      paste(new_folder, " ", "\'", new.name, "\'", sep = ""),
       file = sobek_cmt,
       append = TRUE,
-      quote = FALSE, col.names = FALSE,
-      row.names = FALSE, sep = ""
+      quote = FALSE,
+      col.names = FALSE,
+      row.names = FALSE,
+      sep = ""
     )
-
     # update register.cmt
     fc_reg <- paste(sobek.project, "register.cmt", sep = "/")
-    file.copy(from = fc_reg,
-    					to = paste(fc_reg, ".bk", sep = ""),
-    					overwrite = T)
-
+    file.copy(
+      from = fc_reg,
+      to = paste(fc_reg, ".bk", sep = ""),
+      overwrite = TRUE
+    )
     c_reg <- data.table::fread(file = fc_reg,
-    													 header = FALSE,
-    													 sep = "\n"
-    													 )
+                               header = FALSE,
+                               sep = "\n")
     n_files <- as.integer(c_reg$V1[1])
     case_flist <- list.files(path = paste(sobek.project, new_folder, sep = "/"),
     												 full.names = FALSE)
     case_flist <- case_flist[tolower(case_flist) != "casedesc.cmt"]
     case_flist <- paste("1 ..\\", new_folder, "\\", case_flist, sep = "")
     n_files <- n_files + length(case_flist)
-
     data.table::fwrite(as.list(n_files), file = fc_reg,
     									 sep = "\n",
     									 append = FALSE,
@@ -341,5 +344,143 @@ change_output_ntstep <- function(
     if (class(try_set) == "try-error"){
       warning(paste('writing output for case:', i, 'not successful!'))
     }
+  }
+}
+
+
+#' Rename a Sobek Case
+#' @param old.name Name of the old case, case-sensitive
+#' @param new.name Name of the new case
+#' @param sobek.project Sobek Project folder
+#' @param new.begin New simulation starting time (in format dd.mm.yyyy hh:mm:ss)
+#' @param new.end New simulation starting time (in format dd.mm.yyyy hh:mm:ss)
+#' @param new.desc Character vector, for new case description, one element for each line
+#' @return A Sobek Case
+#' @export
+rename_case <- function(
+  old.name = "",
+  new.name = "",
+  sobek.project = NULL,
+  new.begin = NULL,
+  new.end = NULL,
+  new.desc = NULL) {
+
+  # check SOBEK project
+  sobek_cmt <- paste(sobek.project, "caselist.cmt", sep = "/")
+  if (!dir.exists(sobek.project)) {
+    stop("Sobek Folder ", sobek.project, " does not exist!")
+  }
+  # reading SOBEK caselist.cmt
+  sobek_clist <- fread(
+    file = sobek_cmt,
+    header = FALSE,
+    sep = " ",
+    quote = "'",
+    stringsAsFactors = FALSE,
+    blank.lines.skip = TRUE,
+    col.names = c("case_number", "case_name")
+  )
+  sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
+  if (old.name %in% sobek_clist$case_name) {
+    if (new.name %in% sobek_clist$case_name) stop("Case: ", new.name, " existed!")
+    old_folder <- sobek_clist$case_number[sobek_clist$case_name == old.name]
+    # update settings.dat
+    if (!is.null(new.begin) && !is.null(new.end)) {
+      setting_dat <-
+        paste(sobek.project, old_folder, "settings.dat", sep = "/")
+      try_settime <-
+        try(.set_time(sfile = setting_dat,
+                      begin = new.begin,
+                      end = new.end),
+            silent = FALSE)
+      if (class(try_settime) == "try-error") {
+        unlink(paste(
+          sobek.project,
+          new_folder,
+          sep = "/",
+          force = TRUE
+        ))
+        stop('wrong time input')
+      }
+    }
+    # update casedesc.cmt
+    cdesc <- utils::read.table(
+      file = paste(sobek.project, old_folder, "casedesc.cmt", sep = "/"),
+      header = FALSE,
+      sep = "\n",
+      quote = "",
+      comment.char = "",
+      stringsAsFactors = FALSE,
+      blank.lines.skip = FALSE,
+      col.names = c("old")
+    )
+    # "SUFHYD 1" is the line of casedesc.cmt right after the case description
+    cdesc_begin <- which(cdesc$old == "SUFHYD 1")
+    new_cdesc <- paste(sobek.project, "/", old_folder,
+                       "/", "casedesc.cmt", sep = "")
+    utils::write.table(
+      paste("#", new.name, sep = ""),
+      file = new_cdesc,
+      quote = FALSE,
+      col.names = FALSE,
+      row.names = FALSE,
+      sep = ""
+    )
+    if (class(new.desc) == "character") {
+      utils::write.table(
+        "#Case description:",
+        file = new_cdesc,
+        append = TRUE,
+        quote = FALSE,
+        col.names = FALSE,
+        row.names = FALSE,
+        sep = ""
+      )
+      utils::write.table(
+        paste("#", new.desc, sep = ""),
+        file = new_cdesc,
+        append = TRUE,
+        quote = FALSE,
+        col.names = FALSE,
+        row.names = FALSE,
+        sep = ""
+      )
+    } else {
+      if (!is.null(new.desc)) {
+        warning(
+          "For case: ",
+          new.name,
+          " Case description was not written,
+          new.desc must be a character vector"
+        )
+      }
+      utils::write.table(cdesc[2:(cdesc_begin-1),],
+                         file = new_cdesc,
+                         append = TRUE,
+                         quote = FALSE, col.names = FALSE,
+                         row.names = FALSE, sep = ""
+      )
+      }
+    utils::write.table(
+      cdesc$old[cdesc_begin:length(cdesc$old)],
+      file = new_cdesc,
+      append = TRUE,
+      quote = FALSE,
+      col.names = FALSE,
+      row.names = FALSE,
+      sep = ""
+    )
+    # update caselist.cmt
+    utils::write.table(
+      paste(new_folder, " ", "\'", new.name, "\'", sep = ""),
+      file = sobek_cmt,
+      append = TRUE,
+      quote = FALSE,
+      col.names = FALSE,
+      row.names = FALSE,
+      sep = ""
+    )
+  } else {
+    stop("Case ", old.name, " does not found in caselist.cmt")
   }
 }

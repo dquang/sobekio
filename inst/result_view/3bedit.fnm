@@ -248,7 +248,7 @@ rai=_so_folder_\FIXED\DEFAULT.BUI
 evp=_so_folder_\FIXED\3B\EVAPOR.GEM
 tmp=_so_folder_\FIXED\DEFAULT.TMP
 rnf=_so_folder_\FIXED\DEFAULT.RNF
-def=..\fixed\3bedit.def
+def=_so_folder_\fixed\3bedit.def
 
 [Switches]
 TableAddNrRows=1

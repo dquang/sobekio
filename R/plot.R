@@ -372,7 +372,7 @@ plot_measure <- function(
   y2.scale = 50,
   sobek.project = NULL,
   ref.mID = NULL,
-  Q.zu = TRUE,
+  Q.zu = FALSE,
   Q.ab = TRUE,
   W.innen = FALSE,
   delta = FALSE,
@@ -386,8 +386,8 @@ plot_measure <- function(
   param = tolower(param)
   stopifnot(param %in% c('discharge', 'waterlevel'))
   stopifnot(!c(is.null(name), is.null(case.name), is.null(master.tbl),
-                         is.null(sobek.project)
-                         ))
+               is.null(sobek.project)
+  ))
   # get ID table of the "Maßnahme"
   id_tbl <- master.tbl[grepl(name, besonderheit, fixed = TRUE)]
   stopifnot(nrow(id_tbl) > 1)
@@ -454,7 +454,7 @@ plot_measure <- function(
   y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
   y2_max <- y1_max/y2.scale
   y2_shift <- y1_pretty[1]
-  y2_min <- y2_shift/y2.scale
+  y2_min <- floor(y2_shift/y2.scale)
   # adding line from Bezugspegel
   if (!is.null(ref.mID)){
     ref_mID <- his_from_case(case.list = case.name,
@@ -487,7 +487,7 @@ plot_measure <- function(
       ylab(y1_label) + xlab('Zeit')+
       ggtitle(paste('Ganglinien für Maßnahme: ', name))
   }
-  print(id_tbl)
+  # print(id_tbl)
   # if parameter is discharge, move waterlevel to secondary axis
   if (tolower(param) == 'discharge'){
     g <- g +
@@ -500,8 +500,8 @@ plot_measure <- function(
     if (isTRUE(W.innen)){
       delta <- FALSE
       Q.zu <- FALSE
-      y2_min <- min(id_data$W_innen, na.rm = TRUE)
-      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - y2_min*y2.scale
+      y2_min <- floor(min(id_data$W_innen, na.rm = TRUE))
+      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
       # if (y2_min*y2.scale > y1_min) y2_shift <- y2_shift - y2_min*y2.scale
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
                              color = 'In der Maßnahme', linetype = 'Wasserstand'),
@@ -511,8 +511,8 @@ plot_measure <- function(
     # if (isTRUE(W.innen)) Q.zu <- FALSE
     if (isTRUE(Q.zu)){
       y2_name <- 'Abfluss durch Bauwerke (m³/s)'
-      y2_min <- min(id_data$Einlass, na.rm = TRUE)
-      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - y2_min*y2.scale
+      y2_min <- floor(min(id_data$Einlass, na.rm = TRUE))
+      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
       g <- g + geom_line(aes(y = Einlass * y2.scale + y2_shift,
                              color = 'Q_Einlass', linetype = 'Abfluss'),
                          size = 1)
@@ -523,9 +523,9 @@ plot_measure <- function(
       }
     }
     if (isTRUE(delta)){
-      y2_name <- 'Differenze'
-      y2_min <- min(id_data$Delta, na.rm = TRUE)
-      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - y2_min*y2.scale
+      y2_name <- 'Abfluss Differenz'
+      y2_min <- floor(min(id_data$Delta, na.rm = TRUE))
+      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
       g <- g + geom_line(aes(y = Delta * y2.scale + y2_shift,
                              color = 'Delta', linetype = 'Abfluss'),
                          size = 1)
@@ -546,10 +546,10 @@ plot_measure <- function(
                         .SDcols = c('Nach', 'Vor', 'W_innen')]
       y1_min <- id_data[, min(.SD, na.rm = TRUE),
                         .SDcols = c('Nach', 'Vor', 'W_innen')]
-      y2_max <- y1_max/y2.scale
+      y2_max <- ceiling(y1_max/y2.scale)
       y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
-      delta <- FALSE
-      Q.zu <- FALSE
+      # delta <- FALSE
+      # Q.zu <- FALSE
       g <- g + geom_line(aes(y = W_innen,
                              color = 'In der Maßnahme',
                              linetype = 'Wasserstand'),
@@ -557,8 +557,8 @@ plot_measure <- function(
     }
     if (isTRUE(Q.zu)){
       y2_name <- 'Abfluss durch Bauwerke (m³/s)'
-      y2_min <- min(id_data$Einlass, na.rm = TRUE)
-      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - y2_min*y2.scale
+      y2_min <- floor(min(id_data$Einlass, na.rm = TRUE))
+      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
       g <- g + geom_line(aes(y = Einlass * y2.scale + y2_shift,
                              color = 'Q_Einlass', linetype = 'Abfluss'),
                          size = 1)
@@ -569,9 +569,9 @@ plot_measure <- function(
       }
     }
     if (isTRUE(delta)){
-      y2_name <- 'Wasserstand Different'
-      y2_min <- min(id_data$Delta, na.rm = TRUE)
-      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - y2_min*y2.scale
+      y2_name <- 'Wasserstand Differenz'
+      y2_min <- floor(min(id_data$Delta, na.rm = TRUE))
+      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
       g <- g + geom_line(aes(y = Delta * y2.scale + y2_shift,
                              color = 'Delta', linetype = 'Abfluss'),
                          size = 1)
@@ -582,6 +582,7 @@ plot_measure <- function(
   #----annotating max value----
   id_data[, Q_in_max := max(Einlass, na.rm = TRUE), by = case]
   id_data[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
+  # calculating Max Volume
   if(!is.null(polder.F)){
     if(is.null(polder.Z)){
       id_data[, H_innen_max := max(W_innen, na.rm = TRUE) -
@@ -607,6 +608,7 @@ plot_measure <- function(
       id_data[, Volume_max := Inf]
     }
   }
+  # finding the locations on x-axis for the annotated text, for each case
   id_data[, N := as.integer(.N*0.2), by = case]
   id_data[, ts_min := shift(ts, n = N, fill = NA, type = 'lead'), by = case]
   id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
@@ -614,13 +616,21 @@ plot_measure <- function(
   id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'))
   id_max[Volume_max != Inf, label := paste(
     'Volume Max: ', Volume_max, ' Mio. m³\n',
+    'Q_in Max:   ', round(Q_in_max), ' m³/s\n',
     'W_in Max:   ', round(W_in_max, 2), 'm + NHN\n',
-    'Q_in Max:   ', round(Q_in_max), ' m³/s\n', sep = ""
+    sep = ""
   )]
   id_max[Volume_max == Inf, label := paste(
     'Volume Max: k.A.\n',
+    'Q_in Max:   ', round(Q_in_max), ' m³/s\n',
     'W_in Max:   ', round(W_in_max, 2), 'm + NHN\n',
-    'Q_in Max:   ', round(Q_in_max), ' m³/s\n', sep = ""
+    sep = ""
+  )]
+  id_max[Q_in_max == 0, label := paste(
+    'Volume Max: 0 m³\n',
+    'Q_in Max:   ', round(Q_in_max), ' m³/s\n',
+    'W_in Max:   ', round(W_in_max, 2), 'm + NHN\n',
+    sep = ""
   )]
   g <- g +
     facet_wrap(.~case, scales = 'free_x')+
@@ -630,9 +640,7 @@ plot_measure <- function(
       hjust   = 0,
       vjust   = 0
     )
-  if (param == 'discharge'|Q.zu|delta){
-    # y2_pretty_min <- y2_min - y2_shift/y2.scale
-    # y2_pretty_max <- y2_max - y2_shift/y2.scale
+  if ((param == 'discharge' & isTRUE(W.innen))|Q.zu|delta){
     y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <-  g +
       scale_y_continuous(

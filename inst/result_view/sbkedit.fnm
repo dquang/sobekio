@@ -81,7 +81,7 @@ net=_case_folder_\NETWORK.ME
 
 [Defaults]
 NrOfFiles=1
-dat=..\fixed\sbkedit.def
+dat=_so_folder_\FIXED\sbkedit.def
 ReplaceDefaults=-1
 DeleteUnusedProfile=0
 

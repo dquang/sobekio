@@ -4,9 +4,8 @@
 \alias{create_case}
 \title{Create new Sobek Case from existing Case}
 \usage{
-create_case(old.name = "", new.name = "",
-  sobek.project = "d:/so21302/rhein29A.lit", new.begin = NULL,
-  new.end = NULL, new.desc = NULL)
+create_case(old.name = "", new.name = "", sobek.project = NULL,
+  new.begin = NULL, new.end = NULL, new.desc = NULL)
 }
 \arguments{
 \item{old.name}{Name of the old case, case-sensitive}
