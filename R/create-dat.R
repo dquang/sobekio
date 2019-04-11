@@ -209,13 +209,13 @@ transfer_fra <- function(
   main.case = '',
   rhein.case = '',
   main.prj = 'd:/so21302/main2015.lit',
-  rhein.prj = "d:/so21302/rhein29a.lit"
+  rhein.prj = "d:/so21302/rhein29a.lit",
+  fra.id = 'p_frankfurt_ost'
 ){
-  fra_main_id <- 'Pegel_F-Ost'
   fra_main <- his_from_case(case.list = main.case,
                             sobek.project = main.prj,
                             param = "discharge",
-                            mID = fra_main_id)
+                            mID = fra.id)
   colnames(fra_main) <- c('ts', 'fra', 'case')
   # worms_pz27_lubw[, ts:=strptime(ts, format = '%d.%m.%Y %H:%M:%S', tz = 'GMT')]
   # fra_main[, fra_prn := paste("'",

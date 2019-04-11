@@ -379,6 +379,7 @@ plot_measure <- function(
   V.max = TRUE,
   polder.F = NULL,
   polder.Z = NULL,
+  h.lines = NULL,
   master.tbl = NULL){
   # setting for display different lines on different graphics
   if (isTRUE(Q.zu)) delta <- FALSE
@@ -609,8 +610,16 @@ plot_measure <- function(
     }
   }
   # finding the locations on x-axis for the annotated text, for each case
-  id_data[, N := as.integer(.N*0.2), by = case]
-  id_data[, ts_min := shift(ts, n = N, fill = NA, type = 'lead'), by = case]
+  id_data[, N := .N, by = case]
+  id_data[, ts_min := shift(ts, n = floor(0.2*N),
+                            fill = NA, type = 'lead'),
+          by = case]
+  if(!is.null(h.lines)){
+    id_data[, ts_hlines := shift(ts, n = floor(0.01*N),
+                                 fill = NA, type = 'lead'),
+                                 by = case]
+    id_hlines <- id_data[, min(ts_hlines, na.rm = TRUE), by = case]
+  }
   id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
   colnames(id_data_nrow) <- c('case', 'ts')
   id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'))
@@ -637,9 +646,30 @@ plot_measure <- function(
     geom_text(
       data    = id_max,
       mapping = aes(x = ts, y = -Inf, label = label),
-      hjust   = 0,
-      vjust   = 0
+      hjust = 0, vjust = 0
     )
+  if (!is.null(h.lines)){
+    # id_hlines with 2 cols: V1, case
+    for (i in seq_along(h.lines)){
+      hline_label <- ifelse(is.null(names(h.lines[i])),
+                            paste('V_', h.lines[[i]], sep = ""),
+                            names(h.lines[i])
+                            )
+      # adding new colume to id_hlines
+      id_hlines[, eval(hline_label) := h.lines[[i]]]
+      g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 3)
+    }
+    id_hlines <- melt(id_hlines, id.vars = c('V1', 'case'))
+    g <- g + geom_text(
+             data    = id_hlines,
+             # V1 is the colume name of the min (ts_hlines)
+             mapping = aes(x = V1, y = value,
+                           label = sub("^V_", "", variable)
+                           ),
+             hjust   = 0,
+             vjust = 0
+    )
+  }
   if ((param == 'discharge' & isTRUE(W.innen))|Q.zu|delta){
     y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <-  g +
