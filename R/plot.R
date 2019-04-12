@@ -684,3 +684,59 @@ plot_measure <- function(
   }
   return(g)
 }
+
+
+#' Plot hydrographs at the estuaries of Rhine's tributaries
+#' @param case.list List of cases
+#' @param sobek.project Path to sobek project
+#' @param param Waterlevel/Discharge
+#' @param facet Facetted by hwe?
+#' @param p.title Title of the plot
+#' @param id.type Default mID
+#' @param id.list List of the ids
+#' @export
+plot_muendung <- function(
+  case.list = NULL,
+  sobek.project = NULL,
+  param = 'discharge',
+  facet = TRUE,
+  p.title = 'Ganglinien an der Mündungen',
+  id.type = 'mID',
+  id.list =  c('p_worms',
+               "p_main_muendung",
+               "p_nahe_muendung",
+               "p_lahn_muendung",
+               "p_mosel_muendung",
+               "p_ruhr_muendung",
+               "p_lippe_muendung"
+  )
+){
+  stopifnot(!c(is.null(case.list), is.null(sobek.project), is.null(id.list)))
+  his_args <- list(
+    case.list = case.list,
+    sobek.project = sobek.project,
+    param = param,
+    mID = id.list,
+    verbose = FALSE
+  )
+  if (id.type == 'latID') id.type <- 'lID'
+  names(his_args)[4] <- id.type
+  qt <- do.call(his_from_case, args = his_args)
+  qt[, hwe:= paste('HW', year(ts), sep = "")]
+  qt[hwe == 'HW2002', hwe := 'HW2003']
+  qt[grepl('_HW\\d{2,4}_', case), hwe := str_extract(case, '_HW\\d{2,4}_')]
+  qt[grepl('Mittel|Selten', case), vgf := str_extract(case, 'Mittel|Selten')]
+  qt <- melt(qt, id.vars = c('ts', 'case', 'hwe', 'vgf'))
+
+  g <- ggplot(qt, aes(x = ts, y = value,
+                      color = variable,
+                      linetype = vgf)
+  ) +
+    scale_x_datetime() + geom_line(size = 1) +
+    theme(legend.position = 'bottom') +
+    ggtitle(p.title)
+  if (isTRUE(facet)){
+    g <- g + facet_grid(. ~ hwe, scales = 'free_x')
+  }
+  g
+}
