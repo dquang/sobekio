@@ -19,14 +19,16 @@ check_fra <- function(
     case.list = main.case,
     sobek.project = main.prj,
     param = 'discharge',
-    mID = fra.main.id
+    mID = fra.main.id,
+    verbose = FALSE
   )
   colnames(q_fra_main) <- c('ts', 'FRA vom Main', 'case')
   q_fra_rhein <- his_from_case(
     case.list = main.case,
     sobek.project = main.prj,
     param = 'discharge',
-    mID = fra.main.id
+    mID = fra.main.id,
+    verbose = FALSE
   )
   colnames(q_fra_rhein) <- c('ts', 'FRA im Rhein', 'case')
   qt <- merge(q_fra_main[, c('ts', 'FRA vom Main')],
@@ -42,7 +44,7 @@ check_fra <- function(
       ggtitle(paste('Comparing Frankfurt-Ost: \n', main.case, 'vs', rhein.case))
     print(g)
   }
-  expect_equivalent(q_fra_main$`FRA vom Main`, q_fra_rhein$`FRA im Rhein`)
+  testthat::expect_equivalent(q_fra_main$`FRA vom Main`, q_fra_rhein$`FRA im Rhein`)
 }
 
 #' Checking Worms Input

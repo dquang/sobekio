@@ -1,6 +1,9 @@
-.Rproj.user/
-.Rhistory
-.RData
-.Ruserdata
-.Rproj.user
-man/
+*.Rproj.user
+*.Rhistory
+*.RData
+*.Ruserdata
+*.Rproj.user
+man/*.*
+*.Rd
+*.Rproj
+NAMESPACE
