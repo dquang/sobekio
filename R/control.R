@@ -101,10 +101,6 @@
   ct_tbl[, cp := str_match(V1, " cp (\\d) ")[,2]]
   ct_tbl[, mp := str_match(V1, " mp (\\d) ")[,2]]
   ct_tbl[, ml := str_match(V1, " ml '([^']*)' ")[,2]]
-  # str_mt <- str_match(ct_tbl$V1, "cp (\\d) mp (\\d) ml '([^']*)'")
-  # ct_tbl$cp <- str_mt[, 2]
-  # ct_tbl$mp <- str_mt[, 3]
-  # ct_tbl$ml <- str_mt[, 4]
   ct_tbl$V1 <- NULL
   ct_def <- merge(ct_def, ct_tbl, by = 'org_line_nr', all.x = TRUE)
   ct_def[, id := id[1], .(cumsum(!is.na(id)))]
@@ -265,22 +261,15 @@ get_struct_info <- function(
 ){
 
   # get path to files
-  # ct_def_f <- get_file_path(case.name = case.name,
-  #                           sobek.project = sobek.project,
-  #                           type = 'control.def')
   str_def_f <- get_file_path(case.name = case.name,
                              sobek.project = sobek.project,
                              type = 'struct.def')
-  # trig_def_f <- get_file_path(case.name = case.name,
-  #                             sobek.project = sobek.project,
-  #                             type = 'trigger')
   str_dat_f <- get_file_path(case.name = case.name,
                              sobek.project = sobek.project,
                              type = 'struct.dat')
 
   str_dat_tbl <- .get_struct_dat(str_dat_f)
   str_def_tbl <- .get_struct_def(str_def_f)
-  # ct_def_tbl <- .get_control_def(ct_def_f)
   str_id_tbl <- str_dat_tbl[id == s.id][1,]
   str_id_def <- str_def_tbl[def_ID == str_id_tbl$def_ID][1,]
   str_id_list <- list(
@@ -319,7 +308,6 @@ get_struct_info <- function(
       tfoot = paste('Case:', case.name)
       )
   }
-  # str_id <- data.table()
   return(str_info_tbl)
 }
 
