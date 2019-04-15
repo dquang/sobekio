@@ -3,6 +3,7 @@
 #' @param rhein.case Case from Rhein Model
 #' @param main.prj Main Project folder
 #' @param rhein.prj Rhein Project folder
+#' @param print.plot Should a plot be printed. Default = FALSE
 #' @param fra.main.id ID for Frankfurt Osthafen Pegel in Main Model. Default: p_frankfurt_ost
 #' @param fra.rhein.id ID for Frankfurt Osthafen Pegel in Rhein Model. Default: p_frankfurt_ost
 #' @export
@@ -51,7 +52,8 @@ check_fra <- function(
 #' @param case.name Case from Rhein Model
 #' @param zustand "Zustand" von Worms (Messung, 'pz27_zpk_mittel', 'pz27_zpk_selten',...)
 #' @param sobek.project Rhein Project folder
-#' @param worms.tbl
+#' @param worms.tbl Table of Womrs values
+#' @param worms.id ID of Worsm boundary node, default 17 
 #' @export
 check_worms <- function(
   case.name = NULL,

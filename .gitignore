@@ -1,9 +1,11 @@
 *.Rproj.user
 *.Rhistory
 *.RData
+!data.RData
 *.Ruserdata
 *.Rproj.user
 man/*.*
 *.Rd
 *.Rproj
 NAMESPACE
+.Rproj.user
