@@ -101,10 +101,6 @@
   ct_tbl[, cp := str_match(V1, " cp (\\d) ")[,2]]
   ct_tbl[, mp := str_match(V1, " mp (\\d) ")[,2]]
   ct_tbl[, ml := str_match(V1, " ml '([^']*)' ")[,2]]
-  # str_mt <- str_match(ct_tbl$V1, "cp (\\d) mp (\\d) ml '([^']*)'")
-  # ct_tbl$cp <- str_mt[, 2]
-  # ct_tbl$mp <- str_mt[, 3]
-  # ct_tbl$ml <- str_mt[, 4]
   ct_tbl$V1 <- NULL
   ct_def <- merge(ct_def, ct_tbl, by = 'org_line_nr', all.x = TRUE)
   ct_def[, id := id[1], .(cumsum(!is.na(id)))]
@@ -137,10 +133,10 @@
     "General structure",
     "River pump",
     "Database structure",
-    "5-NA",
+    NULL,
     "Weir",
     "Orifice",
-    "8-NA",
+    NULL,
     "Pump",
     "Culvert/Siphon",
     "Universal weir",
@@ -151,7 +147,7 @@
   if (s.id %in% id_list){
     str_type <- str_type_list[id_list == s.id]
   } else{
-    str_type <- 'NA'
+    str_type <- NULL
   }
   return(str_type)
 }
@@ -172,7 +168,7 @@
     ct_type <- ct_type_list[id_list == ct.id]
 
   } else{
-    ct_type <- "NA"
+    ct_type <- NULL
   }
   return(ct_type)
 }
@@ -183,7 +179,7 @@
   id_list <- c(0, 1, 2, 3, 4, 5)
   ca_type_list <- c(
     "Crest level",
-    "Crest Width",
+    "Crest width",
     "Gate height",
     "Pump capacity",
     "",
@@ -192,7 +188,7 @@
   if (ca.id %in% id_list){
     ca_type <- ca_type_list[id_list == ca.id]
   } else{
-    ca_type <- "NA"
+    ca_type <- NULL
   }
   return(ca_type)
 }
@@ -212,7 +208,7 @@
   if (cp.id %in% id_list){
     cp_type <- cp_type_list[id_list == cp.id]
   } else{
-    cp_type <- "NA"
+    cp_type <- NULL
   }
   return(cp_type)
 }
@@ -230,13 +226,13 @@ get_control_info <- function(ct.id = NULL,
   ct_id_tbl <- ct_def[id == ct.id][1,]
   ct_info_list <- list(
     'ID' = ct_id_tbl$id,
-    'Name' = ct_id_tbl$nm,
+    'Name' = ct_id_tbl$name,
     'Control_type' = .get_control_type(ct_id_tbl$ct),
-    'Control_parameter' = .get_control_parameter(ct_id_tbl$ac),
+    'Control_parameter' = .get_control_parameter(ct_id_tbl$ca),
+    'Controlled_active' = ct_id_tbl$ac,
     'Measurement_ID' = ct_id_tbl$ml,
     'Measured_parameter' = .get_type_of_measured_param(ct_id_tbl$cp),
     'Time_lag' = ct_id_tbl$mp,
-    # 'Controlled active' = ct_id_tbl$ca,
     'Update_frequency' = ct_id_tbl$cf,
     'Trigger_active' = ct_id_tbl$ta,
     'Trigger_IDs' = ct_id_tbl$gi,
@@ -265,22 +261,18 @@ get_struct_info <- function(
 ){
 
   # get path to files
-  # ct_def_f <- get_file_path(case.name = case.name,
-  #                           sobek.project = sobek.project,
-  #                           type = 'control.def')
   str_def_f <- get_file_path(case.name = case.name,
                              sobek.project = sobek.project,
                              type = 'struct.def')
-  # trig_def_f <- get_file_path(case.name = case.name,
-  #                             sobek.project = sobek.project,
-  #                             type = 'trigger')
   str_dat_f <- get_file_path(case.name = case.name,
                              sobek.project = sobek.project,
                              type = 'struct.dat')
 
   str_dat_tbl <- .get_struct_dat(str_dat_f)
+  if (!s.id %in% str_dat_tbl$id){
+    stop(s.id, ' not found in struct.dat. Remember that cases are sensitive')
+  }
   str_def_tbl <- .get_struct_def(str_def_f)
-  # ct_def_tbl <- .get_control_def(ct_def_f)
   str_id_tbl <- str_dat_tbl[id == s.id][1,]
   str_id_def <- str_def_tbl[def_ID == str_id_tbl$def_ID][1,]
   str_id_list <- list(
@@ -291,14 +283,14 @@ get_struct_info <- function(
     "Crest_width" = str_id_def$cw,
     Controller = str_id_tbl$ca,
     "Possible_flow_direction" = str_id_def$rt,
-    'Total_control' = 0L,
+    'Total_controllers' = 0L,
     'Definition_ID' = str_id_tbl$def_ID
   )
   if (!is.na(str_id_tbl$cj)){
     cj_list <- str_split(str_id_tbl$cj, ' ', simplify = TRUE)[1, ]
     ct_id_list <- gsub("'", "", cj_list[!grepl("'-1'", cj_list)])
     if (length(ct_id_list) > 0){
-      str_id_list$Total_control <- length(ct_id_list)
+      str_id_list$Total_controllers <- length(ct_id_list)
       # ct_id_tbl <- subset(ct_def_tbl, id %in% ct_id_list & !is.na(ct))
       for (i in seq_along(ct_id_list)){
         ct_name <- paste('Control', i, sep = "_")
@@ -319,7 +311,6 @@ get_struct_info <- function(
       tfoot = paste('Case:', case.name)
       )
   }
-  # str_id <- data.table()
   return(str_info_tbl)
 }
 
@@ -347,7 +338,7 @@ get_struct_ct <- function(
   ct_def_f <- get_file_path(case.name = case.name,
                             sobek.project = sobek.project,
                             type = 'control.def')
-  total_ct <- str_info_tbl[Parameter == 'Total_control', Value]
+  total_ct <- str_info_tbl[Parameter == 'Total_controllers', Value]
   if (total_ct > 0){
     ct_list <- str_info_tbl[grepl('^Control_', Parameter), Value]
     ct_info_list <- lapply(ct_list, get_control_info, def.file = ct_def_f)
