@@ -98,6 +98,9 @@
   str_mt <- str_match(ct_tbl$V1, "mc (.*) bl (\\d) ti")
   ct_tbl$mc <- str_mt[, 2]
   ct_tbl$bl <- str_mt[, 3]
+  ct_tbl[, cp := str_match(V1, " cp (\\d) ")[,2]]
+  ct_tbl[, mp := str_match(V1, " mp (\\d) ")[,2]]
+  ct_tbl[, ml := str_match(V1, " ml '([^']*)' ")[,2]]
   ct_tbl$V1 <- NULL
   ct_def <- merge(ct_def, ct_tbl, by = 'org_line_nr', all.x = TRUE)
   ct_def[, id := id[1], .(cumsum(!is.na(id)))]
@@ -114,7 +117,7 @@
   ct_id_tbl_nrow <- nrow(ct_id_tbl)
   if (ct_id_tbl_nrow > 3){
     ct_id_tbl <- ct_id_tbl[3:(ct_id_tbl_nrow - 1)]
-    return(paste(ct_id_tbl$V1, collapse = "\n\r"))
+    return(paste(ct_id_tbl$V1, collapse = "<br>"))
   } else{
     return(NA)
   }
@@ -130,10 +133,10 @@
     "General structure",
     "River pump",
     "Database structure",
-    "5-NA",
+    NULL,
     "Weir",
-    "Ori?ce",
-    "8-NA",
+    "Orifice",
+    NULL,
     "Pump",
     "Culvert/Siphon",
     "Universal weir",
@@ -144,7 +147,7 @@
   if (s.id %in% id_list){
     str_type <- str_type_list[id_list == s.id]
   } else{
-    str_type <- 'NA'
+    str_type <- NULL
   }
   return(str_type)
 }
@@ -165,7 +168,7 @@
     ct_type <- ct_type_list[id_list == ct.id]
 
   } else{
-    ct_type <- "NA"
+    ct_type <- NULL
   }
   return(ct_type)
 }
@@ -176,7 +179,7 @@
   id_list <- c(0, 1, 2, 3, 4, 5)
   ca_type_list <- c(
     "Crest level",
-    "Crest Width",
+    "Crest width",
     "Gate height",
     "Pump capacity",
     "",
@@ -185,9 +188,29 @@
   if (ca.id %in% id_list){
     ca_type <- ca_type_list[id_list == ca.id]
   } else{
-    ca_type <- "NA"
+    ca_type <- NULL
   }
   return(ca_type)
+}
+
+
+# this function converts 'cp' code to measured parameter name
+.get_type_of_measured_param <- function(cp.id){
+  id_list <- c(0, 1, 2, 3, 4, 5)
+  cp_type_list <- c(
+    "Water level",
+    "Discharge",
+    "Head difference",
+    "Velocity",
+    "Flow direction",
+    "Pressure difference"
+  )
+  if (cp.id %in% id_list){
+    cp_type <- cp_type_list[id_list == cp.id]
+  } else{
+    cp_type <- NULL
+  }
+  return(cp_type)
 }
 
 
@@ -203,13 +226,16 @@ get_control_info <- function(ct.id = NULL,
   ct_id_tbl <- ct_def[id == ct.id][1,]
   ct_info_list <- list(
     'ID' = ct_id_tbl$id,
-    'Name' = ct_id_tbl$nm,
-    'Control type' = .get_control_type(ct_id_tbl$ct),
-    'Control parameter' = .get_control_parameter(ct_id_tbl$ac),
-    'Controlled active' = ct_id_tbl$ca,
-    'Update frequency' = ct_id_tbl$cf,
-    'Trigger active' = ct_id_tbl$ta,
-    'Trigger IDs' = ct_id_tbl$gi,
+    'Name' = ct_id_tbl$name,
+    'Control_type' = .get_control_type(ct_id_tbl$ct),
+    'Control_parameter' = .get_control_parameter(ct_id_tbl$ca),
+    'Controlled_active' = ct_id_tbl$ac,
+    'Measurement_ID' = ct_id_tbl$ml,
+    'Measured_parameter' = .get_type_of_measured_param(ct_id_tbl$cp),
+    'Time_lag' = ct_id_tbl$mp,
+    'Update_frequency' = ct_id_tbl$cf,
+    'Trigger_active' = ct_id_tbl$ta,
+    'Trigger_IDs' = ct_id_tbl$gi,
     'dValue/dt' = ct_id_tbl$mc,
     'tble' = .get_control_tbl(ct.id, ct_def)
   )
@@ -223,60 +249,68 @@ get_control_info <- function(ct.id = NULL,
 #' @param s.id ID of the structure
 #' @param case.name Name of the case
 #' @param sobek.project Path to sobek project
+#' @param html Output to HTML table? Default TRUE
 #' @import data.table
 #' @export
-#' @return a list
+#' @return a data.table or a HTML object
 get_struct_info <- function(
   s.id = NULL,
   case.name = NULL,
-  sobek.project = NULL
+  sobek.project = NULL,
+  html = TRUE
 ){
 
   # get path to files
-  ct_def_f <- get_file_path(case.name = case.name,
-                            sobek.project = sobek.project,
-                            type = 'control.def')
   str_def_f <- get_file_path(case.name = case.name,
                              sobek.project = sobek.project,
                              type = 'struct.def')
-  trig_def_f <- get_file_path(case.name = case.name,
-                              sobek.project = sobek.project,
-                              type = 'trigger')
   str_dat_f <- get_file_path(case.name = case.name,
                              sobek.project = sobek.project,
                              type = 'struct.dat')
 
   str_dat_tbl <- .get_struct_dat(str_dat_f)
+  if (!s.id %in% str_dat_tbl$id){
+    stop(s.id, ' not found in struct.dat. Remember that cases are sensitive')
+  }
   str_def_tbl <- .get_struct_def(str_def_f)
-  ct_def_tbl <- .get_control_def(ct_def_f)
   str_id_tbl <- str_dat_tbl[id == s.id][1,]
   str_id_def <- str_def_tbl[def_ID == str_id_tbl$def_ID][1,]
   str_id_list <- list(
     ID = s.id,
     Name = str_id_tbl$name,
     Type = .get_struct_type(str_id_def$def_ty),
-    Definition = str_id_tbl$def_ID,
-    Controller = str_id_tbl$ca,
     "Crest_level" = str_id_def$cl,
     "Crest_width" = str_id_def$cw,
+    Controller = str_id_tbl$ca,
     "Possible_flow_direction" = str_id_def$rt,
-    'Total_control' = 0L
+    'Total_controllers' = 0L,
+    'Definition_ID' = str_id_tbl$def_ID
   )
-  cj_list <- str_split(str_id_tbl$cj, ' ', simplify = TRUE)[1, ]
-  ct_id_list <- gsub("'", "", cj_list[!grepl("'-1'", cj_list)])
-  if (length(ct_id_list) > 0){
-    str_id_list$Total_control <- length(ct_id_list)
-    # ct_id_tbl <- subset(ct_def_tbl, id %in% ct_id_list & !is.na(ct))
-    for (i in seq_along(ct_id_list)){
-      ct_name <- paste('Control', i, sep = "_")
-      str_id_list[[ct_name]] <- ct_id_list[[i]]
+  if (!is.na(str_id_tbl$cj)){
+    cj_list <- str_split(str_id_tbl$cj, ' ', simplify = TRUE)[1, ]
+    ct_id_list <- gsub("'", "", cj_list[!grepl("'-1'", cj_list)])
+    if (length(ct_id_list) > 0){
+      str_id_list$Total_controllers <- length(ct_id_list)
+      # ct_id_tbl <- subset(ct_def_tbl, id %in% ct_id_list & !is.na(ct))
+      for (i in seq_along(ct_id_list)){
+        ct_name <- paste('Control', i, sep = "_")
+        str_id_list[[ct_name]] <- ct_id_list[[i]]
+      }
     }
   }
   str_info_tbl <- data.table(
     Parameter = names(str_id_list),
     Value = str_id_list
   )
-  # str_id <- data.table()
+  if (isTRUE(html)){
+    str_info_tbl <- htmlTable::htmlTable(
+      str_info_tbl,
+      align = 'l',
+      caption = paste(
+        "Information table of the structure:", s.id),
+      tfoot = paste('Case:', case.name)
+      )
+  }
   return(str_info_tbl)
 }
 
@@ -285,23 +319,26 @@ get_struct_info <- function(
 #' @param s.id ID of the structure
 #' @param case.name Name of the case
 #' @param sobek.project Path to sobek project
+#' @param html Should output to a HTML object. Default TRUE
 #' @import data.table
 #' @export
-#' @return a list
+#' @return a data.table, a HTML object or NA
 get_struct_ct <- function(
   s.id = NULL,
   case.name = NULL,
-  sobek.project = NULL
+  sobek.project = NULL,
+  html = TRUE
 ){
   str_info_tbl <- get_struct_info(
     s.id = s.id,
     case.name = case.name,
-    sobek.project = sobek.project
+    sobek.project = sobek.project,
+    html = FALSE
   )
   ct_def_f <- get_file_path(case.name = case.name,
                             sobek.project = sobek.project,
                             type = 'control.def')
-  total_ct <- str_info_tbl[Parameter == 'Total_control', Value]
+  total_ct <- str_info_tbl[Parameter == 'Total_controllers', Value]
   if (total_ct > 0){
     ct_list <- str_info_tbl[grepl('^Control_', Parameter), Value]
     ct_info_list <- lapply(ct_list, get_control_info, def.file = ct_def_f)
@@ -309,7 +346,8 @@ get_struct_ct <- function(
     colnames(ct_info_tbl) <- c('Parameter', 'Controller_1')
     if (length(ct_info_list) > 1){
       for (i in 2:length(ct_info_list)){
-        ct_info_tbl <- merge(ct_info_tbl, ct_info_list[[i]], by = 'Parameter')
+        ct_info_tbl <- merge(ct_info_tbl, ct_info_list[[i]], by = 'Parameter',
+                             sort = FALSE)
         # colnames(ct_info_tbl) <- c('Parameter',
         #                            paste('Controller', i, sep = '_'))
       }
@@ -318,6 +356,15 @@ get_struct_ct <- function(
                                paste('Controller',
                                      1:length(ct_info_list), sep = '_')
                                )
+    if (isTRUE(html)){
+      ct_info_tbl <- htmlTable::htmlTable(
+        ct_info_tbl,
+        align = 'l',
+        caption = paste(
+          "Controlling information table of the structure:", s.id),
+        tfoot = paste('Case:', case.name)
+        )
+    }
     return(ct_info_tbl)
   }
   return(NA)
