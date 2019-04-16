@@ -4,11 +4,12 @@
 \alias{plot_scheitel_delta}
 \title{Plot peak difference at one place}
 \usage{
-plot_scheitel_delta(pos = "", indt = NULL, x.lab = "Zeit",
-  y.lab = "Abfluss (m³/s)", title = paste("Ganglinie an der Lage:",
-  pos), x.angle = 90L, x.hjust = 1L, size = 1L, y.min = NULL,
-  delta = TRUE, addon.text = NULL, h.line = NULL,
-  y.interval = 500L, peak.duration = 5L, faced = NULL)
+plot_scheitel_delta(pos = NULL, indt = NULL, arg = NULL,
+  x.lab = "Zeit", y.lab = "Abfluss (m³/s)",
+  title = paste("Ganglinie an der Lage:", pos), x.angle = 90L,
+  x.hjust = 1L, size = 1L, y.min = NULL, delta = TRUE,
+  addon.text = NULL, h.line = NULL, y.interval = 500L,
+  peak.duration = 5L, faced = NULL)
 }
 \arguments{
 \item{pos}{Names of columns to draw}

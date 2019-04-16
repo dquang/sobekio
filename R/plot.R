@@ -272,11 +272,11 @@ plot_scheitel_delta <- function(
   y.interval = 500L,
   peak.duration = 5L,
   faced = NULL){
-  
+
   if (!is.null(arg)){
     data_tb <- do.call(his_from_case, args = arg)
   } else{
-    data_tb <- data.table(indt) 
+    data_tb <- data.table(indt)
   }
   lage_all <- colnames(data_tb)
   lage_all <- lage_all[-grep("ts|case", lage_all)]
@@ -395,6 +395,10 @@ plot_measure <- function(
   stopifnot(!c(is.null(name), is.null(case.name), is.null(master.tbl),
                is.null(sobek.project)
   ))
+  if (is.character(master.tbl)){
+    stopifnot(file.exists(master.tbl))
+    master.tbl <- fread(master.tbl, sep = "\t", dec = ",", header = TRUE)
+  }
   # get ID table of the "Maßnahme"
   id_tbl <- master.tbl[grepl(name, besonderheit, fixed = TRUE)]
   stopifnot(nrow(id_tbl) > 1)

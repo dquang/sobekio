@@ -50,7 +50,7 @@ polder_tmv <- function(
   while (cont){
     # print(i_cur)
     q0 <- q0_seq[i_cur]
-    tmp <- qt2[value > q0]
+    tmp <- qt2[value >= q0]
     tmp <- tmp[, qin := value - q0]
     # tmp[value <= selected.value, qin := 0]
     tmp[, vt := qin*t_step]
@@ -68,7 +68,8 @@ polder_tmv <- function(
         i_cur <- (i_max - i_min + 1) %/% 2
       }
     } else{
-      print(paste('found!, q0 = ', q0, ". V_in = ", v_max, sep = ""))
+      print(paste('Found!, q0 = ', round(q0, 1), ". V_in = ", round(v_max, 2),
+                  sep = ""))
       cont = FALSE
     }
   }
