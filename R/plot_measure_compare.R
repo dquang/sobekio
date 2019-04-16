@@ -1,4 +1,4 @@
-#' Compare (with/without) hydrographs at a measure
+#' Compare (with/without) hydrographs for a measure
 #' @param name Name of the measure (with/without the measure)
 #' @param case.name Name of 2 cases
 #' @param param 'Waterlevel' or 'Discharge' Hydrograph
@@ -17,7 +17,7 @@
 plot_measure_compare <- function(
   name = NULL,
   case.name = NULL,
-  case.desc = ('Mit', 'Ohne'),
+  case.desc = c('Mit', 'Ohne'),
   facet.group = NULL,
   param = 'waterlevel',
   y2.scale = 50,
@@ -26,7 +26,7 @@ plot_measure_compare <- function(
   Q.zu = FALSE,
   Q.ab = TRUE,
   W.innen = FALSE,
-  delta = FALSE,
+  # delta = FALSE,
   V.max = TRUE,
   polder.F = NULL,
   polder.Z = NULL,
@@ -34,7 +34,8 @@ plot_measure_compare <- function(
   zoom = NULL,
   master.tbl = NULL){
   # setting for display different lines on different graphics
-  if (isTRUE(Q.zu)) delta <- FALSE
+  # if (isTRUE(Q.zu)) delta <- FALSE
+  stopifnot(length(unlist(case.name)) == 2)
   # checking input
   param = tolower(param)
   stopifnot(param %in% c('discharge', 'waterlevel'))
@@ -97,9 +98,10 @@ plot_measure_compare <- function(
   # merging data
   id_data <- merge(ft_in_out, st_ab_zu, by = c('ts', 'case'))
   id_data <- merge(id_data, wt_id_mitte, by = c('ts', 'case'))
-  id_data[, Delta := Nach - Vor]
+  # id_data[, Delta := Nach - Vor]
   for (i in seq_along(case.name)) id_data[case == case.name[i], Status := case.desc[i]]
   y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
+  delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')
   line_type <- ifelse(param == 'discharge', 'Abfluss', 'Wasserstand')
   y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
   y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
@@ -117,6 +119,18 @@ plot_measure_compare <- function(
                              verbose = FALSE)
     colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
     id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
+    # get peak difference at the ref_measurement
+    for (i in seq_along(case.name)) ref_mID[case == case.name[i], Status := case.desc[i]]
+    scheitel_ohne <- ref_mID[grepl('Ohne', Status), max(Bezugspegel)]
+    scheitel_ohne_t <- ref_mID[grepl('Ohne', Status) & 
+                                 Bezugspegel == max(Bezugspegel), ts]
+    scheitel_mit <- ref_mID[grepl('Mit', Status) & ts == scheitel_ohne_t, 
+                            Bezugspegel]
+    scheitel_ref_mID_delta <- scheitel_ohne - scheitel_mit
+    scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta, 2)
+    if (scheitel_ref_mID_delta > 1) {
+      scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta)
+    }
     y1_min <- min(y1_min, ref_mID$Bezugspegel, na.rm = TRUE)
     y1_max <- max(y1_max, ref_mID$Bezugspegel, na.rm = TRUE)
     y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
@@ -176,21 +190,21 @@ plot_measure_compare <- function(
                            size = 1)
       }
     }
-    if (isTRUE(delta)){
-      y2_name <- 'Abfluss Differenz'
-      y2_min <- floor(min(id_data$Delta, na.rm = TRUE))
-      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
-      g <- g + geom_line(aes(y = Delta * y2.scale + y2_shift,
-                             color = 'Delta', linetype = Status),
-                         size = 1)
-    }
+    # if (isTRUE(delta)){
+    #   y2_name <- 'Abfluss Differenz'
+    #   y2_min <- floor(min(id_data$Delta, na.rm = TRUE))
+    #   if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
+    #   g <- g + geom_line(aes(y = Delta * y2.scale + y2_shift,
+    #                          color = 'Delta', linetype = Status),
+    #                      size = 1)
+    # }
     #----working with WL----
   } else {
     # adding W_innen directly to the graphic should not be a problem
     g <- g +
-      geom_line(aes(y = Vor, color = 'Vor Maßnahme',
-                    linetype = Status),
-                size = 1) +
+      # geom_line(aes(y = Vor, color = 'Vor Maßnahme',
+      #               linetype = Status),
+      #           size = 1) +
       geom_line(aes(y = Nach,  color = 'Nach Maßnahme',
                     linetype = Status),
                 size = 1)
@@ -222,14 +236,14 @@ plot_measure_compare <- function(
                            size = 1)
       }
     }
-    if (isTRUE(delta)){
-      y2_name <- 'Wasserstand Differenz'
-      y2_min <- floor(min(id_data$Delta, na.rm = TRUE))
-      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
-      g <- g + geom_line(aes(y = Delta * y2.scale + y2_shift,
-                             color = 'Delta', linetype = Status),
-                         size = 1)
-    }
+    # if (isTRUE(delta)){
+    #   y2_name <- 'Wasserstand Differenz'
+    #   y2_min <- floor(min(id_data$Delta, na.rm = TRUE))
+    #   if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
+    #   g <- g + geom_line(aes(y = Delta * y2.scale + y2_shift,
+    #                          color = 'Delta', linetype = Status),
+    #                      size = 1)
+    # }
   }
   g$labels$colour <- 'Farbe'
   g$labels$linetype <- 'Linienart'
@@ -262,43 +276,49 @@ plot_measure_compare <- function(
       id_data[, Volume_max := Inf]
     }
   }
-  # finding the locations on x-axis for the annotated text, for each case
-  id_data[, N := .N, by = case]
-  id_data[, ts_min := shift(ts, n = floor(0.2*N),
-                            fill = NA, type = 'lead'),
-          by = case]
+  # finding the locations on x-axis for the annotated text
+  # get length of x_axis, then get 1/5 of it
+  x_axis_n <- id_data[grepl('Mit', Status), .N]
+  i_pos_txt <- floor(x_axis_n*0.2)
+  x_pos_txt <- id_data[grepl('Mit', Status)][i_pos_txt, ]
+  # x_pos_txt <- id_data[, ts_min := shift(ts, n = floor(0.2*N),
+  #                           fill = NA, type = 'lead'),
+  #         by = case]
   if(!is.null(h.lines)){
-    id_data[, ts_hlines := shift(ts, n = floor(0.01*N),
-                                 fill = NA, type = 'lead'),
-            by = case]
-    id_hlines <- id_data[, min(ts_hlines, na.rm = TRUE), by = case]
+    i_pos_hline <- floor(x_axis_n*0.01)
+    id_hlines <- id_data[grepl('Mit', Status)][i_pos_hline,
+                                               c('ts', 'case', 'Status', 
+                                                 'Bezugspegel')]
   }
-  id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
-  colnames(id_data_nrow) <- c('case', 'ts')
-  id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'))
-  id_max[Volume_max != Inf, label := paste(
+  # id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
+  # colnames(id_data_nrow) <- c('case', 'ts')
+  # id_max <- id_data
+  x_pos_txt[Volume_max != Inf, label := paste(
     'Volume Max: ', Volume_max, ' Mio. m³\n',
+    'Delta am Bezugspegel: ', scheitel_ref_mID_delta, " ", delta_unit, " \n",
     'Q_in Max:   ', round(Q_in_max), ' m³/s\n',
     'W_in Max:   ', round(W_in_max, 2), 'm + NHN\n',
     sep = ""
   )]
-  id_max[Volume_max == Inf, label := paste(
+  x_pos_txt[Volume_max == Inf, label := paste(
     'Volume Max: k.A.\n',
+    'Delta am Bezugspegel: ', scheitel_ref_mID_delta, " ", delta_unit, " \n",
     'Q_in Max:   ', round(Q_in_max), ' m³/s\n',
     'W_in Max:   ', round(W_in_max, 2), 'm + NHN\n',
     sep = ""
   )]
-  id_max[Q_in_max == 0, label := paste(
+  x_pos_txt[Q_in_max == 0, label := paste(
     'Volume Max: 0 m³\n',
+    'Delta am Bezugspegel: ', scheitel_ref_mID_delta, " ", delta_unit, " \n",
     'Q_in Max:   ', round(Q_in_max), ' m³/s\n',
     'W_in Max:   ', round(W_in_max, 2), 'm + NHN\n',
     sep = ""
   )]
-  for (i in seq_along(case.name)) id_max[case == case.name[i], Status := case.desc[i]]
-  g2 <- g +
+  # for (i in seq_along(case.name)) id_max[case == case.name[i], Status := case.desc[i]]
+  g <- g +
     # facet_wrap(.~case, scales = 'free_x')+
     geom_text(
-      data    = id_max[Status == 'Mit'],
+      data    = x_pos_txt,
       mapping = aes(x = ts, y = -Inf, label = label),
       hjust = 0, vjust = 0
     )
@@ -313,18 +333,19 @@ plot_measure_compare <- function(
       id_hlines[, eval(hline_label) := h.lines[[i]]]
       g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 3)
     }
-    id_hlines <- melt(id_hlines, id.vars = c('V1', 'case'))
+    id_hlines <- melt(id_hlines, id.vars = c('ts', 'case', 'Status', 
+                                             'Bezugspegel'))
     g <- g + geom_text(
       data    = id_hlines,
       # V1 is the colume name of the min (ts_hlines)
-      mapping = aes(x = V1, y = value,
+      mapping = aes(x = ts, y = value,
                     label = sub("^V_", "", variable)
       ),
       hjust   = 0,
       vjust = 0
     )
   }
-  if ((param == 'discharge' & isTRUE(W.innen))|Q.zu|delta){
+  if ((param == 'discharge' & isTRUE(W.innen))|Q.zu){
     y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <-  g +
       scale_y_continuous(

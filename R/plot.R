@@ -256,8 +256,9 @@ plot_polder <- function(pos = NULL,
 #' @param faced faced by case, default FALSE
 #' @return a ggplot2 graphic
 plot_scheitel_delta <- function(
-  pos = '',
+  pos = NULL,
   indt = NULL,
+  arg = NULL,
   x.lab = 'Zeit',
   y.lab = 'Abfluss (m³/s)',
   title = paste('Ganglinie an der Lage:', pos) ,
@@ -271,7 +272,12 @@ plot_scheitel_delta <- function(
   y.interval = 500L,
   peak.duration = 5L,
   faced = NULL){
-  data_tb <- data.table(indt)
+  
+  if (!is.null(arg)){
+    data_tb <- do.call(his_from_case, args = arg)
+  } else{
+    data_tb <- data.table(indt) 
+  }
   lage_all <- colnames(data_tb)
   lage_all <- lage_all[-grep("ts|case", lage_all)]
   data_tb <- data_tb[, c('ts', pos, 'case'), with = FALSE]
