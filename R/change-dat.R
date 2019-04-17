@@ -12,6 +12,7 @@ get_data_from_id <- function(dat.file = NULL,
                    sep = "\n",
                    header = FALSE,
                    data.table = TRUE,
+                   dec = ".",
                    quote = ""
                    )
   # id_tbl <- lat_dat[V1 %like% " id '"]
@@ -44,9 +45,10 @@ get_data_from_id <- function(dat.file = NULL,
                              tz = 'GMT',
                              format = "%Y/%m/%d;%H:%M:%S")
           ]
-  id_data[, V1 := sub(".* (\\d*\\.?\\d*) .*", "\\1", V1)]
+  id_data[, V1 := sub("'.*' ([^ ]*) <", "\\1", V1)]
   setcolorder(id_data, c('ts', 'V1'))
   # id_data <- id_data[, .SD, .SDcols = c('ts', V2)]
+  id_data[, V1:=as.numeric(V1)]
   colnames(id_data) <- c('ts', s.id)
   return(id_data)
 }
