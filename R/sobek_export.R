@@ -5,12 +5,15 @@
 #' @export
 sobek_export <- function(case.list, sobek.project, dest){
   if (!dir.exists(dest)) dir.create(dest)
-  case.list <-  data.table(read.table(case.list,
-                        header = FALSE, sep ="\n",
-                        encoding = "windows-1252",
-                        stringsAsFactors = FALSE
-                        )
-                        )
+  if (is.character(case.list) & file.exists(case.list)){
+    case.list <-  data.table(read.table(case.list,
+                                        header = FALSE, sep ="\n",
+                                        encoding = "windows-1252",
+                                        stringsAsFactors = FALSE
+    )
+    )
+    case.list <- case.list$V1
+  }
   sobek_clist <- data.table(read.table(
     paste(sobek.project, "caselist.cmt", sep = "/"),
     header = FALSE, col.names = c('case_number', 'case_name'),
@@ -21,7 +24,7 @@ sobek_export <- function(case.list, sobek.project, dest){
                    pattern = "^[^0-9]{1,}$",
                    full.names = T, no.. = T)
   file.copy(from = all_files, to = dest, recursive = T)
-  for (i in case.list$V1){
+  for (i in case.list){
     print(paste('copying case: ', i, "..."))
     from_folder <- dirname(get_file_path(case.name = i,
                                          sobek.project = sobek.project,

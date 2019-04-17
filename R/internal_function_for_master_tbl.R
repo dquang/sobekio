@@ -1,3 +1,21 @@
+.parsing_case_name <- function(case.desc, orig.name = case.desc){
+  case_str <- str_match(case.desc, "^([^_]+)_([^_]+)_([^_]+)_([^_]+)(.*)$")
+  if (ncol(case_str) < 5 | ncol(case_str) > 6) {
+    stop('case name: ', case, ' has wrong format')
+  }
+  result <- data.table(
+    case = orig.name,
+    case_desc = case_str[, 1],
+    zustand = case_str[, 2],
+    zielpegel = case_str[, 3],
+    hwe = case_str[, 4],
+    vgf = case_str[, 5],
+    notiz = case_str[, 6]
+  )
+  return(result)
+}
+
+
 #' Get id tables for one measure from the master.tbl
 #' @param name Name of the measure
 #' @param case.list List of the cases
@@ -22,10 +40,10 @@
   # check if the zustand in cases are in listed in the master.tbl
   zustand_in_cases <- sort(unique(case_tbl$zustand))
   zustand_in_cases_len <- length(zustand_in_cases)
-  stopifnot(length(zustand_list) >= zustand_in_cases_len)
-  testthat::expect_equivalent(zustand_in_cases,
-                              zustand_list[1:zustand_in_cases_len]
-  )
+  # stopifnot(length(zustand_list) >= zustand_in_cases_len)
+  # testthat::expect_equivalent(zustand_in_cases,
+  #                             zustand_list[1:zustand_in_cases_len]
+  # )
   # creating new columns based on case name
   for (i in seq_along(case.desc)){
     col_n <- paste('case_desc', i, sep = "_")
@@ -68,14 +86,20 @@
   id.tbl <- .get_id_tbl(name = name, case.list = case.list,
                         case.desc = case.desc, master.tbl = master.tbl
   )
+  id.tbl <- id.tbl[!grepl(".+_Vol", besonderheit)]
+  if (param == 'discharge'){
+    id.tbl <- id.tbl[!grepl('w', ID_TYPE)]
+  } else{
+    id.tbl <- id.tbl[!grepl('q', ID_TYPE)|grepl("Einlass|Auslass", besonderheit)]
+  }
+  # id.tbl[, parameter := param]
+  # id.tbl[grepl('_Einlass|_Auslass', besonderheit), parameter := 'discharge']
+  id.tbl[, col_name := str_match(besonderheit,
+                      ".+_(Einlass[^,;]*|Auslass[^,;]*|Nach|Vor|Innen)")[,2]]
   # get results for each case
   id_data_list <- list()
   for (i in seq_along(case.list)){
-    if (isTRUE(verbose)) print(paste('Getting data for case:', case.list[[i]]))
-    id_tbl_tmp <- id.tbl[case == case.list[i]]
-    id_mitte <- id_tbl_tmp[grepl('.+_Innen', besonderheit)&
-                             grepl('mID|wID', ID_TYPE)][1]
-    # id_vol <- id_tbl_tmp[grepl('.+_Vol', besonderheit) & ID_TYPE == 'wID']
+    id_tbl_tmp <- id.tbl[case == case.list[[i]]]
     if (param == 'discharge'){
       # this take only the first row, if there is none, it should get an NA
       id_vor <- id_tbl_tmp[grepl('_Vor', besonderheit) &
@@ -84,12 +108,6 @@
       id_nach <- id_tbl_tmp[grepl('_Nach', besonderheit)&
                               grepl('mID|qID', ID_TYPE)
                             ][1]
-      id_ein <- id_tbl_tmp[grepl('.+_Einlass', besonderheit) &
-                             grepl('mID|qID', ID_TYPE)
-                           ]
-      id_aus <- id_tbl_tmp[grepl('.*_Auslass', besonderheit) &
-                             grepl('mID|qID', ID_TYPE)
-                           ]
     } else{
       id_vor <- id_tbl_tmp[grepl('_Vor', besonderheit) &
                              grepl('mID|wID', ID_TYPE)
@@ -97,41 +115,81 @@
       id_nach <- id_tbl_tmp[grepl('_Nach', besonderheit)&
                               grepl('mID|wID', ID_TYPE)
                             ][1]
-      id_ein <- id_tbl_tmp[grepl('.+_Einlass', besonderheit) &
-                             grepl('mID|wID', ID_TYPE)
-                           ]
-      id_aus <- id_tbl_tmp[grepl('.*_Auslass', besonderheit) &
-                             grepl('mID|wID', ID_TYPE)
-                           ]
     }
-    id_ein_cols <- 'Einlass'
-    id_aus_cols <- 'Auslass'
-    if (length(id_ein$ID) > 1){
-      id_ein_cols <- paste('Einlass', seq_along(id_ein$ID), sep = "_")
-    }
-    if (length(id_aus$ID) > 1) {
-      id_aus_cols <- paste('Auslass', seq_along(id_aus$ID), sep = "_")
-    }
-    id_list <- unlist(c(id_vor$ID, id_nach$ID, id_ein$ID, id_aus$ID))
-    id_list_cols <- c('Vor', 'Nach', id_ein_cols, id_aus_cols)
-    id_type_list <- unlist(
-      c(id_vor$ID_TYPE, id_nach$ID_TYPE,
-        id_ein$ID_TYPE, id_aus$ID_TYPE
-      )
-    )
-    mID_list <- id_list[grepl('mID', id_type_list)]
-    wqID_list <- id_list[!grepl('mID', id_type_list)]
-    if (length(wqID_list) > 0){
-      wqID_list_args <- list(
+    #----get Vor/Nach data----
+    # cannot combine with the Auslass, Einlass because they always take 'discharge'
+    if (id_vor$ID_TYPE != id_nach$ID_TYPE){
+      id_vor_args <- list(
         case.list = case.list[[i]],
         sobek.project = sobek.project,
-        id_type = wqID_list,
+        id_type = id_vor$ID_F,
         param = param,
         verbose = FALSE
       )
-      names(wqID_list_args)[3] <- id_nach$ID_TYPE
-      id_data_tmp <- do.call(his_from_case, args = wqID_list_args)
-      if (length(mID_list) > 0){
+      names(id_vor_args)[3] <- id_vor$ID_TYPE
+      id_vor_data <- do.call(his_from_case, id_vor_args)
+      colname(id_vor_data) <- c('ts', 'Vor', 'case')
+      id_vor_data$case <- NULL
+      id_nach_args <- list(
+        case.list = case.list[[i]],
+        sobek.project = sobek.project,
+        id_type = id_nach$ID_F,
+        param = param,
+        verbose = FALSE
+      )
+      names(id_nach_args)[3] <- id_nach$ID_TYPE
+      id_vor_data <- do.call(his_from_case, id_nach_args)
+      colname(id_vor_data) <- c('ts', 'Nach', 'case')
+      id_vor_data$case <- NULL
+      id_vor_nach_data <- merge(id_vor_data, id_nach_data, by = 'ts',
+                                sort = FALSE)
+    } else{
+      id_vor_nach_args <- list(
+        case.list = case.list[[i]],
+        sobek.project = sobek.project,
+        id_type = c(id_vor$ID_F, id_nach$ID_F),
+        param = param,
+        verbose = FALSE
+      )
+      names(id_vor_nach_args)[3] <- id_nach$ID_TYPE
+      id_vor_nach_data <- do.call(his_from_case, id_vor_nach_args)
+      id_vor_nach_data$case <- NULL
+      colnames(id_vor_nach_data) <- c('ts', 'Vor', 'Nach')
+    }
+    #----get data for Einlass/Auslass----
+    id_ein <- id_tbl_tmp[grepl('.+_Einlass', besonderheit) &
+                           grepl('qID|mID', ID_TYPE)
+                         ]
+    if (length(id_ein) == 0){
+      id_ein <- id_tbl_tmp[grepl('.+_Einlass', besonderheit) &
+                             grepl('sID', ID_TYPE)
+                           ]
+    }
+    id_aus <- id_tbl_tmp[grepl('.*_Auslass', besonderheit) &
+                           grepl('qID|mID', ID_TYPE)
+                         ]
+    if (length(id_aus) == 0){
+      id_aus <- id_tbl_tmp[grepl('.+_Auslass', besonderheit) &
+                             grepl('sID', ID_TYPE)
+                           ]
+    }
+    id_ein_aus_list <- c(id_ein$ID_F, id_aus$ID_F)
+    id_ein_aus_type <- c(id_ein$ID_TYPE, id_aus$ID_TYPE)
+    id_ein_aus_cols <- c(id_ein$col_name, id_aus$col_name)
+    mID_list <- id_ein_aus_list[grepl('m', id_ein_aus_type)]
+    # qID or sID can be only one
+    qID_list <- id_ein_aus_list[grepl('q', id_ein_aus_type)]
+    sID_list <- id_ein_aus_list[grepl('s', id_ein_aus_type)]
+    if (length(qID_list) > 0) {
+      qID_list_args <- list(
+        case.list = case.list[[i]],
+        sobek.project = sobek.project,
+        qID = qID_list,
+        param = 'discharge',
+        verbose = FALSE
+      )
+      id_data_tmp <- do.call(his_from_case, args = qID_list_args)
+      if (length(mID_list) > 0) {
         mID_list_args <- list(
           case.list = case.list[[i]],
           sobek.project = sobek.project,
@@ -139,47 +197,69 @@
           param = param,
           verbose = FALSE
         )
-        mID_list_ft <- do.call(his_from_case, args = wqID_list_args)
+        mID_list_ft <- do.call(his_from_case, args = mID_list_args)
         mID_list_ft$case <- NULL
         id_data_tmp <- merge(id_data_tmp, mID_list_ft, by = 'ts', sort = FALSE)
       }
     } else{
-      mID_list_args <- list(
-        case.list = case.list[[i]],
-        sobek.project = sobek.project,
-        mID = mID_list,
-        param = param,
-        verbose = FALSE
-      )
-      id_data_tmp <- do.call(his_from_case, args = wqID_list_args)
+      if (length(sID_list) > 0){
+        sID_list_args <- list(
+          case.list = case.list[[i]],
+          sobek.project = sobek.project,
+          sID = sID_list,
+          param = 'discharge',
+          verbose = FALSE
+        )
+        id_data_tmp <- do.call(his_from_case, args = sID_list_args)
+        if (length(mID_list) > 0) {
+          mID_list_args <- list(
+            case.list = case.list[[i]],
+            sobek.project = sobek.project,
+            mID = mID_list,
+            param = param,
+            verbose = FALSE
+          )
+          mID_list_ft <- do.call(his_from_case, args = mID_list_args)
+          mID_list_ft$case <- NULL
+          id_data_tmp <- merge(id_data_tmp, mID_list_ft, by = 'ts', sort = FALSE)
+        }
+      }
+      else{
+        mID_list_args <- list(
+          case.list = case.list[[i]],
+          sobek.project = sobek.project,
+          mID = mID_list,
+          param = param,
+          verbose = FALSE
+        )
+        id_data_tmp <- do.call(his_from_case, args = mID_list_args)
+      }
     }
-    setcolorder(id_data_tmp, c('ts', id_list, 'case'))
-    colnames(id_data_tmp) <- c('ts', id_list_cols, 'case')
-    # st_ab_zu <- his_from_case(case.list = case.name,
-    #                           sobek.project = sobek.project,
-    #                           sID = id_st$ID_F, param = 'discharge',
-    #                           verbose = FALSE
-    # )
-    # st_ab_zu_cname <- c('ts', id_st$besonderheit, 'case')
-    # st_ab_zu_cname <- sub('.*_Zu', 'Einlass', id_st$besonderheit)
-    # st_ab_zu_cname <- sub('.*_Ab', 'Auslass', st_ab_zu_cname)
-    # colnames(st_ab_zu) <- c('ts', st_ab_zu_cname, 'case')
+
+    setcolorder(id_data_tmp, c('ts', id_ein_aus_list, 'case'))
+    colnames(id_data_tmp) <- c('ts', id_ein_aus_cols, 'case')
+    id_data_tmp <- merge(id_data_tmp, id_vor_nach_data, by = 'ts', sort = FALSE)
     # get Waterlevel
-    id_mitte_args <- list(case.list = case.list[[i]],
-                          sobek.project = sobek.project,
-                          id_mitte_type = id_mitte$ID_F,
-                          param = "waterlevel",
-                          verbose = FALSE)
+    id_mitte_args <- list(
+      case.list = case.list[[i]],
+      sobek.project = sobek.project,
+      id_mitte_type = id_mitte$ID_F,
+      param = "waterlevel",
+      verbose = FALSE
+    )
     names(id_mitte_args)[3] <- id_mitte$ID_TYPE
     wt_id_mitte <- do.call(his_from_case, id_mitte_args)
     colnames(wt_id_mitte) <- c('ts', 'W_innen', 'case')
+    wt_id_mitte$case <- NULL
     # merging data
     # id_data_tmp <- merge(ft_vor_nach, st_ab_zu, by = c('ts', 'case'))
-    id_data_tmp <- merge(id_data_tmp, wt_id_mitte, by = c('ts', 'case'))
+    id_data_tmp <- merge(id_data_tmp, wt_id_mitte, by = 'ts', sort = FALSE)
     id_data_list[[i]] <- id_data_tmp
   }
+
   id_data <- rbindlist(id_data_list)
   rm(id_data_list, id_data_tmp)
+
   return(id_data)
 }
 
@@ -195,14 +275,20 @@
 #' @import data.table
 #' @return a data.table
 .get_volume_for_cases <- function(
+  name = NULL,
+  case.desc = NULL,
   case.list = NULL,
   sobek.project = NULL,
-  id.vol = NULL
+  master.tbl
 ){
   # get results for each case
+  id_tbl <- .get_id_tbl(name = name, case.list = case.list,
+                        case.desc = case.desc, master.tbl = master.tbl
+  )
+  id_vol <- id_tbl[grepl(".*_Vol", besonderheit) & ID_TYPE == 'wID']
   id_data_list <- list()
   for (i in seq_along(case.list)){
-    id_tbl_tmp <- id.vol[case == case.list[i]]
+    id_tbl_tmp <- id_vol[case == case.list[i]]
     if (nrow(id_tbl_tmp) > 0){
       # id_vol <- id_tbl_tmp[grepl('.*_Vol', besonderheit) & ID_TYPE == 'wID']
       id_vol_args <- list(case.list = case.list[[i]],

@@ -45,8 +45,8 @@ plot_measure_scenario <- function(
   zoom = NULL,
   verbose = TRUE,
   master.tbl = NULL){
-  
-  
+
+
   # if (isTRUE(Q.zu)) delta <- FALSE
   # stopifnot(length(unlist(case.list)) == 2)
   # checking input
@@ -117,8 +117,6 @@ plot_measure_scenario <- function(
     y1_min <- min(y1_min, ref_mID$Bezugspegel, na.rm = TRUE)
     y1_max <- max(y1_max, ref_mID$Bezugspegel, na.rm = TRUE)
     y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
-    hwe <- paste(year(id_data[.N, ts]),
-                 str_extract(case.list[1], 'Mittel|Selten'))
     g <- ggplot(data = id_data,
                 mapping = aes(x = ts, linetype = zustand)) +
       theme_bw() +
@@ -142,13 +140,9 @@ plot_measure_scenario <- function(
       ylab(y1_label) + xlab('Zeit')+
       ggtitle(paste('Ganglinien für Maßnahme: ', name))
   }
-  # print(id_tbl)
   # if parameter is discharge, move waterlevel to secondary axis
   if (tolower(param) == 'discharge'){
     g <- g +
-      # geom_line(aes(y = Vor, color = 'Vor der Maßnahme',
-      #               linetype = 'Abfluss'),
-      #           size = 1) +
       geom_line(aes(y = Nach,  color = 'Nach der Maßnahme',
                     linetype = zustand),
                 size = 1)
@@ -157,17 +151,15 @@ plot_measure_scenario <- function(
       Q.zu <- FALSE
       y2_min <- floor(min(id_data$W_innen, na.rm = TRUE))
       if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
-      # if (y2_min*y2.scale > y1_min) y2_shift <- y2_shift - y2_min*y2.scale
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
                              color = 'In der Maßnahme', linetype = zustand),
                          size = 1)
       y2_name <- 'Wasserstand (m+NHN)'
     }
-    # if (isTRUE(W.innen)) Q.zu <- FALSE
     if (isTRUE(Q.zu)){
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-      y2_min <- id_data %>% 
-        select(starts_with('Einlass'))  %>% 
+      y2_min <- id_data %>%
+        select(starts_with('Einlass'))  %>%
         min(na.rm = TRUE) %>%
         floor()
       if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
@@ -178,15 +170,19 @@ plot_measure_scenario <- function(
         g <- g + geom_line(aes(y = Auslass * y2.scale + y2_shift,
                                color = 'Q_Auslass', linetype = zustand),
                            size = 1)
+        y2_min <- id_data %>%
+          select(starts_with('Auslass'))  %>%
+          min(na.rm = TRUE) %>%
+          floor()
+        if (y2_min*y2.scale != y1_min) {
+          y2_shift <- y2_shift - floor(y2_min*y2.scale)
+        }
       }
     }
     #----working with WL----
   } else {
     # adding W_innen directly to the graphic should not be a problem
     g <- g +
-      # geom_line(aes(y = Vor, color = 'Vor Maßnahme',
-      #               linetype = zustand),
-      #           size = 1) +
       geom_line(aes(y = Nach,  color = 'Nach Maßnahme',
                     linetype = zustand),
                 size = 1)
@@ -198,8 +194,6 @@ plot_measure_scenario <- function(
                         .SDcols = c('Nach', 'Vor', 'W_innen')]
       y2_max <- ceiling(y1_max/y2.scale)
       y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
-      # delta <- FALSE
-      # Q.zu <- FALSE
       g <- g + geom_line(aes(y = W_innen,
                              color = 'In der Maßnahme',
                              linetype = zustand),
@@ -241,16 +235,13 @@ plot_measure_scenario <- function(
       id_data[, Volume_max := round(polder.Z * polder.F / 100, 2)]
     }
   } else {
-    id_vol <- id_tbl[grepl('.*_Vol', besonderheit) & ID_TYPE == 'wID']
-    if (nrow(id_vol) > 0){
-      id_vol_data <- .get_volume_for_cases(
-        case.list = case.list,
-        sobek.project = sobek.project,
-        id.tbl = id_vol
-      )
-    } else{
-      id_data[, Volume_max := 0.00]
-    }
+    id_vol_data <- .get_volume_for_cases(name = name,
+                                         case.list = case.list,
+                                         case.desc = case.desc,
+                                         sobek.project = sobek.project,
+                                         master.tbl = master.tbl
+                                         )
+    id_data <- merge(id_data, id_vol_data, by = 'case', sort = FALSE)
   }
   # finding the locations on x-axis for the annotated text
   # get length of x_axis, then get 1/5 of it
@@ -267,27 +258,17 @@ plot_measure_scenario <- function(
   id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
   colnames(id_data_nrow) <- c('case', 'ts')
   id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'))
-  # x_axis_n <- id_data[case == cname_1, .N]
-  # i_pos_txt <- floor(x_axis_n*text.pos)
-  # x_pos_txt <- id_data[case == cname_1][i_pos_txt, ]
-  # x_pos_txt <- id_data[, ts_min := shift(ts, n = floor(0.2*N),
-  #                           fill = NA, type = 'lead'),
-  #         by = case]
-  # if(!is.null(h.lines)){
-  #   i_pos_hline <- floor(x_axis_n*0.01)
-  #   id_hlines <- id_data[case == cname_1][i_pos_hline,
-  #                                              c('ts', 'case', 'zustand',
-  #                                                'Bezugspegel')]
-  # }
   id_max[, Q_in_max := round(Q_in_max)]
-  id_max[is.infinite(Q_in_max), Q_in_max := 'k.A.']
+  id_max[is.infinite(Q_in_max), Q_in_max := NA]
   id_max[, W_in_max := round(W_in_max, 2)]
-  id_max[is.infinite(W_in_max), W_in_max := 'k.A.']
-  id_max[, 
+  id_max[is.infinite(W_in_max), W_in_max := NA]
+  id_max[, label := '']
+  id_max[!is.na(Q_in_max),
          label := paste(
-           # 'Volume Max: ', Volume_max, ' Mio. m³\n',
+           'Volume Max: ', Volume_max, ' Mio. m³\n',
            'Q_in Max:   ', Q_in_max, ' m³/s\n',
            'W_in Max:   ', W_in_max, ' m + NHN\n',
+           label,
            sep = "")
          ]
   # id_max[is.nQ_in_max]
@@ -303,16 +284,16 @@ plot_measure_scenario <- function(
   #   'W_in Max:   ', round(W_in_max, 2), ' m + NHN\n',
   #   sep = ""
   # )]
-  
+
   if (isTRUE(delta.pegel) & !is.null(ref.mID)){
-    id_max[, label := paste(
+    id_max[is.na(Q_in_max), label := paste(
       'Delta am Bezugspegel: ', scheitel_ref_mID_delta, " ", delta_unit, " \n",
       label,
       sep = ""
     )]
   }
   if (isTRUE(delta.measure)){
-    id_max[, label := paste(
+    id_max[!is.na(Q_in_max), label := paste(
       'Delta an der Maßnahme: ', scheitel_measure_delta, " ", delta_unit, " \n",
       label,
       sep = ""
@@ -320,18 +301,18 @@ plot_measure_scenario <- function(
   }
   # y position of the text block
   y1_pos_txt <- y1_pretty[(length(y1_pretty)-1)]
-  g2 <- g +
-    facet_wrap(.~zustand, scales = 'free_x')+
+  g <- g +
+    # facet_wrap(.~zustand, scales = 'free_x')+
     geom_text(
-      data    = id_max,
+      data    = id_max[!is.na(Q_in_max)],
       mapping = aes(x = ts,
                     y = y1_pos_txt,
                     label = label),
-      check_overlap = TRUE,
-      hjust = 0, 
+      # check_overlap = TRUE,
+      hjust = 0,
       vjust = v.just
     )
-  
+
   if (!is.null(h.lines)){
     # id_hlines with 2 cols: V1, case
     for (i in seq_along(h.lines)){
@@ -343,16 +324,16 @@ plot_measure_scenario <- function(
       id_hlines[, eval(hline_label) := h.lines[[i]]]
       g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 3)
     }
-    id_hlines <- melt(id_hlines, id.vars = c('ts', 'case', 'zustand',
-                                             'Bezugspegel'))
-    g2 <- g + geom_text(
-      data    = id_hlines,
+    id_hlines2 <- melt(id_hlines, id.vars = c('case', 'V1'))
+    g <- g + geom_text(
+      data    = id_hlines2,
       # V1 is the colume name of the min (ts_hlines)
-      mapping = aes(x = ts, y = value,
+      mapping = aes(x = V1, y = value,
                     label = sub("^V_", "", variable)
       ),
       hjust   = 0,
-      vjust = 0
+      vjust = 0,
+      check_overlap = TRUE
     )
   }
   if ((param == 'discharge' & isTRUE(W.innen))|Q.zu){
