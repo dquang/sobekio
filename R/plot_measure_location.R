@@ -1,7 +1,7 @@
 #' Plot hydrographs for a measure with comparing by location (vor/nach)
 #' @param name Name of the measure (with/without the measure)
-#' @param case.name Name of 2 cases
-#' @param case.desc = Short version of case.name, it will be used for legend
+#' @param case.list Name of 2 cases
+#' @param case.desc = Short version of case.list, it will be used for legend
 #' @param param 'Waterlevel' or 'Discharge' Hydrograph
 #' @param y2.scale Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale
 #' @param sobek.project Path to sobek project
@@ -22,7 +22,7 @@
 #' @export
 plot_measure_location <- function(
   name = NULL,
-  case.name = NULL,
+  case.list = NULL,
   case.desc = NULL,
   param = 'waterlevel',
   y2.scale = 25,
@@ -49,7 +49,7 @@ plot_measure_location <- function(
                is.null(sobek.project)
   ))
   # get id_data
-  system.time(id_data <- .get_data_for_cases(
+  id_data <- .get_data_for_cases(
     name = name,
     case.list = case.list,
     case.desc = case.desc,
@@ -57,7 +57,7 @@ plot_measure_location <- function(
     sobek.project = sobek.project,
     master.tbl = master.tbl,
     verbose = verbose
-  ))
+  )
   # case_tbl <- .parsing_case_name(case.desc = case.desc, orig.name = case.list)
   # adding case description columns, using for linetype later on
   # id_data <- merge(id_data, case_tbl, by = 'case')
@@ -68,14 +68,14 @@ plot_measure_location <- function(
   y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
   y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
   y2_min <- id_data[, min(.SD, na.rm = TRUE),
-                    .SDcols = -c('Nach', 'Vor', 'ts', 'case', 'line_type')]
+                    .SDcols = -c('Nach', 'Vor', 'ts', 'case')]
   y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
   y2_max <- y1_max/y2.scale
   y2_shift <- y1_pretty[1]
   y2_min <- floor(y2_shift/y2.scale)
   # adding line from Bezugspegel
   if (!is.null(ref.mID)){
-    ref_mID <- his_from_case(case.list = case.name,
+    ref_mID <- his_from_case(case.list = case.list,
                              sobek.project = sobek.project,
                              mID = ref.mID, param = param,
                              verbose = FALSE)
@@ -85,7 +85,7 @@ plot_measure_location <- function(
     y1_max <- max(y1_max, ref_mID$Bezugspegel, na.rm = TRUE)
     y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
     hwe <- paste(year(id_data[.N, ts]),
-                 str_extract(case.name[1], 'Mittel|Selten'))
+                 str_extract(case.list[1], 'Mittel|Selten'))
     g <- ggplot(data = id_data,
                 mapping = aes(x = ts, linetype = line_type)) +
       theme_bw() +
@@ -250,7 +250,7 @@ plot_measure_location <- function(
     'W_in Max:   ', round(W_in_max, 2), ' m + NHN\n',
     sep = ""
   )]
-  
+
   if (isTRUE(delta.pegel) & !is.null(ref.mID)){
     x_pos_txt[, label := paste(
       'Delta am Bezugspegel: ', scheitel_ref_mID_delta, " ", delta_unit, " \n",

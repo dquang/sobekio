@@ -78,7 +78,7 @@ plot_measure_scenario <- function(
     scheitel_measure_delta <- scheitel_max_c1 - scheitel_max_c2
     scheitel_measure_delta <- round(scheitel_measure_delta, 2)
     # rounding value for discharge
-    if (scheitel_measure_delta > 2) {
+    if (abs(scheitel_measure_delta) > 2) {
       scheitel_measure_delta <- round(scheitel_measure_delta)
     }
   }
@@ -114,7 +114,7 @@ plot_measure_scenario <- function(
     scheitel_ref_mID_delta <- scheitel_max_c1 - scheitel_max_c2
     scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta, 2)
     # rounding value for discharge
-    if (scheitel_ref_mID_delta > 2) {
+    if (abs(scheitel_ref_mID_delta) > 2) {
       scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta)
     }
     y1_min <- min(y1_min, ref_mID$Bezugspegel, na.rm = TRUE)
@@ -253,10 +253,7 @@ plot_measure_scenario <- function(
                             fill = NA, type = 'lead'),
           by = case]
   if(!is.null(h.lines)){
-    id_data[, ts_hlines := shift(ts, n = floor(0.01*N),
-                                 fill = NA, type = 'lead'),
-            by = case]
-    id_hlines <- id_data[, min(ts_hlines, na.rm = TRUE), by = case]
+    id_hlines <- id_data[, min(ts), by = case]
   }
   id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
   colnames(id_data_nrow) <- c('case', 'ts')
@@ -268,8 +265,8 @@ plot_measure_scenario <- function(
   # id_max[is.infinite(W_in_max), W_in_max := NA]
   id_max[, label := '']
   case_has_max <- id_max[W_in_max == max(W_in_max, na.rm = TRUE), case]
-  print(case_has_max)
-  print(id_max)
+  # print(case_has_max)
+  # print(id_max)
   id_max[case == case_has_max,
          label := paste(
            'Volume Max: ', Volume_max, ' Mio. m³\n',
@@ -320,13 +317,14 @@ plot_measure_scenario <- function(
       g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 3)
     }
     id_hlines <- melt(id_hlines, id.vars = c('case', 'V1'))
+    id_hlines[, zustand := str_match(case, '(^[^_])_')[,2]]
     g <- g + geom_text(
       data    = id_hlines,
       # V1 is the colume name of the min (ts_hlines)
       mapping = aes(x = V1, y = value,
                     label = sub("^V_", "", variable)
       ),
-      hjust   = 0,
+      hjust   = 1,
       vjust = 0,
       check_overlap = TRUE
     )
