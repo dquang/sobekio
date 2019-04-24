@@ -1,3 +1,4 @@
+#' @importFrom stringr str_match
 .parsing_case_name <- function(case.desc, orig.name = case.desc){
   case_str <- str_match(case.desc, "^([^_]+)_([^_]+)_([^_]+)_([^_]+)(.*)$")
   if (ncol(case_str) < 5 | ncol(case_str) > 6) {
@@ -67,10 +68,11 @@
 #' @param case.list List of the cases
 #' @param case.desc Case name standardized
 #' @param param Parameter discharge/waterlevel
-#' @sobek.project Path to sobek project
+#' @param sobek.project Path to sobek project
 #' @param master.tbl Master table
 #' @param verbose Should some message be displayed?
 #' @import data.table
+#' @importFrom stringr str_match
 #' @return a data.table
 .get_data_for_cases <- function(
   name = NULL,
@@ -100,6 +102,8 @@
   id_data_list <- list()
   for (i in seq_along(case.list)){
     id_tbl_tmp <- id.tbl[case == case.list[[i]]]
+    id_mitte <- id_tbl_tmp[col_name == 'Innen' & 
+                             grepl("mID|wID", ID_TYPE)][1]
     if (param == 'discharge'){
       # this take only the first row, if there is none, it should get an NA
       id_vor <- id_tbl_tmp[grepl('_Vor', besonderheit) &
@@ -160,15 +164,15 @@
     id_ein <- id_tbl_tmp[grepl('.+_Einlass', besonderheit) &
                            grepl('qID|mID', ID_TYPE)
                          ]
-    if (length(id_ein) == 0){
+    if (nrow(id_ein) == 0){
       id_ein <- id_tbl_tmp[grepl('.+_Einlass', besonderheit) &
                              grepl('sID', ID_TYPE)
                            ]
     }
-    id_aus <- id_tbl_tmp[grepl('.*_Auslass', besonderheit) &
+    id_aus <- id_tbl_tmp[grepl('.+_Auslass', besonderheit) &
                            grepl('qID|mID', ID_TYPE)
                          ]
-    if (length(id_aus) == 0){
+    if (nrow(id_aus) == 0){
       id_aus <- id_tbl_tmp[grepl('.+_Auslass', besonderheit) &
                              grepl('sID', ID_TYPE)
                            ]
@@ -239,7 +243,7 @@
     setcolorder(id_data_tmp, c('ts', id_ein_aus_list, 'case'))
     colnames(id_data_tmp) <- c('ts', id_ein_aus_cols, 'case')
     id_data_tmp <- merge(id_data_tmp, id_vor_nach_data, by = 'ts', sort = FALSE)
-    # get Waterlevel
+    #---- get Waterlevel Innen----
     id_mitte_args <- list(
       case.list = case.list[[i]],
       sobek.project = sobek.project,
@@ -269,7 +273,7 @@
 #' @param case.list List of the cases
 #' @param case.desc Case name standardized
 #' @param param Parameter discharge/waterlevel
-#' @sobek.project Path to sobek project
+#' @param sobek.project Path to sobek project
 #' @param master.tbl Master table
 #' @param verbose Should some message be displayed?
 #' @import data.table

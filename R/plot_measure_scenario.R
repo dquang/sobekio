@@ -15,12 +15,14 @@
 #' @param polder.F Area of the measure, for calculating Volume
 #' @param polder.Z Bottom level of the measure for calculating Volume. Give 'auto' for getting the minimum waterlevel in canal value. In this case, make sure the canal is completely dry at T0
 #' @param h.lines list of (name = value) to be displayed as horizontal line
-#' @param text.pos Positioning of the text block as relative value to the length of x-axis
-#' @param v.just Justification of the text block
-#' @param zoom Should be whole graphic zoom to n days around the peak?
+#' @param text.pos.x Position of the text block on x-axis, relative value
+#' @param text.pos.y Position of the text block on y1-axis, absolute value
+#' @param versbose Boring? Should some message be displayed?
 #' @param master.tbl Table of ID Coding of the sobek network
 #' @return A ggplot2 graphic
 #' @export
+#' @importFrom dplyr %>%
+#' @import data.table
 plot_measure_scenario <- function(
   name = NULL,
   case.list = NULL,
@@ -40,9 +42,8 @@ plot_measure_scenario <- function(
   polder.F = NULL,
   polder.Z = NULL,
   h.lines = NULL,
-  text.pos = 0.01,
-  v.just = 1,
-  zoom = NULL,
+  text.pos.x = 0.01,
+  text.pos.y = NULL,
   verbose = TRUE,
   master.tbl = NULL){
 
@@ -56,6 +57,7 @@ plot_measure_scenario <- function(
                is.null(sobek.project)
   ))
   # get id_data
+  if (isTRUE(verbose)) print('Reading data at the measure...')
   id_data <- .get_data_for_cases(
     name = name,
     case.list = case.list,
@@ -95,6 +97,7 @@ plot_measure_scenario <- function(
   y2_min <- floor(y2_shift/y2.scale)
   # adding line from Bezugspegel
   if (!is.null(ref.mID)){
+    if (isTRUE(verbose)) print('Reading data for ref.mID...')
     ref_mID <- his_from_case(case.list = case.list,
                              sobek.project = sobek.project,
                              mID = ref.mID, param = param,
@@ -123,9 +126,7 @@ plot_measure_scenario <- function(
       theme(legend.position = 'bottom')+
       scale_x_datetime()+
       ylab(y1_label) + xlab('Zeit')+
-      ggtitle(paste('Ganglinien für Maßnahme: ', name, ". Hochwasser: ", hwe,
-                    sep = ''
-      )) +
+      ggtitle(paste('Ganglinien für Maßnahme: ', name)) +
       geom_line(aes(y = Bezugspegel,
                     color = 'Bezugspegel',
                     linetype = zustand
@@ -140,6 +141,7 @@ plot_measure_scenario <- function(
       ylab(y1_label) + xlab('Zeit')+
       ggtitle(paste('Ganglinien für Maßnahme: ', name))
   }
+  if (isTRUE(verbose)) print('Preparing plot...')
   # if parameter is discharge, move waterlevel to secondary axis
   if (tolower(param) == 'discharge'){
     g <- g +
@@ -219,6 +221,7 @@ plot_measure_scenario <- function(
       }
     }
   }
+  if (isTRUE(verbose)) print('Adding text box...')
   g$labels$colour <- 'Farbe'
   g$labels$linetype <- 'Linienart'
   #----annotating max value----
@@ -244,9 +247,9 @@ plot_measure_scenario <- function(
     id_data <- merge(id_data, id_vol_data, by = 'case', sort = FALSE)
   }
   # finding the locations on x-axis for the annotated text
-  # get length of x_axis, then get 1/5 of it
+  # get length of x_axis, then get text.pos of it
   id_data[, N := .N, by = case]
-  id_data[, ts_min := shift(ts, n = floor(text.pos*N),
+  id_data[, ts_min := shift(ts, n = floor(text.pos.x*N),
                             fill = NA, type = 'lead'),
           by = case]
   if(!is.null(h.lines)){
@@ -257,13 +260,17 @@ plot_measure_scenario <- function(
   }
   id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
   colnames(id_data_nrow) <- c('case', 'ts')
-  id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'))
+  id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'), sort = FALSE)
   id_max[, Q_in_max := round(Q_in_max)]
-  id_max[is.infinite(Q_in_max), Q_in_max := NA]
+  # id_max[is.infinite(Q_in_max), Q_in_max := NA]
   id_max[, W_in_max := round(W_in_max, 2)]
-  id_max[is.infinite(W_in_max), W_in_max := NA]
+  # print(id_max)
+  # id_max[is.infinite(W_in_max), W_in_max := NA]
   id_max[, label := '']
-  id_max[!is.na(Q_in_max),
+  case_has_max <- id_max[W_in_max == max(W_in_max, na.rm = TRUE), case]
+  print(case_has_max)
+  print(id_max)
+  id_max[case == case_has_max,
          label := paste(
            'Volume Max: ', Volume_max, ' Mio. m³\n',
            'Q_in Max:   ', Q_in_max, ' m³/s\n',
@@ -271,46 +278,34 @@ plot_measure_scenario <- function(
            label,
            sep = "")
          ]
-  # id_max[is.nQ_in_max]
-  # id_max[Volume_max == Inf, label := paste(
-  #   # 'Volume Max: k.A.\n',
-  #   'Q_in Max:   ', round(Q_in_max), ' m³/s\n',
-  #   'W_in Max:   ', round(W_in_max, 2), ' m + NHN\n',
-  #   sep = ""
-  # )]
-  # id_max[Q_in_max == 0, label := paste(
-  #   'Volume Max: 0 m³\n',
-  #   'Q_in Max:   ', round(Q_in_max), ' m³/s\n',
-  #   'W_in Max:   ', round(W_in_max, 2), ' m + NHN\n',
-  #   sep = ""
-  # )]
-
   if (isTRUE(delta.pegel) & !is.null(ref.mID)){
-    id_max[is.na(Q_in_max), label := paste(
+    id_max[, label := paste(
       'Delta am Bezugspegel: ', scheitel_ref_mID_delta, " ", delta_unit, " \n",
       label,
       sep = ""
     )]
   }
   if (isTRUE(delta.measure)){
-    id_max[!is.na(Q_in_max), label := paste(
+    id_max[, label := paste(
       'Delta an der Maßnahme: ', scheitel_measure_delta, " ", delta_unit, " \n",
       label,
       sep = ""
     )]
   }
   # y position of the text block
-  y1_pos_txt <- y1_pretty[(length(y1_pretty)-1)]
+  y1_pos_txt <- ifelse(is.null(text.pos.y),
+                       y1_pretty[(length(y1_pretty)-1)],
+                       text.pos.y)
   g <- g +
     # facet_wrap(.~zustand, scales = 'free_x')+
     geom_text(
-      data    = id_max[!is.na(Q_in_max)],
+      data    = id_max[Q_in_max > 0],
       mapping = aes(x = ts,
                     y = y1_pos_txt,
                     label = label),
       # check_overlap = TRUE,
       hjust = 0,
-      vjust = v.just
+      vjust = 1
     )
 
   if (!is.null(h.lines)){
@@ -324,9 +319,9 @@ plot_measure_scenario <- function(
       id_hlines[, eval(hline_label) := h.lines[[i]]]
       g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 3)
     }
-    id_hlines2 <- melt(id_hlines, id.vars = c('case', 'V1'))
+    id_hlines <- melt(id_hlines, id.vars = c('case', 'V1'))
     g <- g + geom_text(
-      data    = id_hlines2,
+      data    = id_hlines,
       # V1 is the colume name of the min (ts_hlines)
       mapping = aes(x = V1, y = value,
                     label = sub("^V_", "", variable)

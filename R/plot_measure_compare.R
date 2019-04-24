@@ -43,72 +43,36 @@ plot_measure_compare <- function(
   master.tbl = NULL){
   # setting for display different lines on different graphics
   # if (isTRUE(Q.zu)) delta <- FALSE
-  stopifnot(length(unlist(case.name)) == 2)
-  # checking input
   param = tolower(param)
   stopifnot(param %in% c('discharge', 'waterlevel'))
-  stopifnot(!c(is.null(name), is.null(case.name), is.null(master.tbl),
+  stopifnot(!c(is.null(name), is.null(case.list), is.null(master.tbl),
                is.null(sobek.project)
   ))
-  # get the naming of the cases, for legend
-  cname_1 <- case.name[[1]]
-  cname_2 <- case.name[[2]]
-  # get ID table of the "Maßnahme"
-  id_tbl <- master.tbl[grepl(name, besonderheit, fixed = TRUE)]
-  stopifnot(nrow(id_tbl) > 1)
-  id_mitte <- id_tbl[grepl('.+_Innen', besonderheit)][1]
-  id_st <- id_tbl[grepl('.+_Ab|.*_Zu', besonderheit) & ID_TYPE == 'sID']
-  id_vol <- id_tbl[grepl('.+_Vol', besonderheit) & ID_TYPE == 'wID']
-  if (param == 'discharge'){
-    # this take only the first row, if there is none, it should get an NA
-    id_in <- id_tbl[grepl('_Einlass', besonderheit) &
-                      grepl('qID|mID', ID_TYPE)
-                    ][1]
-    id_out <- id_tbl[grepl('_Auslass', besonderheit)&
-                       grepl('qID|mID', ID_TYPE)
-                     ][1]
-  } else{
-    id_in <- id_tbl[grepl('_Einlass', besonderheit) &
-                      grepl('wID|mID', ID_TYPE)
-                    ][1]
-    id_out <- id_tbl[grepl('_Auslass', besonderheit)&
-                       grepl('wID|mID', ID_TYPE)
-                     ][1]
-  }
-  id_in_args <- list(case.list = case.name, sobek.project = sobek.project,
-                     id_type = id_in$ID, param = param, verbose = FALSE)
-  id_out_args <- list(case.list = case.name, sobek.project = sobek.project,
-                      id_type = id_out$ID, param = param, verbose = FALSE)
-  # change parameter name to correct ID_TYPE
-  names(id_in_args)[3] <- id_in$ID_TYPE
-  names(id_out_args)[3] <- id_out$ID_TYPE
-  # get data for ID in and out
-  ft_id_in <- do.call(his_from_case, id_in_args)
-  colnames(ft_id_in) <- c('ts', 'Vor', 'case')
-  ft_id_out <- do.call(his_from_case, id_out_args)
-  colnames(ft_id_out) <- c('ts', 'Nach', 'case')
-  # combine data in, and out
-  ft_in_out <- merge(ft_id_in, ft_id_out, by = c('ts', 'case'))
-  # get qt through the Structures
-  st_ab_zu <- his_from_case(case.list = case.name,
-                            sobek.project = sobek.project,
-                            sID = id_st$ID, param = 'discharge',
-                            verbose = FALSE
+  # get id_data
+  id_data <- .get_data_for_cases(
+    name = name,
+    case.list = case.list,
+    case.desc = case.desc,
+    param = param,
+    sobek.project = sobek.project,
+    master.tbl = master.tbl,
+    verbose = verbose
   )
-  st_ab_zu_cname <- c('ts', id_st$besonderheit, 'case')
-  st_ab_zu_cname <- sub('.*_Zu', 'Einlass', id_st$besonderheit)
-  st_ab_zu_cname <- sub('.*_Ab', 'Auslass', st_ab_zu_cname)
-  colnames(st_ab_zu) <- c('ts', st_ab_zu_cname, 'case')
-  # get Waterlevel
-  id_mitte_args <- list(case.list = case.name, sobek.project = sobek.project,
-                        id_mitte_type = id_mitte$ID, param = "waterlevel",
-                        verbose = FALSE)
-  names(id_mitte_args)[3] <- id_mitte$ID_TYPE
-  wt_id_mitte <- do.call(his_from_case, id_mitte_args)
-  colnames(wt_id_mitte) <- c('ts', 'W_innen', 'case')
-  # merging data
-  id_data <- merge(ft_in_out, st_ab_zu, by = c('ts', 'case'))
-  id_data <- merge(id_data, wt_id_mitte, by = c('ts', 'case'))
+  case_tbl <- .parsing_case_name(case.desc = case.desc, orig.name = case.list)
+  # adding case description columns, using for linetype later on
+  id_data <- merge(id_data, case_tbl, by = 'case')
+  # finding scheitel delta at the measure
+  y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
+  delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')
+  # line_type <- ifelse(param == 'discharge', 'Abfluss', 'Wasserstand')
+  y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
+  y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
+  y2_min <- id_data[, min(.SD, na.rm = TRUE),
+                    .SDcols = -c('Nach', 'Vor', 'ts', 'case', 'line_type')]
+  y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
+  y2_max <- y1_max/y2.scale
+  y2_shift <- y1_pretty[1]
+  y2_min <- floor(y2_shift/y2.scale)
   # adding case description column, using for linetype later on
   for (i in seq_along(case.name)) {
     id_data[case == case.name[i], line_type := case.desc[i]]

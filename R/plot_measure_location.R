@@ -14,7 +14,7 @@
 #' @param polder.F Area of the measure, for calculating Volume
 #' @param polder.Z Bottom level of the measure for calculating Volume. Give 'auto' for getting the minimum waterlevel in canal value. In this case, make sure the canal is completely dry at T0
 #' @param h.lines list of (name = value) to be displayed as horizontal line
-#' @param text.pos Positioning of the text block as relative value to the length of x-axis
+#' @param text.pos.x Positioning of the text block as relative value to the length of x-axis
 #' @param v.just Justification of the text block
 #' @param zoom Should be whole graphic zoom to n days around the peak?
 #' @param master.tbl Table of ID Coding of the sobek network
@@ -23,7 +23,7 @@
 plot_measure_location <- function(
   name = NULL,
   case.name = NULL,
-  case.desc = c('Planzustand', 'Bezugszustand'),
+  case.desc = NULL,
   param = 'waterlevel',
   y2.scale = 25,
   sobek.project = NULL,
@@ -49,7 +49,7 @@ plot_measure_location <- function(
                is.null(sobek.project)
   ))
   # get id_data
-  id_data <- .get_data_for_cases(
+  system.time(id_data <- .get_data_for_cases(
     name = name,
     case.list = case.list,
     case.desc = case.desc,
@@ -57,10 +57,10 @@ plot_measure_location <- function(
     sobek.project = sobek.project,
     master.tbl = master.tbl,
     verbose = verbose
-  )
-  case_tbl <- .parsing_case_name(case.desc = case.desc, orig.name = case.list)
+  ))
+  # case_tbl <- .parsing_case_name(case.desc = case.desc, orig.name = case.list)
   # adding case description columns, using for linetype later on
-  id_data <- merge(id_data, case_tbl, by = 'case')
+  # id_data <- merge(id_data, case_tbl, by = 'case')
   # finding scheitel delta at the measure
   y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
   delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')

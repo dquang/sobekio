@@ -3,24 +3,25 @@ library(testthat)
 library(sobekio)
 library(tidyverse)
 #----draft settings-----
-so_prj <- 'd:/so21302/rhein29a.lit'
+so_prj <- 'd:/rhein.lit'
+rhein_tbl <- fread("D:/rhein_kurz.txt", sep = "\t")
 elbe_prj <- "D:\\NHWSP_PLAN_Skript_Auswertung_TEST\\PZ_TEST.lit"
 elbe_tbl <- fread("D:\\NHWSP_PLAN_Skript_Auswertung_TEST\\sobekio_master_tbl_example_PZ_v2_q.txt", sep = "\t")
 elbe_tbl[nchar(BEZUG) == 0, BEZUG := ID]
 elbe_tbl[, PLAN := ID]
 elbe_tbl$km <- NA
 master.tbl <- elbe_tbl
+
+name = 'Doebeltitz'
 case.list <- c(
   'BEZ_WB_HW2006_mHAV_1.6890',
   'PZ_WB_HW2006_mHAV_1.6890_v2'
-
 )
-name = 'Doebeltitz'
 case.desc <- c(
   "BEZUG_WB_HW2006_VGF1.6890_mHAV",
   "PLAN_WB_HW2006_VGF1.6890_mHAV_v2"
 )
-param = 'waterlevel'
+param = 'discharge'
 y2.scale = 25
 sobek.project = elbe_prj
 ref.mID = NULL
@@ -69,53 +70,53 @@ plot_measure_scenario(
     "BEZUG_WB_HW2006_VGF1.6890_mHAV",
     "PLAN_WB_HW2006_VGF1.6890_mHAV_v2"
   ),
-  param = 'waterlevel',
-  y2.scale = 0.025,
+  param = 'discharge',
+  y2.scale = 25,
   sobek.project = elbe_prj,
   ref.mID = NULL,
   Q.zu = TRUE,
   Q.ab = FALSE,
-  W.innen = FALSE,
+  W.innen = TRUE,
   delta.pegel = FALSE,
   delta.measure = TRUE,
   V.max = TRUE,
   polder.F = NULL,
   polder.Z = NULL,
   # h.lines = c(4200, 4500),
-  text.pos = 0.01,
-  v.just = 1,
-  zoom = NULL,
+  text.pos.x = 0.01,
   verbose = TRUE,
   master.tbl = elbe_tbl
 )
 #----test for rhein-----
+his_from_case('Bezugszustand_ZPK_HW2003_Selten_1663_newReg', 
+              so_prj, param = 'discharge', sID = 'guntersblum_zu')
 plot_measure_scenario(
   name = 'Guntersblum',
   case.list <- c(
     'Planzustand_Eich_TEST_ct0_HW1988_Mittel_CL866',
-    'BFG18_LUBW27_LFU27_HW1988_Mittel'
+    'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'
 
   ),
   case.desc <- c(
-    "Planzustand_ZPK_HW1988_Mittel_CL866",
-    "Bezugszustand_ZPK_HW1988_Mittel_LUBW_LFU27"
+    "Planzustand_ZPK_HW1988_Selten_CL866",
+    "Bezugszustand_ZPK_HW1988_Selten_1828_newReg"
   ),
-  param = 'discharge',
-  y2.scale = 25,
+  param = 'waterlevel',
+  y2.scale = 0.05,
   sobek.project = so_prj,
-  ref.mID = NULL,
+  ref.mID = 'P_Mainz',
   Q.zu = TRUE,
-  Q.ab = FALSE,
-  W.innen = FALSE,
-  delta.pegel = FALSE,
+  # Q.ab = TRUE,
+  W.innen = TRUE,
+  delta.pegel = TRUE,
   delta.measure = TRUE,
   V.max = TRUE,
   polder.F = NULL,
   polder.Z = NULL,
   # h.lines = c(4200, 4500),
-  text.pos = 0.01,
-  v.just = 1,
-  zoom = NULL,
+  text.pos.x = 0.01,
+  text.pos.y = 88,
   verbose = TRUE,
   master.tbl = rhein_tbl
 )
+  
