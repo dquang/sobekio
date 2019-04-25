@@ -225,7 +225,9 @@ plot_measure_scenario <- function(
   g$labels$colour <- 'Farbe'
   g$labels$linetype <- 'Linienart'
   #----annotating max value----
-  id_data[, Q_in_max := max(Einlass, na.rm = TRUE), by = case]
+  id_data[, Q_in_max := max(.SD, na.rm = TRUE),
+          .SDcols = grep('Einlass', names(id_data), value = TRUE),
+          by = case]
   id_data[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
   # calculating Max Volume
   if(!is.null(polder.F)){

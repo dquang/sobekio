@@ -38,6 +38,7 @@ check_fra <- function(
       ),
       s.id = '66'
     )
+    q_fra_rhein[, `66`:=as.numeric(`66`)]
   } else{
     q_fra_rhein <- his_from_case(
       case.list = rhein.case,

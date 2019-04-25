@@ -119,4 +119,71 @@ plot_measure_scenario(
   verbose = TRUE,
   master.tbl = rhein_tbl
 )
+
+# Test Donau
+donau_prj <- "D:/Mastertabelle_RSkript/Testcases_Quang"
+donau_tbl <- fread("D:/Mastertabelle_RSkript/donau_tbl.txt")
+donau_tbl[, BEZUG := ID]
+donau_tbl[, PLAN := ID]
+Helmeringen
+
+name = 'Helmeringen'
+case.list <- c(
+  'BEZUG_HW1999_1_000_GW_halbiert',
+  'PLAN_gest_HW1999_1_000_GW_halbiert'
   
+)
+case.desc <- c(
+  'BEZUG_zp0_HW1999_1000_GW_halbiert',
+  'PLAN_gest_HW1999_1000_GW_halbiert'
+  
+)
+param = 'discharge'
+y2.scale = 25
+sobek.project = donau_prj
+ref.mID = NULL
+Q.zu = FALSE
+Q.ab = FALSE
+W.innen = FALSE
+delta.pegel = FALSE
+delta.measure = TRUE
+V.max = TRUE
+polder.F = NULL
+polder.Z = NULL
+h.lines = c(4200, 4500)
+text.pos.x = 0.01
+v.just = 1
+zoom = NULL
+verbose = TRUE
+master.tbl = donau_tbl
+
+plot_measure_scenario(
+  name = 'Helmeringen',
+  case.list <- c(
+    'BEZUG_HW1999_1_000_GW_halbiert',
+    'PLAN_gest_HW1999_1_000_GW_halbiert'
+    
+  ),
+  case.desc <- c(
+    'BEZUG_zp0_HW1999_1000_GW_halbiert',
+    'PLAN_gest_HW1999_1000_GW_halbiert'
+    
+  ),
+  param = 'discharge',
+  y2.scale = 0.05,
+  sobek.project = donau_prj,
+  # ref.mID = 'P_Mainz',
+  Q.zu = TRUE,
+  # Q.ab = TRUE,
+  W.innen = TRUE,
+  delta.pegel = TRUE,
+  delta.measure = TRUE,
+  V.max = TRUE,
+  polder.F = NULL,
+  polder.Z = NULL,
+  # h.lines = c(4200, 4500),
+  text.pos.x = 0.01,
+  # text.pos.y = 88,
+  verbose = TRUE,
+  master.tbl = donau_tbl
+)

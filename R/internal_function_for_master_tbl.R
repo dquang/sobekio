@@ -88,16 +88,16 @@
   id.tbl <- .get_id_tbl(name = name, case.list = case.list,
                         case.desc = case.desc, master.tbl = master.tbl
   )
-  id.tbl <- id.tbl[!grepl(".+_Vol", besonderheit)]
+  # id.tbl <- id.tbl[!grepl(".+_Vol", besonderheit)]
   if (param == 'discharge'){
-    id.tbl <- id.tbl[!grepl('w', ID_TYPE)]
+    id.tbl <- id.tbl[!grepl('w', ID_TYPE)|grepl("Innen", besonderheit)]
   } else{
     id.tbl <- id.tbl[!grepl('q', ID_TYPE)|grepl("Einlass|Auslass", besonderheit)]
   }
   # id.tbl[, parameter := param]
   # id.tbl[grepl('_Einlass|_Auslass', besonderheit), parameter := 'discharge']
   id.tbl[, col_name := str_match(besonderheit,
-                      ".+_(Einlass[^,;]*|Auslass[^,;]*|Nach|Vor|Innen)")[,2]]
+                      ".+_(Einlass[^;]*|Auslass[^;]*|Nach|Vor|Innen)")[,2]]
   # get results for each case
   id_data_list <- list()
   for (i in seq_along(case.list)){
@@ -120,6 +120,9 @@
                               grepl('mID|wID', ID_TYPE)
                             ][1]
     }
+    # print(id_vor)
+    # print(id_nach)
+    # print(id_mitte)
     #----get Vor/Nach data----
     # cannot combine with the Auslass, Einlass because they always take 'discharge'
     if (id_vor$ID_TYPE != id_nach$ID_TYPE){
