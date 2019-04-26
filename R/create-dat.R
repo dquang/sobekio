@@ -217,16 +217,6 @@ transfer_fra <- function(
                             param = "discharge",
                             mID = fra.id)
   colnames(fra_main) <- c('ts', 'fra', 'case')
-  # worms_pz27_lubw[, ts:=strptime(ts, format = '%d.%m.%Y %H:%M:%S', tz = 'GMT')]
-  # fra_main[, fra_prn := paste("'",
-  #                             format(ts,
-  #                                    format = '%Y/%m/%d;%H:%M:%S', tz = 'GMT'),
-  #                             "' ",
-  #                             fra,
-  #                             " <",
-  #                             sep = ""
-  # )
-  # ]
   bnd_file <- get_file_path(case.name = rhein.case,
                             sobek.project = rhein.prj,
                             type = "bnd.dat")

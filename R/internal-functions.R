@@ -1,7 +1,6 @@
 #' Convert Sobek ID to location index
 #' @param sobek.id Node/Reach ID
 #' @param his.locs Location table
-#' @import data.table
 .id2loc <- function(id, his.locs) {
   # using exact matching to prevent potential problem caused by special characters
   location <- his.locs[sobek.id == id, location]

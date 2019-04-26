@@ -4,7 +4,7 @@
 #' @param main.prj Main Project folder
 #' @param rhein.prj Rhein Project folder
 #' @param print.plot Should a plot be printed. Default = FALSE
-#' @check.dat Checking the input from boundary.dat or if TRUE, and checking model result if FASLE.
+#' @param check.dat Checking the input from boundary.dat or if TRUE, and checking model result if FASLE.
 #' @param fra.main.id ID for Frankfurt Osthafen Pegel in Main Model. Default: p_frankfurt_ost
 #' @param fra.rhein.id ID for Frankfurt Osthafen Pegel in Rhein Model. Default: p_frankfurt_ost
 #' @export

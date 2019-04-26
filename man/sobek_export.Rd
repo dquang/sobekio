@@ -4,7 +4,8 @@
 \alias{sobek_export}
 \title{Export list of cases from a sobek project to another location}
 \usage{
-sobek_export(case.list, sobek.project, dest)
+sobek_export(case.list, sobek.project, dest, copy.his = TRUE,
+  his.only = FALSE)
 }
 \arguments{
 \item{case.list}{Path to file with case list}
@@ -12,6 +13,10 @@ sobek_export(case.list, sobek.project, dest)
 \item{sobek.project}{Path to current sobek project}
 
 \item{dest}{Destination folder}
+
+\item{copy.his}{Should .HIS file be copied? Default TRUE}
+
+\item{his.only}{Copy only HIS/HIA files for saving time?}
 }
 \description{
 Export list of cases from a sobek project to another location

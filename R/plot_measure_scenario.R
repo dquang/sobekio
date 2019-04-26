@@ -1,7 +1,7 @@
 #' Plot hydrographs for a measure with comparing by scenario (zustand)
 #' @param name Name of the measure (with/without the measure)
 #' @param case.list List of cases
-#' @param case.desc = Correct (according to case naming standard in NHWSP) version of case.list, it will be used for legend
+#' @param case.desc Correct (according to case naming standard in NHWSP) version of case.list, it will be used for legend
 #' @param param 'Waterlevel' or 'Discharge' Hydrograph
 #' @param y2.scale Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale
 #' @param sobek.project Path to sobek project
@@ -21,8 +21,6 @@
 #' @param master.tbl Table of ID Coding of the sobek network
 #' @return A ggplot2 graphic
 #' @export
-#' @importFrom dplyr %>%
-#' @import data.table
 plot_measure_scenario <- function(
   name = NULL,
   case.list = NULL,
@@ -56,20 +54,21 @@ plot_measure_scenario <- function(
   stopifnot(!c(is.null(name), is.null(case.list), is.null(master.tbl),
                is.null(sobek.project)
   ))
-  # get id_data
+  #----get id_data----
   if (isTRUE(verbose)) print('Reading data at the measure...')
   id_data <- .get_data_for_cases(
     name = name,
     case.list = case.list,
     case.desc = case.desc,
     param = param,
+    W.innen = TRUE,
     sobek.project = sobek.project,
     master.tbl = master.tbl,
     verbose = verbose
   )
   case_tbl <- .parsing_case_name(case.desc = case.desc, orig.name = case.list)
   # adding case description columns, using for linetype later on
-  id_data <- merge(id_data, case_tbl, by = 'case')
+  id_data <- merge(id_data, case_tbl, by = 'case', sort = FALSE)
   # finding scheitel delta at the measure
   if (isTRUE(delta.measure)){
     # calculate diff between two max value (different moment)
@@ -82,6 +81,8 @@ plot_measure_scenario <- function(
       scheitel_measure_delta <- round(scheitel_measure_delta)
     }
   }
+  #-----preparing plot-----
+  if (isTRUE(verbose)) print('Preparing graphic...')
   y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
   delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')
   cols_not_plot <- c('case_desc', 'Nach', 'Vor', 'ts', 'case', 'zustand',
@@ -95,7 +96,7 @@ plot_measure_scenario <- function(
   y2_max <- y1_max/y2.scale
   y2_shift <- y1_pretty[1]
   y2_min <- floor(y2_shift/y2.scale)
-  # adding line from Bezugspegel
+  # adding line from Bezugspegel and initializing the graphic
   if (!is.null(ref.mID)){
     if (isTRUE(verbose)) print('Reading data for ref.mID...')
     ref_mID <- his_from_case(case.list = case.list,
@@ -141,7 +142,7 @@ plot_measure_scenario <- function(
       ylab(y1_label) + xlab('Zeit')+
       ggtitle(paste('Ganglinien für Maßnahme: ', name))
   }
-  if (isTRUE(verbose)) print('Preparing plot...')
+  if (isTRUE(verbose)) print('Adding hydrographs...')
   # if parameter is discharge, move waterlevel to secondary axis
   if (tolower(param) == 'discharge'){
     g <- g +
@@ -149,7 +150,6 @@ plot_measure_scenario <- function(
                     linetype = zustand),
                 size = 1)
     if (isTRUE(W.innen)){
-      delta <- FALSE
       Q.zu <- FALSE
       y2_min <- floor(min(id_data$W_innen, na.rm = TRUE))
       if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
@@ -159,25 +159,58 @@ plot_measure_scenario <- function(
       y2_name <- 'Wasserstand (m+NHN)'
     }
     if (isTRUE(Q.zu)){
+      einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-      y2_min <- id_data %>%
-        select(starts_with('Einlass'))  %>%
+      y2_min <- id_data[, .SD,
+                        .SDcols = einlass_cols
+                        ] %>%
         min(na.rm = TRUE) %>%
         floor()
-      if (y2_min*y2.scale != y1_min) y2_shift <- y2_shift - floor(y2_min*y2.scale)
-      g <- g + geom_line(aes(y = Einlass * y2.scale + y2_shift,
-                             color = 'Q_Einlass', linetype = zustand),
-                         size = 1)
+      if (y2_min*y2.scale != y1_min) {
+        y2_shift <- y2_shift - floor(y2_min*y2.scale)
+      }
+      # adding Einlass lines
+      if (length(einlass_cols) > 1){
+        id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
+                                variable.name = 'Einlass',
+                                value.name = 'Q_Einlass')
+        g <- g + geom_line(data = id_data_einlass,
+                           aes(y = Q_Einlass * y2.scale + y2_shift,
+                           color = Einlass, linetype = zustand),
+                       size = 1)
+      } else{
+        g <- g + geom_line(aes(
+          y = !!ensym(einlass_cols) * y2.scale + y2_shift,
+          color = eval(einlass_cols),
+          linetype = zustand
+        ),
+        size = 1)
+      }
       if (isTRUE(Q.ab)){
-        g <- g + geom_line(aes(y = Auslass * y2.scale + y2_shift,
-                               color = 'Q_Auslass', linetype = zustand),
-                           size = 1)
-        y2_min <- id_data %>%
-          select(starts_with('Auslass'))  %>%
+        auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
+        y2_min <- id_data[, .SD,
+                          .SDcols = c(einlass_cols, auslass_cols)
+                          ] %>%
           min(na.rm = TRUE) %>%
           floor()
         if (y2_min*y2.scale != y1_min) {
           y2_shift <- y2_shift - floor(y2_min*y2.scale)
+        }
+        if (length(auslass_cols) > 1){
+          id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
+                                  variable.name = 'Auslass',
+                                  value.name = 'Q_Auslass')
+          g <- g + geom_line(data = id_data_auslass,
+                             aes(y = Q_Auslass * y2.scale + y2_shift,
+                                 color = Auslass, linetype = zustand),
+                             size = 1)
+        } else{
+          g <- g + geom_line(aes(
+            y = !!ensym(auslass_cols) * y2.scale + y2_shift,
+            color = eval(auslass_cols),
+            linetype = zustand
+          ),
+          size = 1)
         }
       }
     }
@@ -202,34 +235,66 @@ plot_measure_scenario <- function(
                          size = 1)
     }
     if (isTRUE(Q.zu)){
-      y2_name <- 'Abfluss durch Bauwerke (m³/s)'
-      y2_min <- floor(min(id_data$Einlass, na.rm = TRUE))
+      einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
+      y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
+      y2_min <- id_data[, .SD,
+                        .SDcols = einlass_cols
+                        ] %>%
+        min(na.rm = TRUE) %>%
+        floor()
       if (y2_min*y2.scale != y1_min) {
         y2_shift <- y2_shift - floor(y2_min*y2.scale)
       }
-      g <- g + geom_line(aes(y = Einlass * y2.scale + y2_shift,
-                             color = 'Q_Einlass', linetype = zustand),
-                         size = 1)
-      if (isTRUE(Q.ab)){
-        g <- g + geom_line(aes(y = Auslass * y2.scale + y2_shift,
-                               color = 'Q_Auslass', linetype = zustand),
+      # adding Einlass lines
+      if (length(einlass_cols) > 1){
+        id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
+                                variable.name = 'Einlass',
+                                value.name = 'Q_Einlass')
+        g <- g + geom_line(data = id_data_einlass,
+                           aes(y = Q_Einlass * y2.scale + y2_shift,
+                               color = Einlass, linetype = zustand),
                            size = 1)
-        y2_min <- floor(min(id_data$Auslass, na.rm = TRUE))
-        if (y2_min*y2.scale != y1_min){
+      } else{
+        g <- g + geom_line(aes(
+          y = !!ensym(einlass_cols) * y2.scale + y2_shift,
+          color = eval(einlass_cols),
+          linetype = zustand
+        ),
+        size = 1)
+      }
+      if (isTRUE(Q.ab)){
+        auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
+        y2_min <- id_data[, .SD,
+                          .SDcols = c(einlass_cols, auslass_cols)
+                          ] %>%
+          min(na.rm = TRUE) %>%
+          floor()
+        if (y2_min*y2.scale != y1_min) {
           y2_shift <- y2_shift - floor(y2_min*y2.scale)
+        }
+        if (length(auslass_cols) > 1){
+          id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
+                                  variable.name = 'Auslass',
+                                  value.name = 'Q_Auslass')
+          g <- g + geom_line(data = id_data_auslass,
+                             aes(y = Q_Auslass * y2.scale + y2_shift,
+                                 color = Auslass, linetype = zustand),
+                             size = 1)
+        } else{
+          g <- g + geom_line(aes(
+            y = !!ensym(auslass_cols) * y2.scale + y2_shift,
+            color = eval(auslass_cols),
+            linetype = zustand
+          ),
+          size = 1)
         }
       }
     }
   }
-  if (isTRUE(verbose)) print('Adding text box...')
   g$labels$colour <- 'Farbe'
   g$labels$linetype <- 'Linienart'
-  #----annotating max value----
-  id_data[, Q_in_max := max(.SD, na.rm = TRUE),
-          .SDcols = grep('Einlass', names(id_data), value = TRUE),
-          by = case]
-  id_data[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
   # calculating Max Volume
+  if (isTRUE(verbose)) print('Calculating volume...')
   if(!is.null(polder.F)){
     if(is.null(polder.Z)){
       id_data[, H_innen_max := max(W_innen, na.rm = TRUE) -
@@ -245,9 +310,20 @@ plot_measure_scenario <- function(
                                          case.desc = case.desc,
                                          sobek.project = sobek.project,
                                          master.tbl = master.tbl
-                                         )
+    )
     id_data <- merge(id_data, id_vol_data, by = 'case', sort = FALSE)
   }
+  #----annotating max value----
+  if (isTRUE(verbose)) print('Adding text box...')
+  # print(einlass_cols)
+  for (i in einlass_cols){
+    einlass_max_col <- paste(i, 'Max', sep = '_')
+    id_data[, eval(einlass_max_col) := max(get(i), na.rm = TRUE)]
+  }
+  # id_data[, Q_in_max := max(.SD, na.rm = TRUE),
+  #         .SDcols = grep('Einlass', names(id_data), value = TRUE),
+  #         by = case]
+  id_data[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
   # finding the locations on x-axis for the annotated text
   # get length of x_axis, then get text.pos of it
   id_data[, N := .N, by = case]
@@ -260,23 +336,28 @@ plot_measure_scenario <- function(
   id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
   colnames(id_data_nrow) <- c('case', 'ts')
   id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'), sort = FALSE)
-  id_max[, Q_in_max := round(Q_in_max)]
-  # id_max[is.infinite(Q_in_max), Q_in_max := NA]
+  # id_max[, Q_in_max := round(Q_in_max)]
   id_max[, W_in_max := round(W_in_max, 2)]
-  # print(id_max)
-  # id_max[is.infinite(W_in_max), W_in_max := NA]
   id_max[, label := '']
   case_has_max <- id_max[W_in_max == max(W_in_max, na.rm = TRUE), case]
-  # print(case_has_max)
-  # print(id_max)
   id_max[case == case_has_max,
          label := paste(
            'Volume Max: ', Volume_max, ' Mio. m³\n',
-           'Q_in Max:   ', Q_in_max, ' m³/s\n',
            'W_in Max:   ', W_in_max, ' m + NHN\n',
            label,
            sep = "")
          ]
+  for (i in einlass_cols){
+    einlass_max_col <- paste(i, 'Max', sep = '_')
+    id_max[, eval(einlass_max_col) := round(as.numeric(get(einlass_max_col)), 1),
+           .SDcols = einlass_max_col]
+    id_max[case == case_has_max,
+           label := paste(
+             label,
+             'Q_max durch ', i, ': ', get(einlass_max_col), ' m³/s\n',
+             sep = "")
+           ]
+  }
   if (isTRUE(delta.pegel) & !is.null(ref.mID)){
     id_max[, label := paste(
       'Delta am Bezugspegel: ', scheitel_ref_mID_delta, " ", delta_unit, " \n",
@@ -298,11 +379,10 @@ plot_measure_scenario <- function(
   g <- g +
     # facet_wrap(.~zustand, scales = 'free_x')+
     geom_text(
-      data    = id_max[Q_in_max > 0],
-      mapping = aes(x = ts,
+      data    = id_max[case == case_has_max],
+      mapping = aes(x = ts_min,
                     y = y1_pos_txt,
                     label = label),
-      # check_overlap = TRUE,
       hjust = 0,
       vjust = 1
     )
@@ -331,7 +411,7 @@ plot_measure_scenario <- function(
       check_overlap = TRUE
     )
   }
-  if ((param == 'discharge' & isTRUE(W.innen))|Q.zu){
+  if ((param == 'discharge' & isTRUE(W.innen))|isTRUE(Q.zu)){
     y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <-  g +
       scale_y_continuous(

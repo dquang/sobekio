@@ -27,8 +27,6 @@ get_column_by_name <- function(column = NULL, df = NULL, suffix = "",
 }
 
 #' Quick plot for long profile or pos (column name)
-#' @import ggplot2
-#' @export
 #' @param pos "longprofile" or list of list of column to plot
 #' @param indt Input data.table or data.frame
 #' @param x.lab x label
@@ -40,6 +38,7 @@ get_column_by_name <- function(column = NULL, df = NULL, suffix = "",
 #' @param faced default FALSE. If TRUE, faced by case
 #' @param sort to short longprofile by max value, not yet implemented
 #' @return a ggplot2 graphic object
+#' @export
 plot_wirkung <- function(pos = "longprofile",
                          indt = NULL,
                          x.lab = 'Lage',
@@ -125,8 +124,6 @@ plot_wirkung <- function(pos = "longprofile",
 
 
 #' Plot Q/W hydrograph for the
-#' @import grid
-#' @export
 #' @param pos Names of columns to draw
 #' @param indt Input data
 #' @param peak.duration Halftime of the flooding period, default 5 days
@@ -142,6 +139,7 @@ plot_wirkung <- function(pos = "longprofile",
 #' @param y.interval Tick interval for y axis
 #' @param faced faced by case, default FALSE
 #' @return a ggplot2 graphic
+#' @export
 plot_polder <- function(pos = NULL,
                         indt = NULL,
                         peak.duration = 5L,
@@ -237,8 +235,6 @@ plot_polder <- function(pos = NULL,
 
 
 #' Plot peak difference at one place
-#' @import grid
-#' @export
 #' @param pos Names of columns to draw
 #' @param indt Input data
 #' @param x.lab Label for x axis, default 'Lage'
@@ -255,6 +251,7 @@ plot_polder <- function(pos = NULL,
 #' @param peak.duration Halftime of the flooding period, default 5 days
 #' @param faced faced by case, default FALSE
 #' @return a ggplot2 graphic
+#' @export
 plot_scheitel_delta <- function(
   pos = NULL,
   indt = NULL,
@@ -354,4 +351,93 @@ plot_scheitel_delta <- function(
   return(g)
 }
 
-
+#' Plot hydrographs at different locations
+#' @param case.list List of cases
+#' @param case.desc Case naming according to NHWSP Standard
+#' @param sobek.project Path to sobek project
+#' @param param Waterlevel/Discharge
+#' @param compare.by Grouping the lines by linetype. Default 'zustand'
+#' @param facet.by Facetted by, default 'hwe'
+#' @param id.type Default mID
+#' @param id.list List of the ids
+#' @param p.title Title of the plot
+#' @param x.lab x-axis title
+#' @param y.lab y-axis title
+#' @param date.breaks x-axis breaks
+#' @param date.labels Formatting of the date on x-axis
+#' @param text.x.angle Angle of text on x-axis
+#' @param text.size Size of all text
+#' @return A ggplot2 graphic
+#' @export
+plot_multi_lines <- function(
+  case.list = NULL,
+  case.desc = NULL,
+  sobek.project = NULL,
+  param = 'discharge',
+  compare.by = 'zustand',
+  facet.by = 'hwe',
+  id.type = 'mID',
+  id.list =  c('p_worms',
+               "p_main_muendung",
+               "P_Mainz",
+               "p_nahe_muendung",
+               'p_kaub',
+               'p_lahn_muendung',
+               "p_mosel_muendung"
+  ),
+  p.title = 'Ganglinien an der Orten',
+  x.lab = 'Zeit',
+  y.lab = ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)'),
+  date.breaks = '3 days',
+  date.labels = "%d.%m.%Y",
+  text.x.angle = 90L,
+  text.size = 12L
+){
+  stopifnot(!c(is.null(case.list), is.null(sobek.project), is.null(id.list)))
+  his_args <- list(
+    case.list = case.list,
+    sobek.project = sobek.project,
+    param = param,
+    mID = id.list,
+    verbose = FALSE
+  )
+  if (id.type == 'latID') id.type <- 'lID'
+  names(his_args)[4] <- id.type
+  case_type <- .parsing_case_name(case.desc = case.desc, orig.name = case.list)
+  qt <- do.call(his_from_case, args = his_args)
+  qt <- melt(qt, id.vars = c('ts', 'case'))
+  qt[, variable := str_replace_all(variable, "_", " ")]
+  qt[, variable := str_to_title(variable)]
+  qt[, variable := str_replace_all(variable, " ", "_")]
+  qt <- merge(qt, case_type, by = 'case', sort = FALSE)
+  g <- ggplot(qt,
+              aes(x = ts, y = value,
+                  color = variable,
+                  # quasiquotation, that's a great option from tidyverse
+                  linetype = !!ensym(compare.by)
+              )
+  ) +
+    scale_x_datetime(
+      date_breaks = date.breaks,
+      date_labels = date.labels
+    ) +
+    geom_line(size = 1) +
+    theme_bw()+
+    theme(
+      legend.position = 'bottom',
+      text = element_text(
+        size = text.size
+      ),
+      axis.text.x = element_text(
+        angle = text.x.angle
+      )
+    ) +
+    ggtitle(p.title)+
+    xlab(x.lab) + ylab(y.lab)
+  if (!is.null(facet.by)){
+    g <- g + facet_grid(. ~ get(facet.by), scales = 'free_x')
+  }
+  g$labels$colour <- 'Farbe'
+  g$labels$linetype <- 'Linienart'
+  g
+}

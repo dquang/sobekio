@@ -83,7 +83,6 @@ pf_extract <- function(pf.str, ptype = 'id'){
 #' @param rl.new New value of bed level left
 #' @param rs.new New value of surface level right, default = rl.new + 10
 #' @export
-#' @import stringr
 change_rl_rs <- function(crsn.id, pf.df, rl.new = 0, rs.new = rl.new + 10){
   write_output <- FALSE
   if(is.data.frame(pf.df)){

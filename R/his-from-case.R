@@ -19,7 +19,6 @@
 #' @param verbose Should message be displayed?
 #' @return A list of data.table
 #' @export
-#' @import data.table
 his_from_case<- function(
   case.list = "", # path to list of cases to work with
   sobek.project = "", # path to Sobek Project folder

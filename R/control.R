@@ -217,7 +217,6 @@
 #' Get information of a controller
 #' @param ct.id ID of the controller
 #' @param def.file Path to control.def file
-#' @import data.table
 #' @export
 #' @return a list
 get_control_info <- function(ct.id = NULL,
@@ -320,7 +319,6 @@ get_struct_info <- function(
 #' @param case.name Name of the case
 #' @param sobek.project Path to sobek project
 #' @param html Should output to a HTML object. Default TRUE
-#' @import data.table
 #' @export
 #' @return a data.table, a HTML object or NA
 get_struct_ct <- function(

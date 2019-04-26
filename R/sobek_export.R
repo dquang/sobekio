@@ -3,9 +3,14 @@
 #' @param sobek.project Path to current sobek project
 #' @param dest Destination folder
 #' @param copy.his Should .HIS file be copied? Default TRUE
+#' @param his.only Copy only HIS/HIA files for saving time?
 #' @export
-sobek_export <- function(case.list, sobek.project, dest,
-                         copy.his = TRUE){
+sobek_export <- function(case.list,
+                         sobek.project,
+                         dest,
+                         copy.his = TRUE,
+                         his.only = FALSE
+                         ){
   if (!dir.exists(dest)) dir.create(dest)
   if (is.character(case.list) & file.exists(case.list)){
     case.list <-  data.table(read.table(case.list,
@@ -26,26 +31,46 @@ sobek_export <- function(case.list, sobek.project, dest,
                    pattern = "^[^0-9]{1,}$",
                    full.names = TRUE, no.. = TRUE)
   file.copy(from = all_files, to = dest, recursive = TRUE)
-  for (i in case.list){
+  for (i in case.list) {
     print(paste('copying case: ', i, "..."))
-    from_folder <- dirname(get_file_path(case.name = i,
-                                         sobek.project = sobek.project,
-                                         type = 'bnd.dat'))
-    if(isTRUE(copy.his)){
-      file.copy(from = from_folder, to = dest, recursive = TRUE)
-    } else{
+    from_folder <- dirname(get_file_path(
+      case.name = i,
+      sobek.project = sobek.project,
+      type = 'bnd.dat'
+    ))
+    if (isTRUE(his.only)) {
+      # export only HIS, HIA for reading result
       case_folder <- basename(from_folder)
       dest_folder <- paste(dest, case_folder, sep = "/")
       dir.create(dest_folder)
       case_files <- dir(path = from_folder,
-                       full.names = TRUE, no.. = TRUE)
-      case_files <- case_files[!grepl("\\.his$", case_files,
-                                      # fixed = TRUE,
-                                      ignore.case = TRUE)]
+                        full.names = TRUE,
+                        no.. = TRUE)
+      case_files <- case_files[grepl("\\.his$|\\.hia$", case_files,
+                                     # fixed = TRUE,
+                                     ignore.case = TRUE)]
       file.copy(case_files, dest_folder)
+    } else{
+      if (!isTRUE(copy.his)) {
+        # do not copy .HIS file, saving disk space and time
+        case_folder <- basename(from_folder)
+        dest_folder <- paste(dest, case_folder, sep = "/")
+        dir.create(dest_folder)
+        case_files <- dir(path = from_folder,
+                          full.names = TRUE,
+                          no.. = TRUE)
+        case_files <- case_files[!grepl("\\.his$", case_files,
+                                        # fixed = TRUE,
+                                        ignore.case = TRUE)]
+        file.copy(case_files, dest_folder)
+      } else{
+        # copy all files - full export
+        file.copy(from = from_folder,
+                  to = dest,
+                  recursive = TRUE)
+      }
     }
-
-    }
+  }
   # update register.cmt
   sobek_reg <- fread(file = paste(sobek.project, "register.cmt", sep = "\\"),
                      header = FALSE, sep = "\n", fill = FALSE,

@@ -1,5 +1,10 @@
 # excel standard color
 #' Standard colors in Excel
+#' @import stringr
+#' @import ggplot2
+#' @importFrom dplyr %>% select starts_with near
+#' @import data.table
+#' @importFrom grid grobTree textGrob
 #' @export
 exl_std <- c(
   "#C00000",

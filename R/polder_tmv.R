@@ -7,7 +7,6 @@
 #' @param clipboard Should the output table write to clipboard, ready for pasting in Sobek? Default TRUE
 #' @param print.plot Should a plot be showed? Default FALSE
 #' @param ... If indt is NULL these parameters will be passed to his_from_case function for reading the discharge
-#' @importFrom dplyr near
 #' @export
 polder_tmv <- function(
   indt = NULL,
