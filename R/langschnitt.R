@@ -3,68 +3,30 @@
 #' @param case.list List of cases to plot, default is all
 #' @param case.name Case display names, same values as case.list if not specified
 #' @param delta Should delta also plotted?
-#' @param code.tbl Coding table
 #' @return a ggplot2 graphic
 #' @export
 plot_long_profile <- function(
   indt = qt,
   case.list = NULL,
-  case.name = case.list,
+  case.desc = case.list,
+  linetype.by = 'case',
+  color.by = 'case',
+  facet.by = NULL,
   delta = F,
-  code.tbl = NULL,
-  ID.col = 'ID',
   x.lab = 'Lage (KM)',
   y.lab = 'Abfluss (m³/s)',
   x.lim = NULL,
   y.lim = NULL,
   y2.scale = 2,
   title = '',
-  vgf.pattern = "Selten|Mittel",
-  zustand1 = 'Bezugszustand',
-  zustand2 = 'Planzustand',
   ncol = 1L,
   x.text.size = 8,
-  save.tbl = NULL
+  master.tbl = rhein_tbl
 ){
-  if (!is.data.table(indt)|FALSE %in% c('ts','case') %in% colnames(indt)){
-    stop(indt, ' has wrong format')
-  }
+  data_tbl <- copy(indt)
   if (!is.null(case.list)){
-    data_tb <- subset(indt, case %in% case.list)
-    for (i in seq_along(case.list)) {
-      data_tb[case == case.list[i], case := case.name[i]]
-    }
-  } else {
-    data_tb <- copy(indt)
-    if (!is.null(case.name)){
-      for (i in seq_along(case.list)) {
-        data_tb[case == case.list[i], case := case.name[i]]
-      }
-    }
-  }
-
-  # lage_all <- colnames(indt[, -c('ts', 'case')])
-  if (!is.data.frame(code.tbl)) {
-    code_tbl <- fread(file = code.tbl,
-                      sep = "\t", header = T,
-                      dec = ",")
-    code_tbl[, km := as.numeric(km)]
-  } else{
-    code_tbl <- data.table(code.tbl)
-  }
-  data_m <- data_tb[, lapply(.SD, max, na.rm = TRUE),
-                    .SDcols = -c('ts'), by = case]
-  data_m <- melt(data_m, id.vars = 'case',
-                 variable.name = 'ID')
-  zustand_pattern = paste(zustand1, zustand2, sep = "|")
-  data_m[, Zustand := str_extract(case, zustand_pattern)]
-  data_m[, VGF := str_extract(case, vgf.pattern)]
-  data_m[, hwe := str_extract(case, 'HW[0-9]{4}')]
-  data_m <- merge(data_m, code_tbl, by.x = 'ID', by.y = ID.col)
-  if(!is.null(save.tbl)){
-    fwrite(data_m, file = save.tbl,
-           quote = FALSE,
-           sep = "\t", dec = ",")
+    case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
+    data_tbl <- merge(data_tbl, case_tbl, by = 'case', sort = FALSE)
   }
   b_tick <- data_m[!is.na(besonderheit), c("km", "besonderheit")]
   b_tick <- b_tick[nchar(besonderheit) > 0, ]

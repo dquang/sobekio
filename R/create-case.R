@@ -1,113 +1,112 @@
 # This function changes the simulation start and ending time in a sobek setting
 # The input time is an POSIXCt or an object that is coerceable to POSIXCt
-.set_time <- function(sfile = "", begin = "", end = ""){
-  # start_t <- NULL
-  # end_t <- NULL
-
-
-  # convert string to POSIXCt, tz = "GMT" to avoid time zone effect
-
-  start_t <- try(as.POSIXct(x = begin,
-  													tz = "GMT",
-  													tryFormats = c(
-  														"%Y-%m-%d %H:%M:%S",
-  														"%Y/%m/%d %H:%M:%S",
-  														"%d.%m.%Y %H:%M:%S",
-  														"%Y-%m-%d %H:%M",
-  														"%Y/%m/%d %H:%M",
-  														"%d.%m.%Y %H:%M",
-  														"%Y-%m-%d",
-  														"%Y/%m/%d",
-  														"%d.%m.%Y")
-  													),
-  							 silent = FALSE
-  )
-
-
-  end_t <- try(as.POSIXct(x = end,
-  													tz = "GMT",
-  													tryFormats = c(
-  														"%Y-%m-%d %H:%M:%S",
-  														"%Y/%m/%d %H:%M:%S",
-  														"%d.%m.%Y %H:%M:%S",
-  														"%Y-%m-%d %H:%M",
-  														"%Y/%m/%d %H:%M",
-  														"%d.%m.%Y %H:%M",
-  														"%Y-%m-%d",
-  														"%Y/%m/%d",
-  														"%d.%m.%Y")
-  													),
-  						 silent = FALSE
-  )
-  check_time <- grep(" [-0][0-9]*", difftime(end_t, start_t, tz = "GMT"))
-  if (length(check_time) > 0){
-    stop("new.end must be a moment after new.begin")
-  }
-  if (class(start_t) == "try-error" || class(end_t) == "try-error") {
-    stop("Cannot regconize time string. Simulation time was not set!")
-  }
-
-
-  start_Y <- paste("BeginYear=",
-  								 strftime(start_t,format = "%Y", tz = "GMT"),
-  								 sep = "")
-  start_m <- paste("BeginMonth=",
-  								 strftime(start_t, format = "%m", tz = "GMT"),
-  								 sep = "")
-  start_d <- paste("BeginDay=",
-  								 strftime(start_t, format = "%d", tz = "GMT"),
-  								 sep = "")
-  start_H <- paste("BeginHour=",
-  								 strftime(start_t, format = "%H", tz = "GMT"),
-  								 sep = "")
-  start_M <- paste("BeginMinute=",
-  								 strftime(start_t, format = "%M", tz = "GMT"),
-  								 sep = "")
-  start_S <- paste("BeginSecond=",
-  								 strftime(start_t, format = "%S", tz = "GMT"),
-  								 sep = "")
-  end_Y <- paste("EndYear=",
-  							 strftime(end_t, format = "%Y", tz = "GMT"),
-  							 sep = "")
-  end_m <- paste("EndMonth=",
-  							 strftime(end_t, format = "%m", tz = "GMT"),
-  							 sep = "")
-  end_d <- paste("EndDay=",
-  							 strftime(end_t, format = "%d", tz = "GMT"),
-  							 sep = "")
-  end_H <- paste("EndHour=",
-  							 strftime(end_t, format = "%H", tz = "GMT"),
-  							 sep = "")
-  end_M <- paste("EndMinute=",
-  							 strftime(end_t, format = "%M", tz = "GMT"),
-  							 sep = "")
-  end_S <- paste("EndSecond=",
-  							 strftime(end_t, format = "%S", tz = "GMT"),
-  							 sep = "")
+.set_time <- function(sfile = "", begin.time = NULL, end.time = NULL){
   s_dat <- utils::read.table(sfile,
-    header = FALSE,
-    sep = "\n",
-    quote = "",
-    comment.char = "",
-    stringsAsFactors = FALSE,
-    blank.lines.skip = FALSE,
-    col.names = c("dat")
+                             header = FALSE,
+                             sep = "\n",
+                             quote = "",
+                             comment.char = "",
+                             stringsAsFactors = FALSE,
+                             blank.lines.skip = FALSE,
+                             col.names = c("dat")
   )
-
-  s_dat$dat <- sub("^BeginYear=[0-9]{1,4}", start_Y, s_dat$dat)
-  s_dat$dat <- sub("^BeginMonth=[0-9]{1,2}", start_m, s_dat$dat)
-  s_dat$dat <- sub("^BeginDay=[0-9]{1,2}", start_d, s_dat$dat)
-  s_dat$dat <- sub("^BeginHour=[0-9]{1,2}", start_H, s_dat$dat)
-  s_dat$dat <- sub("^BeginMinute=[0-9]{1,2}", start_M, s_dat$dat)
-  s_dat$dat <- sub("^BeginSecond=[0-9]{1,2}", start_S, s_dat$dat)
-  s_dat$dat <- sub("^EndYear=[0-9]{1,4}", end_Y, s_dat$dat)
-  s_dat$dat <- sub("^EndMonth=[0-9]{1,2}", end_m, s_dat$dat)
-  s_dat$dat <- sub("^EndDay=[0-9]{1,2}", end_d, s_dat$dat)
-  s_dat$dat <- sub("^EndHour=[0-9]{1,2}", end_H, s_dat$dat)
-  s_dat$dat <- sub("^EndMinute=[0-9]{1,2}", end_M, s_dat$dat)
-  s_dat$dat <- sub("^EndSecond=[0-9]{1,2}", end_S, s_dat$dat)
-
-  utils::write.table(s_dat$dat,
+  if(!is.null(begin.time)){
+    # convert string to POSIXCt, tz = "GMT" to avoid time zone effect
+    start_t <- try(as.POSIXct(x = begin.time,
+                              tz = "GMT",
+                              tryFormats = c(
+                                "%Y-%m-%d %H:%M:%S",
+                                "%Y/%m/%d %H:%M:%S",
+                                "%d.%m.%Y %H:%M:%S",
+                                "%Y-%m-%d %H:%M",
+                                "%Y/%m/%d %H:%M",
+                                "%d.%m.%Y %H:%M",
+                                "%Y-%m-%d",
+                                "%Y/%m/%d",
+                                "%d.%m.%Y")
+    ),
+    silent = FALSE
+    )
+    if (class(start_t)[[1]] == "try-error") {
+      stop("Cannot regconize time string. Simulation time was not set!")
+    }
+    start_Y <- paste("BeginYear=",
+                     strftime(start_t,format = "%Y", tz = "GMT"),
+                     sep = "")
+    start_m <- paste("BeginMonth=",
+                     strftime(start_t, format = "%m", tz = "GMT"),
+                     sep = "")
+    start_d <- paste("BeginDay=",
+                     strftime(start_t, format = "%d", tz = "GMT"),
+                     sep = "")
+    start_H <- paste("BeginHour=",
+                     strftime(start_t, format = "%H", tz = "GMT"),
+                     sep = "")
+    start_M <- paste("BeginMinute=",
+                     strftime(start_t, format = "%M", tz = "GMT"),
+                     sep = "")
+    start_S <- paste("BeginSecond=",
+                     strftime(start_t, format = "%S", tz = "GMT"),
+                     sep = "")
+    s_dat$dat <- sub("^BeginYear=[0-9]{1,4}", start_Y, s_dat$dat)
+    s_dat$dat <- sub("^BeginMonth=[0-9]{1,2}", start_m, s_dat$dat)
+    s_dat$dat <- sub("^BeginDay=[0-9]{1,2}", start_d, s_dat$dat)
+    s_dat$dat <- sub("^BeginHour=[0-9]{1,2}", start_H, s_dat$dat)
+    s_dat$dat <- sub("^BeginMinute=[0-9]{1,2}", start_M, s_dat$dat)
+    s_dat$dat <- sub("^BeginSecond=[0-9]{1,2}", start_S, s_dat$dat)
+  }
+ 
+  if(!is.null(begin.time)){
+    end_t <- try(as.POSIXct(x = end.time,
+                            tz = "GMT",
+                            tryFormats = c(
+                              "%Y-%m-%d %H:%M:%S",
+                              "%Y/%m/%d %H:%M:%S",
+                              "%d.%m.%Y %H:%M:%S",
+                              "%Y-%m-%d %H:%M",
+                              "%Y/%m/%d %H:%M",
+                              "%d.%m.%Y %H:%M",
+                              "%Y-%m-%d",
+                              "%Y/%m/%d",
+                              "%d.%m.%Y")
+    ),
+    silent = FALSE
+    )
+    if (class(end_t)[[1]] == "try-error") {
+      stop("Cannot regconize time string. Simulation time was not set!")
+    }
+    if (!is.null(begin.time)){
+      check_time <- grep(" [-0][0-9]*", difftime(end_t, start_t, tz = "GMT"))
+      if (length(check_time) > 0){
+        stop("new.end must be a moment after new.begin")
+      }
+    }
+    end_Y <- paste("EndYear=",
+                   strftime(end_t, format = "%Y", tz = "GMT"),
+                   sep = "")
+    end_m <- paste("EndMonth=",
+                   strftime(end_t, format = "%m", tz = "GMT"),
+                   sep = "")
+    end_d <- paste("EndDay=",
+                   strftime(end_t, format = "%d", tz = "GMT"),
+                   sep = "")
+    end_H <- paste("EndHour=",
+                   strftime(end_t, format = "%H", tz = "GMT"),
+                   sep = "")
+    end_M <- paste("EndMinute=",
+                   strftime(end_t, format = "%M", tz = "GMT"),
+                   sep = "")
+    end_S <- paste("EndSecond=",
+                   strftime(end_t, format = "%S", tz = "GMT"),
+                   sep = "")
+    s_dat$dat <- sub("^EndYear=[0-9]{1,4}", end_Y, s_dat$dat)
+    s_dat$dat <- sub("^EndMonth=[0-9]{1,2}", end_m, s_dat$dat)
+    s_dat$dat <- sub("^EndDay=[0-9]{1,2}", end_d, s_dat$dat)
+    s_dat$dat <- sub("^EndHour=[0-9]{1,2}", end_H, s_dat$dat)
+    s_dat$dat <- sub("^EndMinute=[0-9]{1,2}", end_M, s_dat$dat)
+    s_dat$dat <- sub("^EndSecond=[0-9]{1,2}", end_S, s_dat$dat)
+  }
+  write.table(s_dat$dat,
     file = sfile,
     sep = "\n",
     quote = FALSE,
@@ -200,7 +199,7 @@ create_case <- function(
     new_cdesc <- paste(sobek.project, "/", new_folder,
     									 "/", "casedesc.cmt", sep = "")
 
-    utils::write.table(
+    write.table(
       paste("#", new.name, sep = ""),
       file = new_cdesc,
       quote = FALSE,
@@ -209,7 +208,7 @@ create_case <- function(
       sep = ""
     )
     if (class(new.desc) == "character") {
-      utils::write.table(
+      write.table(
         "#Case description:",
         file = new_cdesc,
         append = TRUE,
@@ -218,7 +217,7 @@ create_case <- function(
         row.names = FALSE,
         sep = ""
       )
-      utils::write.table(
+      write.table(
         paste("#", new.desc, sep = ""),
         file = new_cdesc,
         append = TRUE,
@@ -236,7 +235,7 @@ create_case <- function(
           new.desc must be a character vector"
         )
       }
-      utils::write.table(cdesc[2:(cdesc_begin-1),],
+      write.table(cdesc[2:(cdesc_begin-1),],
         file = new_cdesc,
         append = TRUE,
         quote = FALSE, col.names = FALSE,
@@ -248,7 +247,7 @@ create_case <- function(
       paste("\\\\", new_folder, "\\\\", sep = ""),
       cdesc$old
     )
-    utils::write.table(
+    write.table(
       cdesc$old[cdesc_begin:length(cdesc$old)],
       file = new_cdesc,
       append = TRUE,
@@ -258,7 +257,7 @@ create_case <- function(
       sep = ""
     )
     # update caselist.cmt
-    utils::write.table(
+    write.table(
       paste(new_folder, " ", "\'", new.name, "\'", sep = ""),
       file = sobek_cmt,
       append = TRUE,
@@ -334,7 +333,7 @@ change_output_ntstep <- function(
     )
     s_dat$dat <- sub("^NrOfTimesteps=[0-9]{1,}",
                      paste("NrOfTimesteps=", n.tstep, sep = ""), s_dat$dat)
-    try_set <- try(utils::write.table(s_dat$dat,
+    try_set <- try(write.table(s_dat$dat,
                                            file = sfile,
                                            sep = "\n",
                                            quote = FALSE,
@@ -351,20 +350,20 @@ change_output_ntstep <- function(
 #' Rename a Sobek Case
 #' @param old.name Name of the old case, case-sensitive
 #' @param new.name Name of the new case
-#' @param sobek.project Sobek Project folder
 #' @param new.begin New simulation starting time (in format dd.mm.yyyy hh:mm:ss)
 #' @param new.end New simulation starting time (in format dd.mm.yyyy hh:mm:ss)
 #' @param new.desc Character vector, for new case description, one element for each line
+#' @param sobek.project Sobek Project folder
 #' @return A Sobek Case
 #' @export
-rename_case <- function(
-  old.name = "",
-  new.name = "",
-  sobek.project = NULL,
+change_case_info <- function(
+  old.name = NULL,
+  new.name = NULL,
   new.begin = NULL,
   new.end = NULL,
-  new.desc = NULL) {
-
+  new.desc = NULL,
+  sobek.project = NULL) {
+  stopifnot(!is.null(old.name) & !is.null(sobek.project))
   # check SOBEK project
   sobek_cmt <- paste(sobek.project, "caselist.cmt", sep = "/")
   if (!dir.exists(sobek.project)) {
@@ -380,32 +379,24 @@ rename_case <- function(
     blank.lines.skip = TRUE,
     col.names = c("case_number", "case_name")
   )
-  sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
-  if (old.name %in% sobek_clist$case_name) {
-    if (new.name %in% sobek_clist$case_name) stop("Case: ", new.name, " existed!")
-    old_folder <- sobek_clist$case_number[sobek_clist$case_name == old.name]
-    # update settings.dat
-    if (!is.null(new.begin) && !is.null(new.end)) {
-      setting_dat <-
-        paste(sobek.project, old_folder, "settings.dat", sep = "/")
-      try_settime <-
-        try(.set_time(sfile = setting_dat,
-                      begin = new.begin,
-                      end = new.end),
-            silent = FALSE)
-      if (class(try_settime) == "try-error") {
-        unlink(paste(
-          sobek.project,
-          new_folder,
-          sep = "/",
-          force = TRUE
-        ))
-        stop('wrong time input')
-      }
-    }
-    # update casedesc.cmt
+  sobek_clist[, case_name := gsub('"|\'', '', case_name)]
+  if (!old.name %in% sobek_clist$case_name) stop('case name ', old.name, 'not found' )
+  case_folder <- paste(sobek.project, 
+                      sobek_clist[case_name == old.name, case_number],
+                      sep = "/") 
+    # changing time
+  if (!is.null(new.begin) | !is.null(new.end)) {
+    setting_dat <-
+      paste(case_folder, "settings.dat", sep = "/")
+    .set_time(sfile = setting_dat,
+              begin.time = new.begin,
+              end.time = new.end)
+    
+  }
+  # changing case description
+  if (!is.null(new.name) | !is.null(new.desc)) {
     cdesc <- utils::read.table(
-      file = paste(sobek.project, old_folder, "casedesc.cmt", sep = "/"),
+      file = paste(case_folder, "casedesc.cmt", sep = "/"),
       header = FALSE,
       sep = "\n",
       quote = "",
@@ -416,18 +407,45 @@ rename_case <- function(
     )
     # "SUFHYD 1" is the line of casedesc.cmt right after the case description
     cdesc_begin <- which(cdesc$old == "SUFHYD 1")
-    new_cdesc <- paste(sobek.project, "/", old_folder,
+    new_cdesc <- paste(case_folder,
                        "/", "casedesc.cmt", sep = "")
-    utils::write.table(
-      paste("#", new.name, sep = ""),
-      file = new_cdesc,
-      quote = FALSE,
-      col.names = FALSE,
-      row.names = FALSE,
-      sep = ""
-    )
+    if (!is.null(new.name)){
+      if (new.name %in% sobek_clist$case_name) stop("Case: ", new.name, " existed!")
+      # update caselist.cmt
+      sobek_clist[case_name == old.name, case_name := new.name]
+      sobek_clist[, clist_out := paste(case_number, " ", "'", case_name, "'",
+                                       sep = "")]
+      write.table(
+        sobek_clist[, c('clist_out')],
+        file = sobek_cmt,
+        append = FALSE,
+        quote = FALSE,
+        col.names = FALSE,
+        row.names = FALSE,
+        sep = ""
+      )
+      write.table(
+        paste("#", new.name, sep = ""),
+        file = new_cdesc,
+        quote = FALSE,
+        append = FALSE,
+        col.names = FALSE,
+        row.names = FALSE,
+        sep = ""
+      )
+    } else{
+      write.table(
+        paste("#", old.name, sep = ""),
+        file = new_cdesc,
+        quote = FALSE,
+        append = FALSE,
+        col.names = FALSE,
+        row.names = FALSE,
+        sep = ""
+      )
+    }
     if (class(new.desc) == "character") {
-      utils::write.table(
+      write.table(
         "#Case description:",
         file = new_cdesc,
         append = TRUE,
@@ -436,7 +454,7 @@ rename_case <- function(
         row.names = FALSE,
         sep = ""
       )
-      utils::write.table(
+      write.table(
         paste("#", new.desc, sep = ""),
         file = new_cdesc,
         append = TRUE,
@@ -454,14 +472,17 @@ rename_case <- function(
           new.desc must be a character vector"
         )
       }
-      utils::write.table(cdesc[2:(cdesc_begin-1),],
-                         file = new_cdesc,
-                         append = TRUE,
-                         quote = FALSE, col.names = FALSE,
-                         row.names = FALSE, sep = ""
+      write.table(
+        cdesc[2:(cdesc_begin - 1), ],
+        file = new_cdesc,
+        append = TRUE,
+        quote = FALSE,
+        col.names = FALSE,
+        row.names = FALSE,
+        sep = ""
       )
-      }
-    utils::write.table(
+    }
+    write.table(
       cdesc$old[cdesc_begin:length(cdesc$old)],
       file = new_cdesc,
       append = TRUE,
@@ -470,17 +491,5 @@ rename_case <- function(
       row.names = FALSE,
       sep = ""
     )
-    # update caselist.cmt
-    utils::write.table(
-      paste(new_folder, " ", "\'", new.name, "\'", sep = ""),
-      file = sobek_cmt,
-      append = TRUE,
-      quote = FALSE,
-      col.names = FALSE,
-      row.names = FALSE,
-      sep = ""
-    )
-  } else {
-    stop("Case ", old.name, " does not found in caselist.cmt")
   }
 }
