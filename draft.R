@@ -25,16 +25,16 @@ param = 'discharge'
 y2.scale = 25
 sobek.project = elbe_prj
 ref.mID = NULL
-Q.zu = TRUE
-Q.ab = FALSE
-W.innen = FALSE
+q.in = TRUE
+q.out = FALSE
+w.canal = FALSE
 delta.pegel = FALSE
 delta.measure = TRUE
 V.max = TRUE
 polder.F = NULL
 polder.Z = NULL
 h.lines = c(4200, 4500)
-text.pos = 0.01
+text.pos.x = 0.01
 v.just = 1
 zoom = NULL
 verbose = TRUE
@@ -43,13 +43,14 @@ id_data <- .get_data_for_cases(name = name,
   case.list = case.list, case.desc = case.desc, sobek.project = sobek.project,
   param = param, master.tbl = master.tbl
 )
-id_tbl_test <- .get_data_for_cases(
+id_tbl_test <- get_data_tbl(
   name = 'Doebeltitz',
   case.list <- c(
     'BEZ_WB_HW2006_mHAV_1.6890',
     'PZ_WB_HW2006_mHAV_1.6890_v2'
 
   ),
+  w.canal = FALSE,
   case.desc <- c(
     "BEZUG_WB_HW2006_VGF1.6890_mHAV",
     "PLAN_WB_HW2006_VGF1.6890_mHAV_v2"
@@ -59,7 +60,7 @@ id_tbl_test <- .get_data_for_cases(
   master.tbl = elbe_tbl
 )
 #----teset scenario----
-plot_measure_scenario(
+plot_polder_scenario(
   name = 'Doebeltitz',
   case.list <- c(
     'BEZ_WB_HW2006_mHAV_1.6890',
@@ -74,14 +75,11 @@ plot_measure_scenario(
   y2.scale = 25,
   sobek.project = elbe_prj,
   ref.mID = NULL,
-  Q.zu = TRUE,
-  Q.ab = FALSE,
-  W.innen = TRUE,
-  delta.pegel = FALSE,
-  delta.measure = TRUE,
-  V.max = TRUE,
-  polder.F = NULL,
-  polder.Z = NULL,
+  q.in = TRUE,
+  q.out = FALSE,
+  w.canal = TRUE,
+  # delta.pegel = FALSE,
+  # delta.measure = TRUE,
   # h.lines = c(4200, 4500),
   text.pos.x = 0.01,
   verbose = TRUE,
@@ -90,32 +88,30 @@ plot_measure_scenario(
 #----test for rhein-----
 his_from_case('Bezugszustand_ZPK_HW2003_Selten_1663_newReg', 
               so_prj, param = 'discharge', sID = 'guntersblum_zu')
-plot_measure_scenario(
-  name = 'Guntersblum',
+plot_polder(
+  name = 'Langel',
   case.list <- c(
     'Planzustand_Eich_TEST_ct0_HW1988_Mittel_CL866',
     'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'
 
   ),
   case.desc <- c(
-    "Planzustand_ZPK_HW1988_Selten_CL866",
+    "Planzustand2_ZPK_HW1988_Selten_CL866",
     "Bezugszustand_ZPK_HW1988_Selten_1828_newReg"
   ),
-  param = 'waterlevel',
-  y2.scale = 0.05,
+  param = 'discharge',
+  y2.scale = 50,
   sobek.project = so_prj,
   ref.mID = 'P_Mainz',
-  Q.zu = TRUE,
-  # Q.ab = TRUE,
-  W.innen = TRUE,
-  delta.pegel = TRUE,
-  delta.measure = TRUE,
-  V.max = TRUE,
-  polder.F = NULL,
-  polder.Z = NULL,
-  # h.lines = c(4200, 4500),
+  facet.by = 'zustand',
+  q.in = TRUE,
+  q.out = TRUE,
+  w.canal = TRUE,
+  # delta.pegel = TRUE,
+  # delta.measure = TRUE,
+  # h.lines = list("HQ100 Mainz = 7900" = 7900),
   text.pos.x = 0.01,
-  text.pos.y = 88,
+  text.pos.y = 7800,
   verbose = TRUE,
   master.tbl = rhein_tbl
 )
@@ -142,9 +138,9 @@ param = 'discharge'
 y2.scale = 25
 sobek.project = donau_prj
 ref.mID = NULL
-Q.zu = FALSE
-Q.ab = FALSE
-W.innen = FALSE
+q.in = FALSE
+q.out = FALSE
+w.canal = FALSE
 delta.pegel = FALSE
 delta.measure = TRUE
 V.max = TRUE
@@ -157,33 +153,41 @@ zoom = NULL
 verbose = TRUE
 master.tbl = donau_tbl
 
-plot_measure_scenario(
-  name = 'Helmeringen',
-  case.list <- c(
-    'BEZUG_HW1999_1_000_GW_halbiert',
-    'PLAN_gest_HW1999_1_000_GW_halbiert'
+system.time(
+  g_helm <- plot_polder_scenario(
+    name = 'Helmeringen',
+    case.list <- c(
+      'BEZUG_HW1999_1_000_GW_halbiert',
+      'PLAN_gest_HW1999_1_000_GW_halbiert'
+      
+    ),
+    case.desc <- c(
+      'BEZUG_zp0_HW1999_1000_GW_halbiert',
+      'PLAN_gest_HW1999_1000_GW_halbiert'
+      
+    ),
+    param = 'discharge',
+    y2.scale = 10,
+    sobek.project = donau_prj,
+    # ref.mID = 'P_Mainz',
+    q.in = TRUE,
+    # q.out = TRUE,
+    w.canal = TRUE,
+    delta.pegel = TRUE,
+    delta.measure = TRUE,
     
-  ),
-  case.desc <- c(
-    'BEZUG_zp0_HW1999_1000_GW_halbiert',
-    'PLAN_gest_HW1999_1000_GW_halbiert'
-    
-  ),
-  param = 'discharge',
-  y2.scale = 0.05,
-  sobek.project = donau_prj,
-  # ref.mID = 'P_Mainz',
-  Q.zu = TRUE,
-  # Q.ab = TRUE,
-  W.innen = TRUE,
-  delta.pegel = TRUE,
-  delta.measure = TRUE,
-  V.max = TRUE,
-  polder.F = NULL,
-  polder.Z = NULL,
-  # h.lines = c(4200, 4500),
-  text.pos.x = 0.01,
-  # text.pos.y = 88,
-  verbose = TRUE,
-  master.tbl = donau_tbl
+  polder.f = NULL,
+  polder.z = NULL,
+    # h.lines = c(4200, 4500),
+    text.pos.x = 0.01,
+    # text.pos.y = 88,
+    verbose = TRUE,
+    master.tbl = donau_tbl
+  )
+)
+
+tmp <- donau_tbl[grepl('Helmeringen_Vol', besonderheit)]
+system.time(
+  his_from_case(case.list = case.list, sobek.project = donau_prj,
+                wID = tmp$ID, param = 'volume')
 )

@@ -4,23 +4,20 @@
 \alias{plot_long_profile}
 \title{Plot long profile of selected case}
 \usage{
-plot_long_profile(indt = qt, case.list = NULL, case.name = case.list,
-  delta = F, code.tbl = NULL, ID.col = "ID", x.lab = "Lage (KM)",
-  y.lab = "Abfluss (m³/s)", x.lim = NULL, y.lim = NULL,
-  y2.scale = 2, title = "", vgf.pattern = "Selten|Mittel",
-  zustand1 = "Bezugszustand", zustand2 = "Planzustand", ncol = 1L,
-  x.text.size = 8, save.tbl = NULL)
+plot_long_profile(indt = qt, case.list = NULL, case.desc = case.list,
+  linetype.by = "case", color.by = "case", facet.by = NULL,
+  delta = F, x.lab = "Lage (KM)", y.lab = "Abfluss (m³/s)",
+  x.lim = NULL, y.lim = NULL, y2.scale = 2, title = "",
+  ncol = 1L, x.text.size = 8, master.tbl = rhein_tbl)
 }
 \arguments{
 \item{indt}{Input data.table, which is the output from his_from_case function}
 
 \item{case.list}{List of cases to plot, default is all}
 
-\item{case.name}{Case display names, same values as case.list if not specified}
-
 \item{delta}{Should delta also plotted?}
 
-\item{code.tbl}{Coding table}
+\item{case.name}{Case display names, same values as case.list if not specified}
 }
 \value{
 a ggplot2 graphic

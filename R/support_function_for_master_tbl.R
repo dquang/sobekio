@@ -1,4 +1,9 @@
-.parsing_case_name <- function(case.desc, orig.name = case.desc){
+#' Parse case name to get standard information
+#' @param case.desc Case description (standard naming)
+#' @param orig.name Case original name
+#' @return a data.table
+#' @export
+parse_case <- function(case.desc, orig.name = case.desc){
   stopifnot(length(case.desc) == length(orig.name))
   case_str <- str_match(case.desc, "^([^_]+)_([^_]+)_([^_]+)_([^_]+)(.*)$")
   if (ncol(case_str) < 5 | ncol(case_str) > 6) {
@@ -13,6 +18,9 @@
     vgf = case_str[, 5],
     notiz = case_str[, 6]
   )
+  result$zustand  <- factor(result$zustand,
+                            levels = result$zustand,
+                            ordered = TRUE)
   return(result)
 }
 
@@ -23,19 +31,25 @@
 #' @param case.desc Case name standardized
 #' @param master.tbl Master table
 #' @return a data.table
-.get_id_tbl <- function(
+#' @export
+get_id_tbl <- function(
   name = NULL,
   case.list = NULL,
-  case.desc = NULL,
+  case.desc = case.list,
+  drv = FALSE,
+  to.upstream = 0,
+  to.downstream = 0,
   master.tbl = NULL
 ){
-  case_tbl <- .parsing_case_name(case.desc = case.desc, orig.name = case.list)
-  zustand_list <- colnames(master.tbl[, .SD,
-                                      .SDcols = -c('ID', 'besonderheit',
-                                                   'ID_TYPE', 'km', 'river')]
-  )
-  zustand_list <- sort(zustand_list)
+  case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   id_tbl <- master.tbl[grepl(name, besonderheit)]
+  if (isTRUE(drv)){
+    drv_begin <- id_tbl[grepl(".*_Begin", besonderheit), km][[1]] + to.downstream
+    drv_end <- id_tbl[grepl(".*_End", besonderheit), km][[1]] + to.upstream
+    km_range <- sort(c(drv_begin, drv_end))
+    river <- id_tbl[grepl(".*_Begin", besonderheit), river][[1]]
+    id_tbl <- master.tbl[river == river & km >= km_range[1] & km <= km_range[2]]
+  }
   stopifnot(nrow(id_tbl) > 1)
   # creating new columns based on case name
   for (i in seq_along(case.desc)){
@@ -43,44 +57,50 @@
     id_tbl[, eval(col_n) := case.desc[[i]]]
   }
   measure_vars <- paste('case_desc', seq_along(case.desc), sep = "_")
-  id_tbl <- melt(id_tbl, measure.vars = measure_vars, sort = FALSE,
+  id_tbl <- melt(id_tbl, measure.vars = measure_vars,
                  value.name = 'case_desc')
   id_tbl <- merge(id_tbl, case_tbl[, c('case', 'case_desc', 'zustand')],
-                  by = 'case_desc')
+                  by = 'case_desc', sort = FALSE)
   # check if the zustand in cases are in listed in the master.tbl
-  zustand_in_cases <- sort(unique(case_tbl$zustand))
+  zustand_in_cases <- unique(case_tbl$zustand)
+  id_tbl[, ID_F := ID]
+  id_tbl_cols <- colnames(id_tbl)
   for (i in seq_along(zustand_in_cases)){
-    # get final, correct ID for each case
-    id_tbl[zustand == zustand_in_cases[i],
-           ID_F := get(zustand_in_cases[i])]
+    if (zustand_in_cases[i] %in% id_tbl_cols){
+      # get final, correct ID for each case
+      id_tbl[zustand == zustand_in_cases[i],
+             ID_F := get(zustand_in_cases[i])]
+    }
+
   }
   return(id_tbl)
 }
 
-#' Get Nach, Vor, Innen, Einlass, Auslass data for one measure
+#' Get related time series for one measure
 #' @param name Name of the measure
 #' @param case.list List of the cases
 #' @param case.desc Case name standardized
 #' @param param Parameter discharge/waterlevel
 #' @param sobek.project Path to sobek project
-#' @param W.innen Should W.innen be inculded
+#' @param w.canal Should w.canal be inculded
 #' @param master.tbl Master table
 #' @param verbose Should some message be displayed?
 #' @return a data.table
-.get_data_for_cases <- function(
+#' @export
+get_polder_data <- function(
   name = NULL,
   case.list = NULL,
-  case.desc = NULL,
+  case.desc = case.list,
   param = NULL,
   sobek.project = NULL,
-  W.innen = FALSE,
-  Vor = FALSE,
+  w.canal = TRUE,
+  upstream = FALSE,
   master.tbl = NULL,
   verbose = TRUE
 ){
   # search for IDs
-  # case.tbl <- .parsing_case_name(case.desc = case.desc, orig.name = case.list)
-  id.tbl <- .get_id_tbl(name = name, case.list = case.list,
+  # case.tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
+  id.tbl <- get_id_tbl(name = name, case.list = case.list,
                         case.desc = case.desc, master.tbl = master.tbl
   )
   # id.tbl <- id.tbl[!grepl(".+_Vol", besonderheit)]
@@ -99,7 +119,7 @@
     id_tbl_tmp <- id.tbl[case == case.list[[i]]]
     if (param == 'discharge'){
       # this take only the first row, if there is none, it should get an NA
-      if (isTRUE(Vor)){
+      if (isTRUE(upstream)){
         id_vor <- id_tbl_tmp[grepl('_Vor', besonderheit) &
                              grepl('mID|qID', ID_TYPE)
                              ][1]
@@ -117,7 +137,7 @@
     }
     #----get Vor/Nach data----
     # cannot combine with the Auslass, Einlass because they always take 'discharge'
-    if (isTRUE(Vor)) {
+    if (isTRUE(upstream)) {
       if (id_vor$ID_TYPE != id_nach$ID_TYPE) {
         id_vor_args <- list(
           case.list = case.list[[i]],
@@ -258,7 +278,7 @@
     colnames(id_data_tmp) <- c('ts', id_ein_aus_cols, 'case')
     id_data_tmp <- merge(id_data_tmp, id_vor_nach_data, by = 'ts', sort = FALSE)
     #---- get Waterlevel Innen----
-    if (isTRUE(W.innen)){
+    if (isTRUE(w.canal)){
       id_mitte <- id_tbl_tmp[col_name == 'Innen' &
                                grepl("mID|wID", ID_TYPE)][1]
       id_mitte_args <- list(
@@ -273,7 +293,6 @@
       colnames(wt_id_mitte) <- c('ts', 'W_innen', 'case')
       wt_id_mitte$case <- NULL
       # merging data
-      # id_data_tmp <- merge(ft_vor_nach, st_ab_zu, by = c('ts', 'case'))
       id_data_tmp <- merge(id_data_tmp, wt_id_mitte, by = 'ts', sort = FALSE)
     }
     id_data_list[[i]] <- id_data_tmp
@@ -286,7 +305,7 @@
 }
 
 
-#' Get Nach, Vor, Innen, Einlass, Auslass data for one measure
+#' Get total volume for one measure
 #' @param name Name of the measure
 #' @param case.list List of the cases
 #' @param case.desc Case name standardized
@@ -295,15 +314,16 @@
 #' @param master.tbl Master table
 #' @param verbose Should some message be displayed?
 #' @return a data.table
-.get_volume_for_cases <- function(
+#' @export
+get_polder_volume <- function(
   name = NULL,
-  case.desc = NULL,
   case.list = NULL,
+  case.desc = case.list,
   sobek.project = NULL,
   master.tbl
 ){
   # get results for each case
-  id_tbl <- .get_id_tbl(name = name, case.list = case.list,
+  id_tbl <- get_id_tbl(name = name, case.list = case.list,
                         case.desc = case.desc, master.tbl = master.tbl
   )
   id_vol <- id_tbl[grepl(".*_Vol", besonderheit) & ID_TYPE == 'wID']
@@ -323,7 +343,7 @@
       id_data_tmp <- id_data_tmp[, round(max(V1)/10^6, 2), by = case]
       colnames(id_data_tmp) <- c('case', 'Volume_max')
     } else{
-      id_data_tmp <- data.table(case = case.list[[i]], Volume_max = 0.00)
+      id_data_tmp <- data.table(case = case.list[[i]], Volume_max = "k.A.")
     }
     id_data_list[[i]] <- id_data_tmp
   }
@@ -331,4 +351,71 @@
   rm(id_data_list, id_data_tmp)
   id_data_vol
   return(id_data_vol)
+}
+
+
+#' Get related time series for one DRV
+#' @param name Name of the measure
+#' @param case.list List of the cases
+#' @param case.desc Case name standardized
+#' @param param Parameter discharge/waterlevel
+#' @param sobek.project Path to sobek project
+#' @param to.upstream Distance to upstream (km) to get data
+#' @param to.downstream Distance to downstream (km) to get data
+#' @param get.max Should max value or whole time series return? Default only max value
+#' @param master.tbl Master table
+#' @param verbose Should some message be displayed?
+#' @param get.max Should maximal value return or whole time series? Default only max value.
+#' @return a data.table
+#' @export
+get_drv_data <- function(
+  name = 'Muendelheim',
+  case.list = NULL,
+  case.desc = case.list,
+  param = NULL,
+  sobek.project = NULL,
+  to.upstream = 0,
+  to.downstream = 0,
+  get.max = TRUE,
+  master.tbl = NULL,
+  verbose = TRUE
+){
+  stopifnot(is.numeric(to.upstream) & is.numeric(to.downstream))
+  id_tbl <- get_id_tbl(
+    name = name,
+    case.list = case.list,
+    drv = TRUE,
+    to.upstream = to.upstream,
+    to.downstream = to.downstream,
+    case.desc = case.desc,
+    master.tbl = master.tbl
+  )
+  drv_begin <- id_tbl[grepl(".*_Begin", besonderheit), km][[1]] + to.downstream
+  drv_end <- id_tbl[grepl(".*_End", besonderheit), km][[1]] + to.upstream
+  if(param == 'discharge'){
+    drv_data <- his_from_case(
+      case.list = case.list,
+      sobek.project = sobek.project,
+      param = param,
+      qID = id_tbl[ID_TYPE == 'qID', ID_F],
+      verbose = FALSE
+    )
+  } else{
+    drv_data <- his_from_case(
+      case.list = case.list,
+      sobek.project = sobek.project,
+      param = param,
+      wID = id_tbl[ID_TYPE == 'wID', ID_F],
+      verbose = FALSE
+    )
+
+  }
+  if (isTRUE(get.max)){
+    drv_data_max <- drv_data[, lapply(.SD, max, na.rm = TRUE),
+                             .SDcols = -c("ts"), by = case] %>%
+      melt(id.vars = 'case', variable.name = name, sort = FALSE)
+    return(drv_data_max)
+  } else{
+    return(drv_data)
+  }
 }
