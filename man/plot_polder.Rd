@@ -5,14 +5,14 @@
 \title{Plot hydrographs for a measure with comparing by scenario (zustand)}
 \usage{
 plot_polder(name = NULL, case.list = NULL, case.desc = case.list,
-  param = "discharge", y2.scale = 25, sobek.project = NULL,
-  compare.by = "zustand", facet.by = "hwe", ref.mID = NULL,
-  q.in = FALSE, q.out = FALSE, w.canal = FALSE, v.max = TRUE,
-  polder.f = NULL, polder.z = NULL, h.lines = NULL,
-  plot.title = paste("Ganglinien für Maßnahme: ", name),
-  text.pos.x = 0.01, text.pos.y = NULL, date.break = "3 days",
-  date.label = "\%d.\%m.\%y", text.size = 12, text.x.angle = 0L,
-  verbose = TRUE, master.tbl = NULL)
+  sobek.project = NULL, master.tbl = NULL, param = "discharge",
+  q.in = FALSE, q.out = FALSE, w.canal = FALSE, ref.mID = NULL,
+  y2.scale = 25, h.lines = NULL, compare.by = "zustand",
+  facet.by = "hwe", plot.title = NULL, lt.name = "Linienart",
+  color.name = "Farbe", text.pos.x = 0, text.pos.y = 1,
+  date.break = "3 days", date.label = "\%d.\%m.\%y", text.size = 12,
+  text.x.angle = 0L, polder.f = NULL, polder.z = NULL,
+  verbose = TRUE)
 }
 \arguments{
 \item{name}{Name of the measure (with/without the measure)}
@@ -21,17 +21,11 @@ plot_polder(name = NULL, case.list = NULL, case.desc = case.list,
 
 \item{case.desc}{Correct (according to case naming standard in NHWSP) version of case.list, it will be used for legend}
 
-\item{param}{'Waterlevel' or 'Discharge' Hydrograph}
-
-\item{y2.scale}{Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale}
-
 \item{sobek.project}{Path to sobek project}
 
-\item{compare.by}{Should the line be compare by 'case' or by 'location'}
+\item{master.tbl}{Table of ID Coding of the sobek network}
 
-\item{facet.by}{Should the graphic be facetted. Default by 'zustand'}
-
-\item{ref.mID}{ID of Bezugspegel}
+\item{param}{'Waterlevel' or 'Discharge' Hydrograph}
 
 \item{q.in}{Logical. Should discharge through the inlet be plotted?}
 
@@ -39,31 +33,37 @@ plot_polder(name = NULL, case.list = NULL, case.desc = case.list,
 
 \item{w.canal}{Logical. Should Wt line inside the measure be plotted?}
 
-\item{polder.f}{Area of the measure, for calculating Volume}
+\item{ref.mID}{ID of Bezugspegel}
 
-\item{polder.z}{Bottom level of the measure for calculating Volume. Give 'auto' for getting the minimum waterlevel in canal value. In this case, make sure the canal is completely dry at T0}
+\item{y2.scale}{Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale}
 
 \item{h.lines}{List of (name = value) to be displayed as horizontal line}
 
+\item{compare.by}{Should the line be compare by 'case' or by 'location'}
+
+\item{facet.by}{Should the graphic be facetted. Default by 'zustand'}
+
 \item{plot.title}{Title of the graphic}
+
+\item{lt.name}{Name of the linetype legend}
+
+\item{color.name}{Name of the color legend}
 
 \item{text.pos.x}{Position of the text block on x-axis, relative value}
 
-\item{text.pos.y}{Position of the text block on y1-axis, absolute value}
+\item{text.pos.y}{Position of the text block on y1-axis, absolute or relative value}
 
 \item{date.break}{Breaks for x-axis ('n days', '12 hours'...)}
 
-\item{date.label}{Label format for x-axis}
+\item{date.label}{Label format for x-axis. Default dd.mm.yy}
 
 \item{text.size}{Text size for the whole graphic. Default 12}
 
 \item{text.x.angle}{Angle of x-axis text. Default 0}
 
-\item{master.tbl}{Table of ID Coding of the sobek network}
+\item{polder.f}{Area of the measure, for calculating Volume}
 
-\item{delta.pegel}{Logical. Should peak delta at ref.mID be displayed}
-
-\item{delta.measure}{Logical. Should peak delta at the measure be displayed}
+\item{polder.z}{Bottom level of the measure for calculating Volume. Give 'auto' for getting the minimum waterlevel in canal value. In this case, make sure the canal is completely dry at T0}
 
 \item{versbose}{Boring? Should some message be displayed?}
 }

@@ -2,25 +2,28 @@
 #' @param name Name of the measure (with/without the measure)
 #' @param case.list List of cases
 #' @param case.desc Correct (according to case naming standard in NHWSP) version of case.list, it will be used for legend
-#' @param param 'Waterlevel' or 'Discharge' Hydrograph
-#' @param y2.scale Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale
 #' @param sobek.project Path to sobek project
-#' @param compare.by Should the line be compare by 'case' or by 'location'
-#' @param ref.mID ID of Bezugspegel
+#' @param param 'Waterlevel' or 'Discharge'
 #' @param q.in Logical. Should discharge through the inlet be plotted?
 #' @param q.out Logical. Should discharge through the outlet be plotted?
 #' @param w.canal Logical. Should Wt line inside the measure be plotted?
+#' @param ref.mID ID of Bezugspegel
+#' @param y2.scale Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale
+#' @param h.lines list of (name = value) to be displayed as horizontal line
 #' @param delta.pegel Logical. Should peak delta at ref.mID be displayed
 #' @param delta.measure Logical. Should peak delta at the measure be displayed
-#' @param polder.f Area of the measure, for calculating Volume
-#' @param polder.z Bottom level of the measure for calculating Volume. Give 'auto' for getting the minimum waterlevel in canal value. In this case, make sure the canal is completely dry at T0
-#' @param h.lines list of (name = value) to be displayed as horizontal line
+#' @param compare.by Should the line be compare by 'case' or by 'location'
+#' @param plot.title Title of the plot
+#' @param lt.name Name of the linetype legend
+#' @param color.name Name of the color legend
 #' @param text.pos.x Position of the text block on x-axis, relative value
-#' @param text.pos.y Position of the text block on y1-axis, absolute value
+#' @param text.pos.y Position of the text block on y1-axis, absolute or relative value
 #' @param date.break Breaks for x-axis ('n days', '12 hours'...)
-#' @param date.label Label format for x-axis, default %d.%m.%y
+#' @param date.label Label format for x-axis, default dd.mm.yy
 #' @param text.size Text size for the whole graphic. Default 12
 #' @param text.x.angle Angle of x-axis text. Default 0
+#' @param polder.f Area of the measure, for calculating Volume
+#' @param polder.z Bottom level of the measure for calculating Volume. Give 'auto' for getting the minimum waterlevel in canal value. In this case, make sure the canal is completely dry at T0
 #' @param versbose Boring? Should some message be displayed?
 #' @param master.tbl Table of ID Coding of the sobek network
 #' @return A ggplot2 graphic
@@ -29,28 +32,31 @@ plot_polder_scenario <- function(
   name = NULL,
   case.list = NULL,
   case.desc = case.list,
-  param = 'discharge',
-  y2.scale = 25,
   sobek.project = NULL,
-  compare.by = 'zustand',
-  ref.mID = NULL,
+  master.tbl = NULL,
+  param = 'discharge',
   q.in = FALSE,
   q.out = FALSE,
   w.canal = FALSE,
+  ref.mID = NULL,
+  y2.scale = 25,
+  h.lines = NULL,
   delta.pegel = FALSE,
   delta.measure = TRUE,
-  v.max = TRUE,
-  polder.f = NULL,
-  polder.z = NULL,
-  h.lines = NULL,
-  text.pos.x = 0.01,
-  text.pos.y = NULL,
+  compare.by = 'zustand',
+  plot.title = NULL,
+  lt.name = 'Linienart',
+  color.name = 'Farbe',
+  # v.max = TRUE,
+  text.pos.x = 0,
+  text.pos.y = 1,
   date.break = '3 days',
   date.label = '%d.%m.%y',
   text.size = 12,
   text.x.angle = 0L,
-  verbose = TRUE,
-  master.tbl = NULL){
+  polder.f = NULL,
+  polder.z = NULL,
+  verbose = TRUE){
 
 
   #----checking input----
@@ -111,10 +117,31 @@ plot_polder_scenario <- function(
   # adding line from Bezugspegel and initializing the graphic
   if (!is.null(ref.mID)){
     if (isTRUE(verbose)) print('Reading data for ref.mID...')
-    ref_mID <- his_from_case(case.list = case.list,
-                             sobek.project = sobek.project,
-                             mID = ref.mID, param = param,
-                             verbose = FALSE)
+    if (length(ref.mID) > 1){
+      ref.mID_id <- ref.mID[[1]]
+      if (hasName(ref.mID, 'ID')) ref.mID_id <- ref.mID$ID
+      ref.mID_name <- ref.mID[[2]]
+      if (hasName(ref.mID, 'name')) ref.mID_name <- ref.mID$name
+      ref.mID_color <- ref.mID_name
+      ref.mID_type <- ifelse(param == 'discharge', 'qID', 'wID')
+      if (hasName(ref.mID, 'type')) ref.mID_type <- ref.mID$type
+      ref_mID_args <- list(
+        case.list = case.list,
+        sobek.project = sobek.project,
+        id_type = ref.mID_id,
+        param = param,
+        verbose = FALSE
+      )
+      names(ref_mID_args)[3] <- ref.mID_type
+      ref_mID <- do.call(his_from_case, ref_mID_args)
+    } else{
+      ref_mID <- his_from_case(case.list = case.list,
+                               sobek.project = sobek.project,
+                               mID = ref.mID[[1]], param = param,
+                               verbose = FALSE)
+      ref.mID_color <- ifelse(!is.null(names(ref.mID)), names(ref.mID), 
+                              toupper(ref.mID[[1]]))
+    }
     colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
     id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
     # get peak difference at the ref_measurement
@@ -130,24 +157,23 @@ plot_polder_scenario <- function(
     y1_max <- max(y1_max, ref_mID$Bezugspegel, na.rm = TRUE)
     y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
     g <- ggplot(data = id_data,
-                mapping = aes(x = ts, linetype = zustand)
+                mapping = aes(x = ts, linetype = !!ensym(compare.by))
                 ) +
       geom_line(aes(
         y = Bezugspegel,
-        color = 'Bezugspegel',
-        linetype = zustand
+        color = ref.mID_color
       ),
       size = 1)
   } else{
     g <- ggplot(data = id_data,
-                mapping = aes(x = ts))
+                mapping = aes(x = ts, linetype = !!ensym(compare.by))
+                )
   }
   if (isTRUE(verbose)) print('Adding hydrographs...')
   # if parameter is discharge, move waterlevel to secondary axis
   if (tolower(param) == 'discharge'){
     g <- g +
-      geom_line(aes(y = Nach,  color = 'Nach der Maßnahme',
-                    linetype = zustand),
+      geom_line(aes(y = Nach,  color = 'Nach der Maßnahme'),
                 size = 1)
     if (isTRUE(w.canal)){
       q.in <- FALSE
@@ -161,7 +187,7 @@ plot_polder_scenario <- function(
         y2_shift <- floor(y2_shift - y2_min*y2.scale)
       }
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
-                             color = 'In der Maßnahme', linetype = zustand),
+                             color = 'In der Maßnahme'),
                          size = 1)
       y2_name <- 'Wasserstand (m+NHN)'
     }
@@ -188,13 +214,12 @@ plot_polder_scenario <- function(
                                 value.name = 'Q_Einlass')
         g <- g + geom_line(data = id_data_einlass,
                            aes(y = Q_Einlass * y2.scale + y2_shift,
-                           color = Einlass, linetype = zustand),
+                           color = Einlass),
                        size = 1)
       } else{
         g <- g + geom_line(aes(
           y = !!ensym(einlass_cols) * y2.scale + y2_shift,
-          color = eval(einlass_cols),
-          linetype = zustand
+          color = eval(einlass_cols)
         ),
         size = 1)
       }
@@ -217,13 +242,12 @@ plot_polder_scenario <- function(
                                   value.name = 'Q_Auslass')
           g <- g + geom_line(data = id_data_auslass,
                              aes(y = Q_Auslass * y2.scale + y2_shift,
-                                 color = Auslass, linetype = zustand),
+                                 color = Auslass),
                              size = 1)
         } else{
           g <- g + geom_line(aes(
             y = !!ensym(auslass_cols) * y2.scale + y2_shift,
-            color = eval(auslass_cols),
-            linetype = zustand
+            color = eval(auslass_cols)
           ),
           size = 1)
         }
@@ -234,8 +258,7 @@ plot_polder_scenario <- function(
     #----param = WL----
     # adding W_innen directly to the graphic should not be a problem
     g <- g +
-      geom_line(aes(y = Nach,  color = 'Nach Maßnahme',
-                    linetype = zustand),
+      geom_line(aes(y = Nach,  color = 'Nach Maßnahme'),
                 size = 1)
     if (isTRUE(w.canal)){
       y2_name <- 'Wasserstand (m+NHN)'
@@ -246,8 +269,7 @@ plot_polder_scenario <- function(
       y2_max <- ceiling(y1_max/y2.scale)
       y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
       g <- g + geom_line(aes(y = W_innen,
-                             color = 'In der Maßnahme',
-                             linetype = zustand),
+                             color = 'In der Maßnahme'),
                          size = 1)
     }
     if (isTRUE(q.in)){
@@ -272,13 +294,12 @@ plot_polder_scenario <- function(
                                 value.name = 'Q_Einlass')
         g <- g + geom_line(data = id_data_einlass,
                            aes(y = Q_Einlass * y2.scale + y2_shift,
-                               color = Einlass, linetype = zustand),
+                               color = Einlass),
                            size = 1)
       } else{
         g <- g + geom_line(aes(
           y = !!ensym(einlass_cols) * y2.scale + y2_shift,
-          color = eval(einlass_cols),
-          linetype = zustand
+          color = eval(einlass_cols)
         ),
         size = 1)
       }
@@ -302,21 +323,20 @@ plot_polder_scenario <- function(
                                   value.name = 'Q_Auslass')
           g <- g + geom_line(data = id_data_auslass,
                              aes(y = Q_Auslass * y2.scale + y2_shift,
-                                 color = Auslass, linetype = zustand),
+                                 color = Auslass),
                              size = 1)
         } else{
           g <- g + geom_line(aes(
             y = !!ensym(auslass_cols) * y2.scale + y2_shift,
-            color = eval(auslass_cols),
-            linetype = zustand
+            color = eval(auslass_cols)
           ),
           size = 1)
         }
       }
     }
   }
-  g$labels$colour <- 'Farbe'
-  g$labels$linetype <- 'Linienart'
+  g$labels$colour <- color.name
+  g$labels$linetype <- lt.name
   # calculating Max Volume
   if (isTRUE(verbose)) print('Calculating volume...')
   if(!is.null(polder.f)){
@@ -394,9 +414,11 @@ plot_polder_scenario <- function(
     )]
   }
   # y position of the text block
-  y1_pos_txt <- ifelse(is.null(text.pos.y),
-                       y1_pretty[(length(y1_pretty)-1)],
-                       text.pos.y)
+  y1_pos_txt <- y1_pretty[(length(y1_pretty)-1)]
+  if (!is.null(text.pos.y)){
+    y1_pos_txt <- text.pos.y
+    if (abs(text.pos.y) < 1.2) y1_pos_txt <- text.pos.y * (y1_max - y1_min) + y1_min
+  }
   g <- g +
     geom_text(
       data    = id_max[case == case_has_max],
@@ -419,14 +441,15 @@ plot_polder_scenario <- function(
       g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 3)
     }
     id_hlines <- melt(id_hlines, id.vars = c('case', 'V1'))
-    id_hlines[, zustand := str_match(case, '(^[^_])_')[,2]]
+    # merging with case table for facetting
+    id_hlines <- merge(id_hlines, case_tbl, by = 'case', sort = FALSE)
     g <- g + geom_text(
       data    = id_hlines,
       # V1 is the colume name of the min (ts_hlines)
       mapping = aes(x = V1, y = value,
                     label = sub("^V_", "", variable)
       ),
-      hjust   = 1,
+      hjust   = 0,
       vjust = 0,
       check_overlap = TRUE
     )
@@ -444,6 +467,11 @@ plot_polder_scenario <- function(
       )
   }
   #----graphic layout----
+  if (is.null(plot.title)){
+    plot.title <- paste(str_extract(y1_label, 'Abfluss|Wasserstand'),
+                        ' Ganglinien für Maßnahme: ', name, 
+                        sep = '')
+  }
   g <- g + theme_bw() +
     theme(
       legend.position = 'bottom',
@@ -455,6 +483,6 @@ plot_polder_scenario <- function(
       date_labels = date.label
     )+
     ylab(y1_label) + xlab('Zeit')+
-    ggtitle(paste('Ganglinien für Maßnahme: ', name))
+    ggtitle(plot.title)
   return(g)
 }

@@ -21,6 +21,9 @@ parse_case <- function(case.desc, orig.name = case.desc){
   result$zustand  <- factor(result$zustand,
                             levels = result$zustand,
                             ordered = TRUE)
+  # result$vgf  <- factor(result$vgf,
+  #                           levels = result$vgf,
+  #                           ordered = TRUE)
   return(result)
 }
 
@@ -62,7 +65,7 @@ get_id_tbl <- function(
   id_tbl <- merge(id_tbl, case_tbl[, c('case', 'case_desc', 'zustand')],
                   by = 'case_desc', sort = FALSE)
   # check if the zustand in cases are in listed in the master.tbl
-  zustand_in_cases <- unique(case_tbl$zustand)
+  zustand_in_cases <- unique(as.character(case_tbl$zustand))
   id_tbl[, ID_F := ID]
   id_tbl_cols <- colnames(id_tbl)
   for (i in seq_along(zustand_in_cases)){
