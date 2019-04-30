@@ -17,3 +17,5 @@ Imports:
 	stringr,
 	grid,
 	htmlTable
+Suggests:
+    testthat

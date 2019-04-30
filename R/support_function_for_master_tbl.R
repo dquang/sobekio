@@ -3,7 +3,7 @@
 #' @param orig.name Case original name
 #' @return a data.table
 #' @export
-parse_case <- function(case.desc, orig.name = case.desc){
+parse_case <- function(case.desc, orig.name = case.desc, stringAsFactors = FALSE){
   stopifnot(length(case.desc) == length(orig.name))
   case_str <- str_match(case.desc, "^([^_]+)_([^_]+)_([^_]+)_([^_]+)(.*)$")
   if (ncol(case_str) < 5 | ncol(case_str) > 6) {
@@ -18,12 +18,14 @@ parse_case <- function(case.desc, orig.name = case.desc){
     vgf = case_str[, 5],
     notiz = case_str[, 6]
   )
-  result$zustand  <- factor(result$zustand,
-                            levels = result$zustand,
-                            ordered = TRUE)
-  # result$vgf  <- factor(result$vgf,
-  #                           levels = result$vgf,
-  #                           ordered = TRUE)
+  if (isTRUE(stringAsFactors)){
+    id_levels <- seq_along(result$zustand)
+    f_levels <- purrr::map2(result$zustand, id_levels, paste, sep = "_")
+    result$zustand  <- factor(result$zustand,
+                              levels = f_levels,
+                              labels = result$zustand,
+                              ordered = TRUE)
+  }
   return(result)
 }
 
