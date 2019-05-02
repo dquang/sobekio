@@ -61,11 +61,21 @@ get_id_tbl <- function(
     }
   }
   if (isTRUE(drv)){
-    drv_begin <- id_tbl[grepl(".*_Begin", besonderheit), km][[1]] + to.downstream
-    drv_end <- id_tbl[grepl(".*_End", besonderheit), km][[1]] + to.upstream
+    
+    drv_begin <- id_tbl[grepl(".+_Begin", besonderheit), km][[1]]
+    drv_end <- id_tbl[grepl(".+_End", besonderheit), km][[1]]
+    if (drv_begin < drv_end){
+      drv_begin <- drv_begin - to.upstream
+      drv_end <- drv_end + to.downstream
+    } else{
+      drv_begin <- drv_begin + to.upstream
+      drv_end <- drv_end - to.downstream
+    }
     km_range <- sort(c(drv_begin, drv_end))
-    river <- id_tbl[grepl(".*_Begin", besonderheit), river][[1]]
-    id_tbl <- master.tbl[river == river & km >= km_range[1] & km <= km_range[2]]
+    river <- id_tbl[grepl(".+_Begin", besonderheit), river][[1]]
+    id_tbl <- master.tbl[river == river & 
+                           km >= km_range[1] & 
+                           km <= km_range[2]]
   }
   stopifnot(nrow(id_tbl) > 1)
   # creating new columns based on case name
@@ -75,7 +85,8 @@ get_id_tbl <- function(
   }
   measure_vars <- paste('case_desc', seq_along(case.desc), sep = "_")
   id_tbl <- melt(id_tbl, measure.vars = measure_vars,
-                 value.name = 'case_desc')
+                 value.name = 'case_desc', sort = FALSE)
+  id_tbl$variable <- NULL
   id_tbl <- merge(id_tbl, case_tbl[, c('case', 'case_desc', 'zustand')],
                   by = 'case_desc', sort = FALSE)
   # check if the zustand in cases are in listed in the master.tbl
@@ -90,6 +101,8 @@ get_id_tbl <- function(
     }
 
   }
+  id_tbl$zustand <- NULL
+  id_tbl$case_desc <- NULL
   return(id_tbl)
 }
 
@@ -383,7 +396,7 @@ get_polder_volume <- function(
 #' @return a data.table
 #' @export
 get_drv_data <- function(
-  name = 'Muendelheim',
+  name = NULL,
   case.list = NULL,
   case.desc = case.list,
   param = NULL,
@@ -404,34 +417,41 @@ get_drv_data <- function(
     case.desc = case.desc,
     master.tbl = master.tbl
   )
-  drv_begin <- id_tbl[grepl(".*_Begin", besonderheit), km][[1]] + to.downstream
-  drv_end <- id_tbl[grepl(".*_End", besonderheit), km][[1]] + to.upstream
+  drv_data_list <- list()
   if(param == 'discharge'){
-    drv_data <- his_from_case(
-      case.list = case.list,
-      sobek.project = sobek.project,
-      param = param,
-      qID = id_tbl[ID_TYPE == 'qID', ID_F],
-      verbose = FALSE
-    )
+    for (i in seq_along(case.list)){
+      drv_data_list[[i]] <- his_from_case(
+        case.list = case.list[[i]],
+        sobek.project = sobek.project,
+        param = param,
+        qID = id_tbl[case == case.list[[i]] &
+                       ID_TYPE == 'qID', ID_F],
+        verbose = FALSE
+      )
+    }
   } else{
-    drv_data <- his_from_case(
-      case.list = case.list,
-      sobek.project = sobek.project,
-      param = param,
-      wID = id_tbl[ID_TYPE == 'wID', ID_F],
-      verbose = FALSE
-    )
-
+    for (i in seq_along(case.list)){
+      drv_data_list[[i]] <- his_from_case(
+        case.list = case.list[[i]],
+        sobek.project = sobek.project,
+        param = param,
+        wID = id_tbl[case == case.list[[i]] &
+                       ID_TYPE == 'wID', ID_F],
+        verbose = FALSE
+      )
+    }
   }
+  drv_data <- rbindlist(drv_data_list, use.names = FALSE)
   if (isTRUE(get.max)){
-    drv_data_max <- drv_data[, lapply(.SD, max, na.rm = TRUE),
+    drv_data <- drv_data[, lapply(.SD, max, na.rm = TRUE),
                              .SDcols = -c("ts"), by = case] %>%
-      melt(id.vars = 'case', variable.name = name, sort = FALSE)
-    return(drv_data_max)
-  } else{
-    return(drv_data)
+      melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
   }
+  drv_data <- merge(drv_data, 
+                    id_tbl[, .SD, .SDcols = -c('ID')], 
+                    by = c('case', 'ID_F'), sort = FALSE)
+  
+  return(drv_data)
 }
 
 
@@ -548,18 +568,20 @@ get_polder_max <- function(
           id_data_delta <-
             dcast(id_data_delta, group ~ get(compare.by),
                   value.var = col_get_delta)
+          col_i <- paste('delta_', col_get_delta[i], sep = "")
           for (i in seq_along(col_get_delta)) {
-            col_i <- paste('delta_', col_get_delta[i], sep = "")
-            col_1 <-
-              paste(col_get_delta[i], cmp_cols[1], sep = "_")
-            col_2 <-
-              paste(col_get_delta[i], cmp_cols[2], sep = "_")
+            if (is.null(ref.mID)){
+              col_1 <- cmp_cols[1]
+              col_2 <-  cmp_cols[2]
+            } else{
+              col_1 <- paste(col_get_delta[i], cmp_cols[1], sep = "_")
+              col_2 <- paste(col_get_delta[i], cmp_cols[2], sep = "_")
+            }
             id_data_delta[, eval(col_i) := get(col_1) - get(col_2)]
             id_data_delta[, eval(col_1) := NULL]
             id_data_delta[, eval(col_2) := NULL]
           }
-          id_data_max <-
-            merge(id_data_max, id_data_delta, by = 'group')
+          id_data_max <- merge(id_data_max, id_data_delta, by = 'group')
           id_data_max$group = NULL
         }else{
           group_chk <- length(id_data_max[, get(group.by)])

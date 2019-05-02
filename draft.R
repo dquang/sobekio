@@ -93,7 +93,7 @@ plot_polder_scenario(
   name = 'Langel',
   case.list <- c(
     'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
-    'Planzustand_Eich_TEST_ct0_HW1988_Mittel_CL866'
+    'Planzustand_Eich_TEST_ct0_HW1988_Selten_CL866'
   ),
   case.desc <- c(
     "2. Bezugszustand_ZPK_HW1988_Selten_1828_newReg",
@@ -110,7 +110,8 @@ plot_polder_scenario(
   w.canal = TRUE,
   delta.pegel = TRUE,
   delta.measure = TRUE,
-  h.lines = list("HQ100 Mainz" = 7900),
+  peak.nday = 5,
+  # h.lines = list("HQ100 Mainz" = 7900),
   text.pos.x = 0.0,
   text.pos.y = 1,
   verbose = TRUE,
@@ -221,4 +222,61 @@ tmp <- donau_tbl[grepl('Helmeringen_Vol', besonderheit)]
 system.time(
   his_from_case(case.list = case.list, sobek.project = donau_prj,
                 wID = tmp$ID, param = 'volume')
+)
+#----test get_polder_max----
+eich_max <- get_polder_max(
+  name = 'Guntersblum',
+  case.list <- c(
+    'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
+    'Planzustand_Eich_TEST_ct0_HW1988_Mittel_CL866'
+  ),
+  case.desc <- c(
+    "Bezugszustand_ZPK_HW1988_Selten_1828_newReg",
+    "Planzustand_ZPK_HW1988_Selten_CL866"
+  ),
+  compare.by = 'zustand',
+  param = 'discharge',
+  sobek.project = so_prj,
+  master.tbl = rhein_tbl
+)
+#----test long profile-----
+name = NULL
+case.list = NULL
+case.desc = case.list
+sobek.project = NULL
+param = 'discharge'
+lt.by = 'zustand'
+color.by = 'vgf'
+facet.by = NULL
+compare.by = NULL
+color.name = 'Farbe'
+lt.name = 'Linienart'
+delta = FALSE
+x.lab = 'Lage (KM)'
+y.lab = ifelse(param == 'discharge',
+               'Abfluss (m³/s)', 'Wasserstand (m+NHN)')
+to.upstream = 0
+to.downstream = 0
+y2.scale = 2
+plot.title = NULL
+text.size = 12
+text.x.top.angle = 90L
+text.x.bottom.angle = 0L
+master.tbl = rhein_tbl
+verbose = TRUE
+plot_drv(
+  name = 'Muendelheim',
+  case.list = c(
+    'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
+    'Planzustand_Eich_TEST_ct0_HW1988_Mittel_CL866'
+  ),
+  case.desc = c(
+    "Bezugszustand_ZPK_HW1988_Selten_1828_newReg",
+    "Planzustand_ZPK_HW1988_Selten_CL866"
+  ),
+  param = 'discharge',
+  to.upstream = 10L,
+  to.downstream = 50L,
+  sobek.project = so_prj,
+  master.tbl = rhein_tbl
 )
