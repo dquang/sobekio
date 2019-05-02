@@ -11,6 +11,8 @@
 #' @param ref.mID ID of Bezugspegel
 #' @param y2.scale Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale
 #' @param h.lines List of (name = value) to be displayed as horizontal line
+#' @param peak.nday Should the plot limit to nday before and after the peak. Default is not (NULL). Otherwise please give a number of days
+#' @param peak.pegel If the plot should be limit to the peak area, should it be the peak of the referenced location (ref.mID). Default is not.
 #' @param compare.by Should the line be compare by 'case' or by 'location'
 #' @param facet.by Should the graphic be facetted. Default by 'zustand'
 #' @param plot.title Title of the graphic
@@ -40,6 +42,8 @@ plot_polder <- function(
   ref.mID = NULL,
   y2.scale = 25,
   h.lines = NULL,
+  peak.nday = NULL,
+  peak.pegel = FALSE,
   compare.by = 'zustand',
   facet.by =  'hwe',
   plot.title = NULL,
@@ -77,35 +81,22 @@ plot_polder <- function(
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   # adding case description columns, using for linetype later on
   id_data <- merge(id_data, case_tbl, by = 'case', sort = FALSE)
-  # finding scheitel delta at the measure
-  #-----preparing plot-----
-  if (isTRUE(verbose)) print('Preparing graphic...')
-  y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
-  delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')
-  cols_not_plot <- c('case_desc', 'Nach', 'Vor', 'ts', 'case', 'zustand',
-                     'zielpegel', 'hwe', 'notiz', 'vgf')
-  y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
-  y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
-  y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
-  y2_max <- y1_max/y2.scale
-  y2_shift <- y1_pretty[1]
-  y2_min <- y2_shift/y2.scale
-  if (y2_max - y2_min > 10) {
-    y2_min <- round(y2_min, -1)
-  } else {
-    y2_min <- floor(y2_min)
-  }
-  # adding line from Bezugspegel and initializing the graphic
-  if (!is.null(ref.mID)){
-    if (isTRUE(verbose)) print('Reading data for ref.mID...')
-    if (length(ref.mID) > 1){
+  # reading data for ref.mID
+  if (!is.null(ref.mID)) {
+    if (isTRUE(verbose))
+      print('Reading data for ref.mID...')
+    if (length(ref.mID) > 1) {
       ref.mID_id <- ref.mID[[1]]
-      if (hasName(ref.mID, 'ID')) ref.mID_id <- ref.mID$ID
+      if (hasName(ref.mID, 'ID'))
+        ref.mID_id <- ref.mID$ID
       ref.mID_name <- ref.mID[[2]]
       if (hasName(ref.mID, 'name')) ref.mID_name <- ref.mID$name
       ref.mID_color <- ref.mID_name
+      # ref.mID_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
+      #                               ref.mID_name)
       ref.mID_type <- ifelse(param == 'discharge', 'qID', 'wID')
-      if (hasName(ref.mID, 'type')) ref.mID_type <- ref.mID$type
+      if (hasName(ref.mID, 'type'))
+        ref.mID_type <- ref.mID$type
       ref_mID_args <- list(
         case.list = case.list,
         sobek.project = sobek.project,
@@ -116,30 +107,71 @@ plot_polder <- function(
       names(ref_mID_args)[3] <- ref.mID_type
       ref_mID <- do.call(his_from_case, ref_mID_args)
     } else{
-      ref_mID <- his_from_case(case.list = case.list,
-                               sobek.project = sobek.project,
-                               mID = ref.mID[[1]], param = param,
-                               verbose = FALSE)
-      ref.mID_color <- ifelse(!is.null(names(ref.mID)), names(ref.mID), 
-                              toupper(ref.mID[[1]]))
+      ref_mID <- his_from_case(
+        case.list = case.list,
+        sobek.project = sobek.project,
+        mID = ref.mID[[1]],
+        param = param,
+        verbose = FALSE
+      )
+      ref.mID_color <-
+        ifelse(!is.null(names(ref.mID)), names(ref.mID),
+               toupper(ref.mID[[1]]))
     }
     colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
     id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
-    y1_min <- min(y1_min, ref_mID$Bezugspegel, na.rm = TRUE)
-    y1_max <- max(y1_max, ref_mID$Bezugspegel, na.rm = TRUE)
-    y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
+  }
+  #---- limiting data to the peak value----
+  if (!is.null(peak.nday)){
+    stopifnot(is.numeric(peak.nday))
+    if (isTRUE(peak.pegel) & !is.null(ref.mID)){
+      id_data[, peak_value := max(Bezugspegel), by = case]
+      id_data[peak_value == Bezugspegel, peak_ts := ts]
+    } else{
+      id_data[, peak_value := max(Nach), by = case]
+      id_data[peak_value == Nach, peak_ts := ts]
+    }
+    id_data[, peak_ts := max(peak_ts, na.rm = TRUE), by = case]
+    id_data[, peak_ts_min := peak_ts - peak.nday * 24 * 3600]
+    id_data[, peak_ts_max := peak_ts + peak.nday * 24 * 3600]
+    id_data <- id_data[ts >= peak_ts_min & ts <= peak_ts_max, .SD,
+                       by = case,
+                       .SDcols = -c('peak_ts', 'peak_value',
+                                    'peak_ts_min', 'peak_ts_max')
+                       ]
+  }
+  #-----preparing plot-----
+  if (isTRUE(verbose)) print('Preparing graphic...')
+  y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
+  if (!is.null(ref.mID)){
+    y1_max <- id_data[, max(.SD, na.rm = TRUE),
+                      .SDcols = c('Nach', 'Vor', 'Bezugspegel')]
+    y1_min <- id_data[, min(.SD, na.rm = TRUE),
+                      .SDcols = c('Nach', 'Vor', 'Bezugspegel')]
+  } else{
+    y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
+    y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
+  }
+  y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
+  y2_max <- y1_max/y2.scale
+  y2_shift <- y1_pretty[1]
+  y2_min <- y2_shift/y2.scale
+  if (y2_max - y2_min > 10) {
+    y2_min <- round(y2_min, -1)
+  } else {
+    y2_min <- floor(y2_min)
+  }
+  # Initialize the graphic and add Bezugspegel line if there is one
+  if (!is.null(ref.mID)) {
     g <- ggplot(data = id_data,
                 mapping = aes(x = ts,
-                              linetype = !!ensym(compare.by))
-                ) +
+                              linetype = !!ensym(compare.by))) +
       geom_line(aes(y = Bezugspegel,
-                    color = eval(ref.mID_color)
-      ),
-      size = 1)
+                    color = eval(ref.mID_color)),
+                size = 1)
   } else{
     g <- ggplot(data = id_data,
-                mapping = aes(x = ts, linetype = !!ensym(compare.by))
-                )
+                mapping = aes(x = ts, linetype = !!ensym(compare.by)))
   }
   if (isTRUE(verbose)) print('Adding hydrographs...')
   # if parameter is discharge, move waterlevel to secondary axis
@@ -167,7 +199,7 @@ plot_polder <- function(
         y2_shift <- floor(y2_shift - y2_min*y2.scale)
       }
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
-                             color = 'In der Maßnahme'),
+                             color = 'W in Maßnahme'),
                          size = 1)
       y2_name <- 'Wasserstand (m+NHN)'
     }
@@ -250,7 +282,7 @@ plot_polder <- function(
       y2_max <- ceiling(y1_max/y2.scale)
       y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
       g <- g + geom_line(aes(y = W_innen,
-                             color = 'In der Maßnahme'),
+                             color = 'W in Maßnahme'),
                          size = 1)
     }
     if (isTRUE(q.in)){
@@ -441,7 +473,7 @@ plot_polder <- function(
   #----graphic layout----
   if (is.null(plot.title)){
     plot.title <- paste(str_extract(y1_label, 'Abfluss|Wasserstand'),
-                        ' Ganglinien für Maßnahme: ', name, 
+                        ' Ganglinien für Maßnahme: ', name,
                         sep = '')
   }
   g <- g + theme_bw() +

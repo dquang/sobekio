@@ -7,12 +7,12 @@
 plot_polder(name = NULL, case.list = NULL, case.desc = case.list,
   sobek.project = NULL, master.tbl = NULL, param = "discharge",
   q.in = FALSE, q.out = FALSE, w.canal = FALSE, ref.mID = NULL,
-  y2.scale = 25, h.lines = NULL, compare.by = "zustand",
-  facet.by = "hwe", plot.title = NULL, lt.name = "Linienart",
-  color.name = "Farbe", text.pos.x = 0, text.pos.y = 1,
-  date.break = "3 days", date.label = "\%d.\%m.\%y", text.size = 12,
-  text.x.angle = 0L, polder.f = NULL, polder.z = NULL,
-  verbose = TRUE)
+  y2.scale = 25, h.lines = NULL, peak.nday = NULL,
+  peak.pegel = FALSE, compare.by = "zustand", facet.by = "hwe",
+  plot.title = NULL, lt.name = "Linienart", color.name = "Farbe",
+  text.pos.x = 0, text.pos.y = 1, date.break = "3 days",
+  date.label = "\%d.\%m.\%y", text.size = 12, text.x.angle = 0L,
+  polder.f = NULL, polder.z = NULL, verbose = TRUE)
 }
 \arguments{
 \item{name}{Name of the measure (with/without the measure)}
@@ -38,6 +38,10 @@ plot_polder(name = NULL, case.list = NULL, case.desc = case.list,
 \item{y2.scale}{Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale}
 
 \item{h.lines}{List of (name = value) to be displayed as horizontal line}
+
+\item{peak.nday}{Should the plot limit to nday before and after the peak. Default is not (NULL). Otherwise please give a number of days}
+
+\item{peak.pegel}{If the plot should be limit to the peak area, should it be the peak of the referenced location (ref.mID). Default is not.}
 
 \item{compare.by}{Should the line be compare by 'case' or by 'location'}
 

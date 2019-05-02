@@ -10,6 +10,8 @@
 #' @param ref.mID ID of Bezugspegel
 #' @param y2.scale Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale
 #' @param h.lines list of (name = value) to be displayed as horizontal line
+#' @param peak.nday Should the plot limit to nday before and after the peak. Default is not (NULL). Otherwise please give a number of days
+#' @param peak.pegel If the plot should be limit to the peak area, should it be the peak of the referenced location (ref.mID). Default is not.
 #' @param delta.pegel Logical. Should peak delta at ref.mID be displayed
 #' @param delta.measure Logical. Should peak delta at the measure be displayed
 #' @param compare.by Should the line be compare by 'case' or by 'location'
@@ -41,6 +43,8 @@ plot_polder_scenario <- function(
   ref.mID = NULL,
   y2.scale = 25,
   h.lines = NULL,
+  peak.nday = NULL,
+  peak.pegel = FALSE,
   delta.pegel = FALSE,
   delta.measure = TRUE,
   compare.by = 'zustand',
@@ -80,8 +84,70 @@ plot_polder_scenario <- function(
     verbose = verbose
   )
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
-  # adding case description columns, using for linetype later on
+  # add case description columns, using for linetype later on
   id_data <- merge(id_data, case_tbl, by = 'case', sort = FALSE)
+  # read data for Bezugspegel
+  if (!is.null(ref.mID)) {
+    if (isTRUE(verbose))
+      print('Reading data for ref.mID...')
+    if (length(ref.mID) > 1) {
+      ref.mID_id <- ref.mID[[1]]
+      if (hasName(ref.mID, 'ID')) ref.mID_id <- ref.mID$ID
+      ref.mID_name <- ref.mID[[2]]
+      if (hasName(ref.mID, 'name')) ref.mID_name <- ref.mID$name
+      ref.mID_color <- ref.mID_name
+      # ref.mID_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
+      #                        ref.mID_name)
+      ref.mID_type <- ifelse(param == 'discharge', 'qID', 'wID')
+      if (hasName(ref.mID, 'type'))
+        ref.mID_type <- ref.mID$type
+      ref_mID_args <- list(
+        case.list = case.list,
+        sobek.project = sobek.project,
+        id_type = ref.mID_id,
+        param = param,
+        verbose = FALSE
+      )
+      names(ref_mID_args)[3] <- ref.mID_type
+      ref_mID <- do.call(his_from_case, ref_mID_args)
+    } else{
+      ref_mID <- his_from_case(
+        case.list = case.list,
+        sobek.project = sobek.project,
+        mID = ref.mID[[1]],
+        param = param,
+        verbose = FALSE
+      )
+      ref.mID_color <-
+        ifelse(!is.null(names(ref.mID)), names(ref.mID),
+               toupper(ref.mID[[1]]))
+      # ref.mID_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
+      #                        ref.mID_color)
+    }
+    colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
+    id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
+    # get peak difference at the ref_measurement
+    scheitel_max_c1 <- ref_mID[case == case.list[[1]], max(Bezugspegel)]
+    scheitel_max_c2 <- ref_mID[case == case.list[[2]], max(Bezugspegel)]
+    scheitel_ref_mID_delta <- scheitel_max_c1 - scheitel_max_c2
+    scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta, 2)
+    # rounding value for discharge
+    if (abs(scheitel_ref_mID_delta) > 2) {
+      scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta)
+    }
+  }
+  # limit data to the peak value
+  if (!is.null(peak.nday)){
+    stopifnot(is.numeric(peak.nday))
+    if (isTRUE(peak.pegel) & !is.null(ref.mID)){
+      ts_max <- id_data[Bezugspegel == max(Bezugspegel), ts]
+    } else{
+      ts_max <- id_data[Nach == max(Nach), ts]
+    }
+    xlim_min <- ts_max - peak.nday * 24 * 3600
+    xlim_max <- ts_max + peak.nday * 24 * 3600
+    id_data <- id_data[ts >= xlim_min & ts <= xlim_max]
+  }
   # finding scheitel delta at the measure
   if (isTRUE(delta.measure)){
     # calculate diff between two max value (different moment)
@@ -96,15 +162,31 @@ plot_polder_scenario <- function(
   }
   #-----preparing plot-----
   if (isTRUE(verbose)) print('Preparing graphic...')
+  if (!is.null(ref.mID)){
+    g <- ggplot(data = id_data,
+                mapping = aes(x = ts, linetype = !!ensym(compare.by))
+    ) +
+      geom_line(aes(
+        y = Bezugspegel,
+        color = ref.mID_color
+      ),
+      size = 1)
+  } else{
+    g <- ggplot(data = id_data,
+                mapping = aes(x = ts, linetype = !!ensym(compare.by))
+    )
+  }
   y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
   delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')
-  cols_not_plot <- c('case_desc', 'Nach', 'Vor', 'ts', 'case', 'zustand',
-                     'zielpegel', 'hwe', 'notiz', 'vgf')
-  # zustand <- ifelse(param == 'discharge', 'Abfluss', 'Wasserstand')
-  y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
-  y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
-  # y2_min <- id_data[, min(.SD, na.rm = TRUE),
-                    # .SDcols = -c(cols_not_plot)]
+  if (!is.null(ref.mID)){
+    y1_max <- id_data[, max(.SD, na.rm = TRUE),
+                      .SDcols = c('Nach', 'Vor', 'Bezugspegel')]
+    y1_min <- id_data[, min(.SD, na.rm = TRUE),
+                      .SDcols = c('Nach', 'Vor', 'Bezugspegel')]
+  } else{
+    y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
+    y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
+  }
   y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
   y2_max <- y1_max/y2.scale
   y2_shift <- y1_pretty[1]
@@ -114,61 +196,7 @@ plot_polder_scenario <- function(
   } else {
     y2_min <- floor(y2_min)
   }
-  # adding line from Bezugspegel and initializing the graphic
-  if (!is.null(ref.mID)){
-    if (isTRUE(verbose)) print('Reading data for ref.mID...')
-    if (length(ref.mID) > 1){
-      ref.mID_id <- ref.mID[[1]]
-      if (hasName(ref.mID, 'ID')) ref.mID_id <- ref.mID$ID
-      ref.mID_name <- ref.mID[[2]]
-      if (hasName(ref.mID, 'name')) ref.mID_name <- ref.mID$name
-      ref.mID_color <- ref.mID_name
-      ref.mID_type <- ifelse(param == 'discharge', 'qID', 'wID')
-      if (hasName(ref.mID, 'type')) ref.mID_type <- ref.mID$type
-      ref_mID_args <- list(
-        case.list = case.list,
-        sobek.project = sobek.project,
-        id_type = ref.mID_id,
-        param = param,
-        verbose = FALSE
-      )
-      names(ref_mID_args)[3] <- ref.mID_type
-      ref_mID <- do.call(his_from_case, ref_mID_args)
-    } else{
-      ref_mID <- his_from_case(case.list = case.list,
-                               sobek.project = sobek.project,
-                               mID = ref.mID[[1]], param = param,
-                               verbose = FALSE)
-      ref.mID_color <- ifelse(!is.null(names(ref.mID)), names(ref.mID), 
-                              toupper(ref.mID[[1]]))
-    }
-    colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
-    id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
-    # get peak difference at the ref_measurement
-    scheitel_max_c1 <- ref_mID[case == case.list[[1]], max(Bezugspegel)]
-    scheitel_max_c2 <- ref_mID[case == case.list[[2]], max(Bezugspegel)]
-    scheitel_ref_mID_delta <- scheitel_max_c1 - scheitel_max_c2
-    scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta, 2)
-    # rounding value for discharge
-    if (abs(scheitel_ref_mID_delta) > 2) {
-      scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta)
-    }
-    y1_min <- min(y1_min, ref_mID$Bezugspegel, na.rm = TRUE)
-    y1_max <- max(y1_max, ref_mID$Bezugspegel, na.rm = TRUE)
-    y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
-    g <- ggplot(data = id_data,
-                mapping = aes(x = ts, linetype = !!ensym(compare.by))
-                ) +
-      geom_line(aes(
-        y = Bezugspegel,
-        color = ref.mID_color
-      ),
-      size = 1)
-  } else{
-    g <- ggplot(data = id_data,
-                mapping = aes(x = ts, linetype = !!ensym(compare.by))
-                )
-  }
+  y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
   if (isTRUE(verbose)) print('Adding hydrographs...')
   # if parameter is discharge, move waterlevel to secondary axis
   if (tolower(param) == 'discharge'){
@@ -258,7 +286,7 @@ plot_polder_scenario <- function(
     #----param = WL----
     # adding W_innen directly to the graphic should not be a problem
     g <- g +
-      geom_line(aes(y = Nach,  color = 'Nach Maßnahme'),
+      geom_line(aes(y = Nach,  color = 'Nach der Maßnahme'),
                 size = 1)
     if (isTRUE(w.canal)){
       y2_name <- 'Wasserstand (m+NHN)'
@@ -269,7 +297,7 @@ plot_polder_scenario <- function(
       y2_max <- ceiling(y1_max/y2.scale)
       y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
       g <- g + geom_line(aes(y = W_innen,
-                             color = 'In der Maßnahme'),
+                             color = 'W in Maßnahme'),
                          size = 1)
     }
     if (isTRUE(q.in)){
@@ -469,7 +497,7 @@ plot_polder_scenario <- function(
   #----graphic layout----
   if (is.null(plot.title)){
     plot.title <- paste(str_extract(y1_label, 'Abfluss|Wasserstand'),
-                        ' Ganglinien für Maßnahme: ', name, 
+                        ' Ganglinien für Maßnahme: ', name,
                         sep = '')
   }
   g <- g + theme_bw() +

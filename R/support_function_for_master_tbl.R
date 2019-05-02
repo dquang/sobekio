@@ -41,13 +41,25 @@ get_id_tbl <- function(
   name = NULL,
   case.list = NULL,
   case.desc = case.list,
-  drv = FALSE,
+  drv = 'auto',
   to.upstream = 0,
   to.downstream = 0,
   master.tbl = NULL
 ){
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   id_tbl <- master.tbl[grepl(name, besonderheit)]
+  if (drv == 'auto'){
+    str_mt <- str_match(id_tbl$besonderheit,
+                            paste('(^.+)_', name, sep = "")
+                            )
+    measure_type <- toupper(unique(str_mt[,2]))
+    if (length(measure_type) > 1) {
+      warning('Type of the measure is not unique: ', measure_type)
+      if ('DRV' %in% measure_type) drv <- TRUE
+    } else{
+      drv <- ifelse(measure_type == 'DRV', TRUE, FALSE)
+    }
+  }
   if (isTRUE(drv)){
     drv_begin <- id_tbl[grepl(".*_Begin", besonderheit), km][[1]] + to.downstream
     drv_end <- id_tbl[grepl(".*_End", besonderheit), km][[1]] + to.upstream
@@ -104,7 +116,6 @@ get_polder_data <- function(
   verbose = TRUE
 ){
   # search for IDs
-  # case.tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   id.tbl <- get_id_tbl(name = name, case.list = case.list,
                         case.desc = case.desc, master.tbl = master.tbl
   )
@@ -114,8 +125,6 @@ get_polder_data <- function(
   } else{
     id.tbl <- id.tbl[!grepl('q', ID_TYPE)|grepl("Einlass|Auslass", besonderheit)]
   }
-  # id.tbl[, parameter := param]
-  # id.tbl[grepl('_Einlass|_Auslass', besonderheit), parameter := 'discharge']
   id.tbl[, col_name := str_match(besonderheit,
                       ".+_(Einlass[^;]*|Auslass[^;]*|Nach|Vor|Innen)")[,2]]
   # get results for each case
@@ -133,9 +142,10 @@ get_polder_data <- function(
                               grepl('mID|qID', ID_TYPE)
                             ][1]
     } else{
-      id_vor <- id_tbl_tmp[grepl('_Vor', besonderheit) &
-                             grepl('mID|wID', ID_TYPE)
-                           ][1]
+      if (isTRUE(upstream)) {
+        id_vor <- id_tbl_tmp[grepl('_Vor', besonderheit) &
+                               grepl('mID|wID', ID_TYPE)][1]
+      }
       id_nach <- id_tbl_tmp[grepl('_Nach', besonderheit)&
                               grepl('mID|wID', ID_TYPE)
                             ][1]
@@ -305,7 +315,6 @@ get_polder_data <- function(
 
   id_data <- rbindlist(id_data_list)
   rm(id_data_list, id_data_tmp)
-
   return(id_data)
 }
 
@@ -354,7 +363,7 @@ get_polder_volume <- function(
   }
   id_data_vol <- rbindlist(id_data_list)
   rm(id_data_list, id_data_tmp)
-  id_data_vol
+  # id_data_vol
   return(id_data_vol)
 }
 
@@ -423,4 +432,177 @@ get_drv_data <- function(
   } else{
     return(drv_data)
   }
+}
+
+
+#' Calculate maximum values for a measure and its referenced location
+#' @param name Name of the measure (with/without the measure)
+#' @param case.list List of cases
+#' @param case.desc Correct (according to case naming standard in NHWSP) version of case.list, it will be used for legend
+#' @param sobek.project Path to sobek project
+#' @param master.tbl Table of ID Coding of the sobek network
+#' @param param 'Waterlevel' or 'Discharge' Hydrograph
+#' @param q.in Logical. Should discharge through the inlet be included?
+#' @param q.out Logical. Should discharge through the outlet be included?
+#' @param w.canal Logical. Should max water level inside the measure be included?
+#' @param volume Logical. Should max volume be included?
+#' @param ref.mID ID of Bezugspegel
+#' @param compare.by How should the delta value be calculated (compare by location, or by ex. vgf)
+#' @param group.by How the case should be grouped for comparing. Default is grouping by (1 1, 2 2, 3 3...)
+#' @return a data.table
+#' @export
+get_polder_max <- function(
+  name = NULL,
+  case.list = NULL,
+  case.desc = case.list,
+  param = NULL,
+  sobek.project = NULL,
+  q.in = TRUE,
+  q.out = TRUE,
+  w.canal = TRUE,
+  volume = TRUE,
+  ref.mID = NULL,
+  compare.by = NULL,
+  group.by = NULL,
+  master.tbl = NULL,
+  verbose = TRUE
+){
+  if (isTRUE(verbose)) print('Reading data at the measure...')
+  id_data <- get_polder_data(
+    name = name,
+    case.list = case.list,
+    case.desc = case.desc,
+    param = param,
+    upstream = TRUE,
+    sobek.project = sobek.project,
+    master.tbl = master.tbl
+  )
+  col_get_delta <- 'Nach'
+  if (!is.null(ref.mID)) {
+    if (isTRUE(verbose)) print('Reading data for ref.mID...')
+    if (length(ref.mID) > 1) {
+      ref.mID_id <- ref.mID[[1]]
+      if (hasName(ref.mID, 'ID'))
+        ref.mID_id <- ref.mID$ID
+      ref.mID_name <- ref.mID[[2]]
+      if (hasName(ref.mID, 'name'))
+        ref.mID_name <- ref.mID$name
+      ref.mID_color <- ref.mID_name
+      ref.mID_type <- ifelse(param == 'discharge', 'qID', 'wID')
+      if (hasName(ref.mID, 'type'))
+        ref.mID_type <- ref.mID$type
+      ref_mID_args <- list(
+        case.list = case.list,
+        sobek.project = sobek.project,
+        id_type = ref.mID_id,
+        param = param,
+        verbose = FALSE
+      )
+      names(ref_mID_args)[3] <- ref.mID_type
+      ref_mID <- do.call(his_from_case, ref_mID_args)
+    } else{
+      ref_mID <- his_from_case(
+        case.list = case.list,
+        sobek.project = sobek.project,
+        mID = ref.mID[[1]],
+        param = param,
+        verbose = FALSE
+      )
+    }
+    colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
+    id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
+    col_get_delta <- c('Nach', 'Bezugspegel')
+  }
+  id_data_max <- id_data[, lapply(.SD, max, na.rm = TRUE),
+                         .SDcols = -c('ts'),
+                         by = case
+                         ]
+  if (isTRUE(volume)){
+    if (isTRUE(verbose)) print('Reading volume...')
+    id_vol <- get_polder_volume(
+      name = name,
+      case.list = case.list,
+      case.desc = case.desc,
+      sobek.project = sobek.project,
+      master.tbl = master.tbl
+    )
+    id_data_max <- merge(id_data_max, id_vol, by = 'case', sort = FALSE)
+  }
+  case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
+  id_data_max <- merge(id_data_max, case_tbl, by = 'case', sort = FALSE)
+
+
+  if (!is.null(compare.by)) {
+    if (compare.by == 'location') {
+      id_data_max[, delta_loc := Nach - Vor]
+    } else{
+      con_chk <-
+        compare.by %in% c('zustand', 'vgf', 'hwe', 'notiz', 'zielpegel')
+      cmp_cols <- unique(id_data_max[, get(compare.by)])
+      if (con_chk & length(cmp_cols) == 2) {
+        if (is.null(group.by)) {
+          id_data_max[, group := seq_len(.N), by = eval(compare.by)]
+          id_data_delta <- id_data_max[, .SD,
+                                       .SDcols = c('group', col_get_delta,
+                                                   compare.by)]
+          id_data_delta <-
+            dcast(id_data_delta, group ~ get(compare.by),
+                  value.var = col_get_delta)
+          for (i in seq_along(col_get_delta)) {
+            col_i <- paste('delta_', col_get_delta[i], sep = "")
+            col_1 <-
+              paste(col_get_delta[i], cmp_cols[1], sep = "_")
+            col_2 <-
+              paste(col_get_delta[i], cmp_cols[2], sep = "_")
+            id_data_delta[, eval(col_i) := get(col_1) - get(col_2)]
+            id_data_delta[, eval(col_1) := NULL]
+            id_data_delta[, eval(col_2) := NULL]
+          }
+          id_data_max <-
+            merge(id_data_max, id_data_delta, by = 'group')
+          id_data_max$group = NULL
+        }else{
+          group_chk <- length(id_data_max[, get(group.by)])
+          if (group_chk > 1) {
+            id_data_delta <- id_data_max[, .SD,
+                                         .SDcols = c(group.by, col_get_delta,
+                                                     compare.by)]
+            id_data_delta <-
+              dcast(id_data_delta, get(group.by) ~ get(compare.by),
+                    value.var = col_get_delta)
+            colnames(id_data_delta)[1] <- group.by
+            for (i in seq_along(col_get_delta)) {
+              col_i <- paste('delta_', col_get_delta[i], sep = "")
+              col_1 <-
+                paste(col_get_delta[i], cmp_cols[1], sep = "_")
+              col_2 <-
+                paste(col_get_delta[i], cmp_cols[2], sep = "_")
+              id_data_delta[, eval(col_i) := get(col_1) - get(col_2)]
+              id_data_delta[, eval(col_1) := NULL]
+              id_data_delta[, eval(col_2) := NULL]
+            }
+            id_data_max <-
+              merge(id_data_max, id_data_delta, by = group.by)
+          } else{
+            print(paste(
+              'To get delta by',
+              group.by,
+              'grouping, number of groups must be more than 1'
+            ))
+          }
+        }
+      } else{
+        print(
+          paste(
+            'To get delta for',
+            compare.by,
+            'it must has two unique values',
+            'and compare.by must be in c(\'zustand\', \'vgf\', \'hwe\', \'notiz\', \'zielpegel\', \'location\')'
+          )
+        )
+      }
+    }
+  }
+
+  return(id_data_max)
 }
