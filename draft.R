@@ -87,7 +87,7 @@ plot_polder(
   master.tbl = elbe_tbl
 )
 #----test for rhein-----
-his_from_case('Bezugszustand_ZPK_HW2003_Selten_1663_newReg', 
+his_from_case('Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
               so_prj, param = 'discharge', sID = 'guntersblum_zu')
 plot_polder_scenario(
   name = 'Langel',
@@ -123,7 +123,7 @@ g_pol <- plot_polder(
   case.list <- c(
     'Planzustand_Eich_TEST_ct0_HW1988_Mittel_CL866',
     'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'
-    
+
   ),
   case.desc <- c(
     "1. Planzustand_ZPK_HW1988_Selten_CL866",
@@ -159,12 +159,12 @@ name = 'Helmeringen'
 case.list <- c(
   'BEZUG_HW1999_1_000_GW_halbiert',
   'PLAN_gest_HW1999_1_000_GW_halbiert'
-  
+
 )
 case.desc <- c(
   'BEZUG_zp0_HW1999_1000_GW_halbiert',
   'PLAN_gest_HW1999_1000_GW_halbiert'
-  
+
 )
 param = 'discharge'
 y2.scale = 25
@@ -191,12 +191,12 @@ system.time(
     case.list <- c(
       'BEZUG_HW1999_1_000_GW_halbiert',
       'PLAN_gest_HW1999_1_000_GW_halbiert'
-      
+
     ),
     case.desc <- c(
       'BEZUG_zp0_HW1999_1000_GW_halbiert',
       'PLAN_gest_HW1999_1000_GW_halbiert'
-      
+
     ),
     param = 'discharge',
     y2.scale = 10,
@@ -207,7 +207,7 @@ system.time(
     w.canal = TRUE,
     delta.pegel = TRUE,
     delta.measure = TRUE,
-    
+
   polder.f = NULL,
   polder.z = NULL,
     # h.lines = c(4200, 4500),
@@ -240,11 +240,17 @@ eich_max <- get_polder_max(
   master.tbl = rhein_tbl
 )
 #----test long profile-----
-name = NULL
-case.list = NULL
+name = 'Muendelheim'
+case.list = c(
+  'Planzustand_ZPK_HW1988_Selten_ohne_Niederrhein',
+  'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'
+)
 case.desc = case.list
-sobek.project = NULL
 param = 'discharge'
+to.upstream = 10L
+to.downstream = 50L
+sobek.project = so_prj
+master.tbl = rhein_tbl
 lt.by = 'zustand'
 color.by = 'vgf'
 facet.by = NULL
@@ -262,7 +268,6 @@ plot.title = NULL
 text.size = 12
 text.x.top.angle = 90L
 text.x.bottom.angle = 0L
-master.tbl = rhein_tbl
 verbose = TRUE
 plot_drv(
   name = 'Muendelheim',
