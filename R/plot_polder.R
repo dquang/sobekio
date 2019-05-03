@@ -92,8 +92,8 @@ plot_polder <- function(
       ref.mID_name <- ref.mID[[2]]
       if (hasName(ref.mID, 'name')) ref.mID_name <- ref.mID$name
       ref.mID_color <- ref.mID_name
-      # ref.mID_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
-      #                               ref.mID_name)
+      ref.mID_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
+                                    ref.mID_name)
       ref.mID_type <- ifelse(param == 'discharge', 'qID', 'wID')
       if (hasName(ref.mID, 'type'))
         ref.mID_type <- ref.mID$type
@@ -114,9 +114,11 @@ plot_polder <- function(
         param = param,
         verbose = FALSE
       )
-      ref.mID_color <-
+      ref.mID_name <-
         ifelse(!is.null(names(ref.mID)), names(ref.mID),
                toupper(ref.mID[[1]]))
+      ref.mID_color <- paste(ifelse(param == "discharge", 'Q', 'W'),
+                             ref.mID_name)
     }
     colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
     id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
@@ -179,12 +181,12 @@ plot_polder <- function(
     g <- g +
       geom_line(aes(
         y = Nach,
-        color = 'Nach der Maßnahme'
+        color = 'Q nach Maßnahme'
       ),
       size = 1) +
       geom_line(aes(
         y = Vor,
-        color = 'Vor der Maßnahme'
+        color = 'Q vor Maßnahme'
       ),
       size = 1)
     if (isTRUE(w.canal)){
@@ -226,12 +228,12 @@ plot_polder <- function(
                                 value.name = 'Q_Einlass')
         g <- g + geom_line(data = id_data_einlass,
                            aes(y = Q_Einlass * y2.scale + y2_shift,
-                               color = Einlass),
+                               color = "Q Einlass"),
                            size = 1)
       } else{
         g <- g + geom_line(aes(
           y = !!ensym(einlass_cols) * y2.scale + y2_shift,
-          color = eval(einlass_cols)
+          color = eval(paste('Q', einlass_cols))
         ),
         size = 1)
       }
@@ -254,12 +256,12 @@ plot_polder <- function(
                                   value.name = 'Q_Auslass')
           g <- g + geom_line(data = id_data_auslass,
                              aes(y = Q_Auslass * y2.scale + y2_shift,
-                                 color = Auslass),
+                                 color = 'Q Auslass'),
                              size = 1)
         } else{
           g <- g + geom_line(aes(
             y = !!ensym(auslass_cols) * y2.scale + y2_shift,
-            color = eval(auslass_cols)
+            color = paste('Q', eval(auslass_cols))
           ),
           size = 1)
         }
@@ -269,9 +271,9 @@ plot_polder <- function(
   } else {
     # adding W_innen directly to the graphic should not be a problem
     g <- g +
-      geom_line(aes(y = Nach,  color = 'Nach der Maßnahme'),
+      geom_line(aes(y = Nach,  color = 'W nach Maßnahme'),
                 size = 1) +
-      geom_line(aes(y = Vor,  color = 'Vor der Maßnahme'),
+      geom_line(aes(y = Vor,  color = 'W vor Maßnahme'),
                 size = 1)
     if (isTRUE(w.canal)){
       y2_name <- 'Wasserstand (m+NHN)'
@@ -307,12 +309,12 @@ plot_polder <- function(
                                 value.name = 'Q_Einlass')
         g <- g + geom_line(data = id_data_einlass,
                            aes(y = Q_Einlass * y2.scale + y2_shift,
-                               color = Einlass),
+                               color = 'Q Einlass'),
                            size = 1)
       } else{
         g <- g + geom_line(aes(
           y = !!ensym(einlass_cols) * y2.scale + y2_shift,
-          color = eval(einlass_cols)
+          color = eval(paste('Q', einlass_cols))
         ),
         size = 1)
       }
@@ -336,12 +338,12 @@ plot_polder <- function(
                                   value.name = 'Q_Auslass')
           g <- g + geom_line(data = id_data_auslass,
                              aes(y = Q_Auslass * y2.scale + y2_shift,
-                                 color = Auslass),
+                                 color = 'Q Auslass'),
                              size = 1)
         } else{
           g <- g + geom_line(aes(
             y = !!ensym(auslass_cols) * y2.scale + y2_shift,
-            color = eval(auslass_cols)
+            color = eval(paste('Q', auslass_cols))
           ),
           size = 1)
         }

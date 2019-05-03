@@ -61,7 +61,7 @@ get_id_tbl <- function(
     }
   }
   if (isTRUE(drv)){
-    
+
     drv_begin <- id_tbl[grepl(".+_Begin", besonderheit), km][[1]]
     drv_end <- id_tbl[grepl(".+_End", besonderheit), km][[1]]
     if (drv_begin < drv_end){
@@ -72,9 +72,9 @@ get_id_tbl <- function(
       drv_end <- drv_end - to.downstream
     }
     km_range <- sort(c(drv_begin, drv_end))
-    river <- id_tbl[grepl(".+_Begin", besonderheit), river][[1]]
-    id_tbl <- master.tbl[river == river & 
-                           km >= km_range[1] & 
+    drv_river <- id_tbl[grepl(".+_Begin", besonderheit), river][[1]]
+    id_tbl <- master.tbl[river == drv_river &
+                           km >= km_range[1] &
                            km <= km_range[2]]
   }
   stopifnot(nrow(id_tbl) > 1)
@@ -129,8 +129,12 @@ get_polder_data <- function(
   verbose = TRUE
 ){
   # search for IDs
-  id.tbl <- get_id_tbl(name = name, case.list = case.list,
-                        case.desc = case.desc, master.tbl = master.tbl
+  id.tbl <- get_id_tbl(
+    name = name,
+    case.list = case.list,
+    drv = FALSE,
+    case.desc = case.desc,
+    master.tbl = master.tbl
   )
   # id.tbl <- id.tbl[!grepl(".+_Vol", besonderheit)]
   if (param == 'discharge'){
@@ -447,10 +451,10 @@ get_drv_data <- function(
                              .SDcols = -c("ts"), by = case] %>%
       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
   }
-  drv_data <- merge(drv_data, 
-                    id_tbl[, .SD, .SDcols = -c('ID')], 
+  drv_data <- merge(drv_data,
+                    id_tbl[, .SD, .SDcols = -c('ID')],
                     by = c('case', 'ID_F'), sort = FALSE)
-  
+
   return(drv_data)
 }
 
@@ -507,7 +511,7 @@ get_polder_max <- function(
       ref.mID_name <- ref.mID[[2]]
       if (hasName(ref.mID, 'name'))
         ref.mID_name <- ref.mID$name
-      ref.mID_color <- ref.mID_name
+      # ref.mID_color <- ref.mID_name
       ref.mID_type <- ifelse(param == 'discharge', 'qID', 'wID')
       if (hasName(ref.mID, 'type'))
         ref.mID_type <- ref.mID$type
@@ -568,8 +572,8 @@ get_polder_max <- function(
           id_data_delta <-
             dcast(id_data_delta, group ~ get(compare.by),
                   value.var = col_get_delta)
-          col_i <- paste('delta_', col_get_delta[i], sep = "")
           for (i in seq_along(col_get_delta)) {
+            col_i <- paste('delta_', col_get_delta[i], sep = "")
             if (is.null(ref.mID)){
               col_1 <- cmp_cols[1]
               col_2 <-  cmp_cols[2]

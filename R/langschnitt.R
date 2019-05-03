@@ -11,6 +11,7 @@
 #' @param color.name Name of color in the legend
 #' @param lt.name Name of linetype in the legend
 #' @param delta Should delta also plotted?
+#' @param reserve.x Logical. If TRUE the x-axis will be reserved
 #' @param x.lab x-axis label
 #' @param y.lab y-axis label
 #' @param to.upstream distance (km) to upstream of the DRV to be included in the graphic
@@ -37,8 +38,9 @@ plot_drv <- function(
   color.name = 'Farbe',
   lt.name = 'Linienart',
   delta = FALSE,
+  reserve.x = FALSE,
   x.lab = 'Lage (KM)',
-  y.lab = ifelse(param == 'discharge', 
+  y.lab = ifelse(param == 'discharge',
                  'Abfluss (m³/s)', 'Wasserstand (m+NHN)'),
   to.upstream = 0,
   to.downstream = 0,
@@ -89,11 +91,11 @@ plot_drv <- function(
     ]
   if (param == 'discharge'){
     b_tick <- data_tbl[case == case.list[[1]] & ID_TYPE == 'qID' &
-                         nchar(besonderheit) > 0, 
+                         nchar(besonderheit) > 0,
                        c("km", "besonderheit")]
   } else{
     b_tick <- data_tbl[case == case.list[[1]] &
-                       ID_TYPE == 'wID' & nchar(besonderheit) > 0, 
+                       ID_TYPE == 'wID' & nchar(besonderheit) > 0,
                        c("km", "besonderheit")]
   }
   x_min <- data_tbl[, min(km, na.rm = TRUE)]
@@ -102,7 +104,7 @@ plot_drv <- function(
   y1_max <- data_tbl[, max(scheitel, na.rm = TRUE)]
   x_pretty <- pretty(x_min:x_max, 10)
   # if (nrow(b_tick) > 0){
-  #   x_ticks <- 
+  #   x_ticks <-
   # }
   #----adding delta----
   #FIXME: correcting delta with compare.by
@@ -172,37 +174,51 @@ plot_drv <- function(
     ) +
       theme_bw() +
       theme(legend.position = 'bottom',
-            axis.text.x.top = 
+            axis.text.x.top =
               element_text(angle = text.x.top.angle,
-                           hjust = 0, 
+                           hjust = 0,
                            vjust = 0.5,
                            size = text.x.top.size),
-            axis.text.x.bottom = 
+            axis.text.x.bottom =
               element_text(angle = text.x.bottom.angle,
                            hjust = 0.5,
                            size = text.size)
             ) +
       labs(title = plot.title) +
-      scale_x_continuous(
-        name = x.lab,
-        # breaks = pretty(x_min:x_max, 10),
-        sec.axis =  dup_axis(
-          breaks = b_tick$km,
-          labels = b_tick$besonderheit,
-          name = 'Station'
-          )
-        ) +
       scale_y_continuous(
         # breaks = pretty(y_min:y_max, 10),
         name = y.lab
         )
+    if (isTRUE(reserve.x)){
+      g <- g +
+        scale_x_reverse(
+          name = x.lab,
+          # breaks = pretty(x_min:x_max, 10),
+          sec.axis =  dup_axis(
+            breaks = b_tick$km,
+            labels = b_tick$besonderheit,
+            name = 'Station'
+          )
+        )
+    } else{
+      g <- g +
+        scale_x_continuous(
+          name = x.lab,
+          # breaks = pretty(x_min:x_max, 10),
+          sec.axis =  dup_axis(
+            breaks = b_tick$km,
+            labels = b_tick$besonderheit,
+            name = 'Station'
+          )
+        )
+    }
     g <- g + geom_line(size = 1)
     g$labels$colour <- color.name
     g$labels$linetype <- lt.name
   }
   #----adding DRV rectangle----
-  g <- g + annotate('rect', 
-                    xmin = drv_end_tick, 
+  g <- g + annotate('rect',
+                    xmin = drv_end_tick,
                     xmax = drv_begin_tick,
                     ymin = -Inf, ymax = Inf,
                     fill =  exl_std[3],
