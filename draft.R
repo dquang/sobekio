@@ -242,18 +242,41 @@ eich_max <- get_polder_max(
 #----test long profile-----
 name = 'Muendelheim'
 case.list = c(
-  'Planzustand_ZPK_HW1988_Selten_ohne_Niederrhein',
-  'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'
+  'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
+  'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
+  'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
+  'Bezugszustand_ZPK_HW1995_Selten_1282_newReg',
+  'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
+  'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
+  'BFG18_LUBW27_LFU27_HW1988_Mittel',
+  'BFG18_LUBW27_LFU27_HW1988_Selten',
+  'BFG18_LUBW27_LFU27_HW1995_Mittel',
+  'BFG18_LUBW27_LFU27_HW1995_Selten',
+  'BFG18_LUBW27_LFU27_HW2003_Mittel',
+  'BFG18_LUBW27_LFU27_HW2003_Selten'
 )
-case.desc = case.list
+case.desc =  c(
+  'Bezugszustand_ZPK_HW1988_Mittel_gr1',
+  'Bezugszustand_ZPK_HW1988_Selten_gr2',
+  'Bezugszustand_ZPK_HW1995_Mittel_gr3',
+  'Bezugszustand_ZPK_HW1995_Selten_gr4',
+  'Bezugszustand_ZPK_HW2003_Mittel_gr5',
+  'Bezugszustand_ZPK_HW2003_Selten_gr6',
+  'BFG18_ZPK_HW1988_Mittel',
+  'BFG18_ZPK_HW1988_Selten',
+  'BFG18_ZPK_HW1995_Mittel',
+  'BFG18_ZPK_HW1995_Selten',
+  'BFG18_ZPK_HW2003_Mittel',
+  'BFG18_ZPK_HW2003_Selten'
+)
 param = 'discharge'
-to.upstream = 10L
-to.downstream = 50L
+to.upstream = 10
+to.downstream = 10
 sobek.project = so_prj
 master.tbl = rhein_tbl
 lt.by = 'zustand'
 color.by = 'vgf'
-facet.by = NULL
+facet.by = 'hwe'
 compare.by = NULL
 color.name = 'Farbe'
 lt.name = 'Linienart'
@@ -268,20 +291,48 @@ plot.title = NULL
 text.size = 12
 text.x.top.angle = 90L
 text.x.bottom.angle = 0L
+reserve.x = FALSE
+text.x.top.size = 8L
 verbose = TRUE
 plot_drv(
   name = 'Muendelheim',
   case.list = c(
-    'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
-    'Planzustand_Eich_TEST_ct0_HW1988_Mittel_CL866'
+    # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
+    # 'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
+    # 'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
+    # 'Bezugszustand_ZPK_HW1995_Selten_1282_newReg',
+    # 'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
+    'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
+    # 'BFG18_LUBW27_LFU27_HW1988_Mittel',
+    # 'BFG18_LUBW27_LFU27_HW1988_Selten',
+    # 'BFG18_LUBW27_LFU27_HW1995_Mittel',
+    # 'BFG18_LUBW27_LFU27_HW1995_Selten',
+    'BFG18_LUBW27_LFU27_HW2003_Mittel',
+    'BFG18_LUBW27_LFU27_HW2003_Selten'
   ),
-  case.desc = c(
-    "Bezugszustand_ZPK_HW1988_Selten_1828_newReg",
-    "Planzustand_ZPK_HW1988_Selten_CL866"
+  case.desc =  c(
+    # 'Bezugszustand_ZPK_HW1988_Mittel_gr1',
+    # 'Bezugszustand_ZPK_HW1988_Selten_gr2',
+    # 'Bezugszustand_ZPK_HW1995_Mittel_gr3',
+    # 'Bezugszustand_ZPK_HW1995_Selten_gr4',
+    # 'Bezugszustand_ZPK_HW2003_Mittel_gr5',
+    'Bezugszustand_ZPK_HW2003_Selten_gr6',
+    # 'BFG18_ZPK_HW1988_Mittel_gr1',
+    # 'BFG18_ZPK_HW1988_Selten_gr2',
+    # 'BFG18_ZPK_HW1995_Mittel_gr3',
+    # 'BFG18_ZPK_HW1995_Selten_gr4',
+    'BFG18_ZPK_HW2003_Mittel_gr5',
+    'BFG18_ZPK_HW2003_Selten_gr6'
   ),
   param = 'discharge',
-  to.upstream = 10L,
-  to.downstream = 50L,
-  sobek.project = so_prj,
+  compare.by = 'zustand',
+  group.by = 'vgf',
+  # facet.by = 'hwe',
+  # delta = TRUE,
+  y2.scale = 10,
+  to.upstream = 0,
+  to.downstream = 0,
+  sobek.project = 'd:/rhein.lit',
   master.tbl = rhein_tbl
 )
+View(g_m$data)
