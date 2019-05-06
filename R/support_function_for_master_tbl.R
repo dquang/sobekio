@@ -106,7 +106,150 @@ get_id_tbl <- function(
   return(id_tbl)
 }
 
-#' Get related time series for one measure
+
+#' Get id tables for one segment of a river
+#' @param river Name of the river
+#' @param from.km Start location (km)
+#' @param to.km End location (km)
+#' @param case.list List of the cases
+#' @param case.desc Case name standardized
+#' @param master.tbl Master table
+#' @return a data.table
+#' @export
+get_segment_id_tbl <- function(
+  river = NULL,
+  from.km = -Inf,
+  to.km = Inf,
+  case.list = NULL,
+  case.desc = case.list,
+  master.tbl = NULL
+){
+  stopifnot(is.numeric(from.km) & is.numeric(to.km))
+  stopifnot(from.km < to.km)
+  # get the main river that has the most IDs if river == NULL
+  river_ids <- master.tbl[, .N, by = river]
+  if (is.null(river)){
+    setorder(river_ids, -N)
+    river <- river_ids$river[[1]]
+  } else{
+    stopifnot(river %in% river_ids$river)
+  }
+  case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
+  river_name <- river # because it is confused with the 'river' column
+  id_tbl <- master.tbl[river == river_name & km >= from.km & km <= to.km]
+  stopifnot(nrow(id_tbl) > 1)
+  # creating new columns based on case name
+  for (i in seq_along(case.desc)){
+    col_n <- paste('case_desc', i, sep = "_")
+    id_tbl[, eval(col_n) := case.desc[[i]]]
+  }
+  measure_vars <- paste('case_desc', seq_along(case.desc), sep = "_")
+  id_tbl <- melt(id_tbl, measure.vars = measure_vars,
+                 value.name = 'case_desc', sort = FALSE)
+  id_tbl$variable <- NULL
+  id_tbl <- merge(id_tbl, case_tbl[, c('case', 'case_desc', 'zustand')],
+                  by = 'case_desc', sort = FALSE)
+  # check if the zustand in cases are in listed in the master.tbl
+  zustand_in_cases <- unique(as.character(case_tbl$zustand))
+  id_tbl[, ID_F := ID]
+  id_tbl_cols <- colnames(id_tbl)
+  for (i in seq_along(zustand_in_cases)){
+    if (zustand_in_cases[i] %in% id_tbl_cols){
+      # get final, correct ID for each case
+      id_tbl[zustand == zustand_in_cases[i],
+             ID_F := get(zustand_in_cases[i])]
+    }
+    
+  }
+  id_tbl$zustand <- NULL
+  id_tbl$case_desc <- NULL
+  return(id_tbl)
+}
+
+
+#' Get data table for a river segment
+#' @param river Name of the river
+#' @param from.km Start location (km)
+#' @param to.km End location (km)
+#' @param case.list List of the cases
+#' @param case.desc Case name standardized
+#' @param param Parameter discharge/waterlevel
+#' @param sobek.project Path to sobek project
+#' @param to.upstream Distance to upstream (km) to get data
+#' @param to.downstream Distance to downstream (km) to get data
+#' @param get.max Should max value or whole time series return? Default only max value
+#' @param master.tbl Master table
+#' @param verbose Should some message be displayed?
+#' @param get.max Should maximal value return or whole time series? Default only max value.
+#' @return a data.table
+#' @export
+get_segment_data <- function(
+  river = NULL,
+  from.km = NULL,
+  to.km = NULL,
+  case.list = NULL,
+  case.desc = case.list,
+  param = NULL,
+  sobek.project = NULL,
+  get.max = TRUE,
+  master.tbl = NULL,
+  verbose = TRUE
+){
+  id_tbl <- get_segment_id_tbl(
+    river = river,
+    from.km = from.km,
+    to.km = to.km,
+    case.list = case.list,
+    case.desc = case.desc,
+    master.tbl = master.tbl
+  )
+  segment_data_list <- list()
+  if (isTRUE(verbose)){
+    print(paste('Getting data for', 
+                round(nrow(id_tbl)/length(case.list)), 
+                'ID(s) in', length(case.list), 'case(s)'))
+    print('Please be patient....')
+  }
+  if(param == 'discharge'){
+    for (i in seq_along(case.list)){
+      segment_data_list[[i]] <- his_from_case(
+        case.list = case.list[[i]],
+        sobek.project = sobek.project,
+        param = param,
+        qID = id_tbl[case == case.list[[i]] &
+                       ID_TYPE == 'qID', ID_F],
+        verbose = FALSE
+      )
+    }
+  } else{
+    for (i in seq_along(case.list)){
+      segment_data_list[[i]] <- his_from_case(
+        case.list = case.list[[i]],
+        sobek.project = sobek.project,
+        param = param,
+        wID = id_tbl[case == case.list[[i]] &
+                       ID_TYPE == 'wID', ID_F],
+        verbose = FALSE
+      )
+    }
+  }
+  segment_data <- rbindlist(segment_data_list, use.names = FALSE)
+  if (isTRUE(get.max)){
+    if (isTRUE(get.max)) print('Calculating max values....')
+    segment_data <- segment_data[, lapply(.SD, max, na.rm = TRUE),
+                         .SDcols = -c("ts"), by = case] %>%
+      melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
+  }
+  segment_data[is.infinite(scheitel), scheitel := NA]
+  segment_data <- merge(segment_data,
+                    id_tbl[, .SD, .SDcols = -c('ID')],
+                    by = c('case', 'ID_F'), sort = FALSE)
+  
+  return(segment_data)
+}
+
+
+#' Get related time series for a measure
 #' @param name Name of the measure
 #' @param case.list List of the cases
 #' @param case.desc Case name standardized
@@ -385,7 +528,7 @@ get_polder_volume <- function(
 }
 
 
-#' Get related time series for a DRV
+#' Get data table for a DRV
 #' @param name Name of the measure
 #' @param case.list List of the cases
 #' @param case.desc Case name standardized

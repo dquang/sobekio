@@ -12,6 +12,7 @@ elbe_tbl[, PLAN := ID]
 elbe_tbl$km <- NA
 master.tbl <- elbe_tbl
 
+river = 'Rhein'
 name = NULL
 case.list = NULL
 case.desc = case.list
@@ -294,3 +295,23 @@ plot_drv(
   master.tbl = rhein_tbl
 )
 View(g_m$data)
+#----test plot_river_segment----
+plot_longprofile(
+  river = 'Rhein',
+  from.km = 660,
+  to.km = 780,
+  case.list <- c(
+    'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
+    'BFG18_LUBW27_LFU27_HW1988_Mittel'
+  ),
+  case.desc <- c(
+    "Bezugszustand_ZPK_HW1988_Mittel_1563_newReg",
+    "Planzustand_ZPK_HW1988_Mittel_CL866"
+  ),
+  param = 'waterlevel',
+  sobek.project = 'd:/rhein.lit',
+  highlight = c(700, 750),
+  delta = TRUE,
+  highlight.text = c('Begin', 'End'),
+  master.tbl = rhein_tbl
+)
