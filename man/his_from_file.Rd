@@ -10,7 +10,7 @@ his_from_file(his.file, id.file, param = 1L, f.header = FALSE,
 \arguments{
 \item{his.file}{Path to the .HIS file}
 
-\item{id.file}{Path to file contain list of IDs \n.
+\item{id.file}{Path to file contain list of IDs.
 ID file should have one-two columns, first for the sobek ID and the second (optional) for names that will be column names in the output data.table.}
 
 \item{param}{Index/Name of the Paramter to get the data, default = 1}

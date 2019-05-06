@@ -14,6 +14,8 @@
 #' @param peak.pegel If the plot should be limit to the peak area, should it be the peak of the referenced location (ref.mID). Default is not.
 #' @param delta.pegel Logical. Should peak delta at ref.mID be displayed
 #' @param delta.measure Logical. Should peak delta at the measure be displayed
+#' @param delta.line Logical. Should Delta lines be plotted extra, beneath the main plot? Default is FALSE.
+#' @param rel.height Relative size of the main and the Delta plot. Default c(2, 0.7)
 #' @param compare.by Should the line be compare by 'case' or by 'location'
 #' @param plot.title Title of the plot
 #' @param lt.name Name of the linetype legend
@@ -47,6 +49,8 @@ plot_polder_scenario <- function(
   peak.pegel = FALSE,
   delta.pegel = FALSE,
   delta.measure = TRUE,
+  delta.line = FALSE,
+  rel.heights = c(2, 0.7),
   compare.by = 'zustand',
   plot.title = NULL,
   lt.name = 'Linienart',
@@ -176,8 +180,6 @@ plot_polder_scenario <- function(
                 mapping = aes(x = ts, linetype = !!ensym(compare.by))
     )
   }
-  y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
-  delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')
   if (!is.null(ref.mID)){
     y1_max <- id_data[, max(.SD, na.rm = TRUE),
                       .SDcols = c('Nach', 'Vor', 'Bezugspegel')]
@@ -198,8 +200,10 @@ plot_polder_scenario <- function(
   }
   y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
   if (isTRUE(verbose)) print('Adding hydrographs...')
-  # if parameter is discharge, move waterlevel to secondary axis
+  einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
+  auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
   if (tolower(param) == 'discharge'){
+    #----working with discharge----
     g <- g +
       geom_line(aes(y = Nach,  color = 'Q nach Maßnahme'),
                 size = 1)
@@ -214,13 +218,12 @@ plot_polder_scenario <- function(
       if (y2_min*y2.scale != y1_min) {
         y2_shift <- floor(y2_shift - y2_min*y2.scale)
       }
+      # if parameter is discharge, move waterlevel to secondary axis
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
                              color = 'W in Maßnahme'),
                          size = 1)
       y2_name <- 'Wasserstand (m+NHN)'
     }
-    einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
-    auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
     if (isTRUE(q.in)){
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
       y2_min <- id_data[, .SD,
@@ -283,15 +286,19 @@ plot_polder_scenario <- function(
     }
     #----working with WL----
   } else {
-    #----param = WL----
     # adding W_innen directly to the graphic should not be a problem
     g <- g +
       geom_line(aes(y = Nach,  color = 'W nach Maßnahme'),
                 size = 1)
     if (isTRUE(w.canal)){
       y2_name <- 'Wasserstand (m+NHN)'
+      if(is.null(ref.mID)){
+        y1_cols <- c('Nach', 'Vor', 'W_innen')
+      } else{
+        y1_cols <- c('Nach', 'Vor', 'W_innen', 'Bezugspegel')
+      }
       y1_max <- id_data[, max(.SD, na.rm = TRUE),
-                        .SDcols = c('Nach', 'Vor', 'W_innen')]
+                        .SDcols = y1_cols]
       y1_min <- id_data[, min(.SD, na.rm = TRUE),
                         .SDcols = c('Nach', 'Vor', 'W_innen')]
       y2_max <- ceiling(y1_max/y2.scale)
@@ -365,7 +372,7 @@ plot_polder_scenario <- function(
   }
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
-  # calculating Max Volume
+  #----calculating Max Volume----
   if (isTRUE(verbose)) print('Calculating volume...')
   if(!is.null(polder.f)){
     if(is.null(polder.z)){
@@ -388,10 +395,12 @@ plot_polder_scenario <- function(
   #----annotating max value----
   if (isTRUE(verbose)) print('Adding text box...')
   # print(einlass_cols)
-  for (i in einlass_cols){
+  # if (isTRUE(q.in)){
+  for (i in einlass_cols) {
     einlass_max_col <- paste(i, 'Max', sep = '_')
     id_data[, eval(einlass_max_col) := max(get(i), na.rm = TRUE)]
   }
+  # }
   id_data[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
   # finding the locations on x-axis for the annotated text
   # get length of x_axis, then get text.pos of it
@@ -408,7 +417,7 @@ plot_polder_scenario <- function(
   # id_max[, Q_in_max := round(Q_in_max)]
   id_max[, W_in_max := round(W_in_max, 2)]
   id_max[, label := '']
-  case_has_max <- id_max[Volume_max == max(Volume_max, na.rm = TRUE), case]
+  case_has_max <- id_max[W_in_max == max(W_in_max, na.rm = TRUE), case]
   id_max[case == case_has_max,
          label := paste(
            'V_max in Maßnahme: ', Volume_max, ' Mio. m³\n',
@@ -427,6 +436,7 @@ plot_polder_scenario <- function(
              sep = "")
            ]
   }
+  delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')
   if (isTRUE(delta.pegel) & !is.null(ref.mID)){
     id_max[, label := paste(
       'Delta am ', ref.mID_name, ": ", scheitel_ref_mID_delta, " ", delta_unit, " \n",
@@ -495,6 +505,7 @@ plot_polder_scenario <- function(
       )
   }
   #----graphic layout----
+  y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
   if (is.null(plot.title)){
     plot.title <- paste(str_extract(y1_label, 'Abfluss|Wasserstand'),
                         ' Ganglinien für Maßnahme: ', name,
@@ -507,10 +518,64 @@ plot_polder_scenario <- function(
       axis.text.x = element_text(angle = text.x.angle)
     )+
     scale_x_datetime(
+      name = 'Zeit',
       date_breaks = date.break,
       date_labels = date.label
-    )+
-    ylab(y1_label) + xlab('Zeit')+
+    )+ ylab(y1_label)
     ggtitle(plot.title)
+  #----adding delta line beneath the main graphic----
+  if (isTRUE(delta.line)){
+    cmp_vars <- case_tbl[, get(compare.by)]
+    if(!is.null(ref.mID)){
+      delta_data <- dcast(id_data, ts ~ get(compare.by),
+                         value.var = 'Bezugspegel')
+      delta_data[, eval(paste('Delta am ', ref.mID_name)) :=
+                         get(cmp_vars[1]) - get(cmp_vars[2])]
+      delta_data[, eval(cmp_vars[1]) := NULL]
+      delta_data[, eval(cmp_vars[2]) := NULL]
+      if (param == 'waterlevel'){
+        delta_mea <- dcast(id_data, ts ~ get(compare.by),
+                            value.var = 'Nach')
+        # delta_data[, delta_pos := 'Delta an der Maßnahme']
+        delta_mea[, `Delta an der Maßnahme` := get(cmp_vars[1]) - get(cmp_vars[2])]
+        delta_mea[, eval(cmp_vars[1]) := NULL]
+        delta_mea[, eval(cmp_vars[2]) := NULL]
+        delta_data <- merge(delta_data, delta_mea, by = 'ts',
+                            sort = FALSE)
+
+      }
+      delta_data <- melt(delta_data,
+                         id.vars = 'ts', value.name = 'value',
+                         variable.name = 'Delta')
+    }
+    delta_title <- ifelse(param == 'discharge',
+                          paste('Abfluss Differenz (',
+                                cmp_vars[1], " - ", cmp_vars[2], ")",
+                                sep = ""),
+                          paste('Wasserstand Differenz (',
+                                cmp_vars[1], " - ", cmp_vars[2], ")",
+                                sep = ""))
+    delta_ylab <- ifelse(param == 'discharge',
+                         'Abfluss Differenz (m³/s)',
+                         'Wasserstand Differenz (cm)'
+                         )
+    if (param == 'waterlevel') delta_data[, value := round(value * 100, 1)]
+    g2 <- ggplot(data = delta_data,
+                 aes(x = ts, y = value, linetype = Delta))+
+      scale_x_datetime(name = 'Zeit', breaks = date.break,
+                       date_labels = date.label)+
+      geom_line(size = 1) +
+      theme_bw() +
+      theme(
+        legend.position = 'bottom',
+        text = element_text(size = text.size),
+        axis.text.x = element_text(angle = text.x.angle)
+        ) +
+      ggtitle(delta_title) + ylab(delta_ylab)
+    g2$labels$linetype = 'Linienart'
+    g <- cowplot::plot_grid(g, g2, ncol = 1, rel_heights = rel.heights,
+                            align = 'v', axis = 'l')
+  }
+
   return(g)
 }

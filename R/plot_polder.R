@@ -418,7 +418,7 @@ plot_polder <- function(
   }
   # removing 'Inf' in id_max
   id_max[, label := str_replace_all(label, "-*Inf.*\n", "k.A.\n")]
-  id_max[near(Volume_max, 0, tol = 0.011), label := '']
+  # id_max[Volume_max == 'k.A.', label := '']
   # y position of the text block
   y1_pos_txt <- y1_pretty[(length(y1_pretty)-1)]
   if (!is.null(text.pos.y)){

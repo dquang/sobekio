@@ -24,8 +24,12 @@ w.canal = FALSE
 ref.mID = NULL
 y2.scale = 25
 h.lines = NULL
+peak.nday = NULL
+peak.pegel = FALSE
 delta.pegel = FALSE
 delta.measure = TRUE
+delta.line = TRUE
+delta.line.at = 'reference'
 compare.by = 'zustand'
 plot.title = NULL
 lt.name = 'Linienart'
@@ -40,74 +44,28 @@ text.x.angle = 0L
 polder.f = NULL
 polder.z = NULL
 verbose = TRUE
-id_data <- .get_data_for_cases(name = name,
-  case.list = case.list, case.desc = case.desc, sobek.project = sobek.project,
-  param = param, master.tbl = master.tbl
-)
-id_tbl_test <- get_data_tbl(
-  name = 'Doebeltitz',
-  case.list <- c(
-    'BEZ_WB_HW2006_mHAV_1.6890',
-    'PZ_WB_HW2006_mHAV_1.6890_v2'
 
-  ),
-  w.canal = FALSE,
-  case.desc <- c(
-    "BEZUG_WB_HW2006_VGF1.6890_mHAV",
-    "PLAN_WB_HW2006_VGF1.6890_mHAV_v2"
-  ),
-  param = 'waterlevel',
-  sobek.project = elbe_prj,
-  master.tbl = elbe_tbl
-)
-#----teset scenario----
-plot_polder(
-  name = 'Doebeltitz',
-  case.list <- c(
-    'BEZ_WB_HW2006_mHAV_1.6890',
-    'PZ_WB_HW2006_mHAV_1.6890_v2'
-
-  ),
-  case.desc <- c(
-    "BEZUG_WB_HW2006_VGF1.6890_mHAV",
-    "PLAN_WB_HW2006_VGF1.6890_mHAV_v2"
-  ),
-  param = 'discharge',
-  y2.scale = 25,
-  sobek.project = elbe_prj,
-  ref.mID = NULL,
-  q.in = TRUE,
-  q.out = FALSE,
-  w.canal = TRUE,
-  # delta.pegel = FALSE,
-  # delta.measure = TRUE,
-  # h.lines = c(4200, 4500),
-  # text.pos.x = 0.01,
-  verbose = TRUE,
-  master.tbl = elbe_tbl
-)
 #----test for rhein-----
 his_from_case('Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
               so_prj, param = 'discharge', sID = 'guntersblum_zu')
 plot_polder_scenario(
-  name = 'Langel',
-  case.list <- c(
-    'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
-    'Planzustand_Eich_TEST_ct0_HW1988_Selten_CL866'
-  ),
-  case.desc <- c(
-    "2. Bezugszustand_ZPK_HW1988_Selten_1828_newReg",
-    "1. Planzustand_ZPK_HW1988_Selten_CL866"
-  ),
-  param = 'discharge',
-  y2.scale = 50,
+  name = 'Worringer',
+  case.list = c(
+    'Planzustand_ZPK_HW1988_Selten_Nur_Eich',
+    'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit'),
+  case.desc = c(
+    'PZ ohne Worringer_ZPK_HW1988_Selten_Nur_Eich',
+    'PZ mit Worringer_ZPK_HW1988_Selten_Eich_Wor'),
+  y2.scale = 0.01,
   sobek.project = so_prj,
+  param = 'waterlevel',
   # ref.mID = list(name = 'Pegel Mainz', ID = 'P_Mainz', type = 'mID'),
-  ref.mID = list('Bezugspegel Mainz' = 'P_Mainz'),
+  ref.mID = 'p_koeln',
   # facet.by = 'zustand',
   q.in = TRUE,
   q.out = TRUE,
   w.canal = TRUE,
+  delta.line = TRUE,
   delta.pegel = TRUE,
   delta.measure = TRUE,
   peak.nday = 5,

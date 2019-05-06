@@ -229,7 +229,7 @@ his_from_list <- function(
 
 #' Export data for nodes/reaches using IDs from a file
 #' @param his.file Path to the .HIS file
-#' @param id.file Path to file contain list of IDs \n.
+#' @param id.file Path to file contain list of IDs.
 #' ID file should have one-two columns, first for the sobek ID and the second (optional) for names that will be column names in the output data.table.
 #' @param param Index/Name of the Paramter to get the data, default = 1
 #' @param f.header The id.file contain header?, boolean, default = FALSE

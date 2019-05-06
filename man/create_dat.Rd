@@ -29,7 +29,7 @@ create_dat(id.file = "", data.file = "", bnd.header = NULL,
 
 \item{dec.char}{Decimal character of ID & Input Data files. Default ","}
 
-\item{output.case}{Write output (boundary.dat, lateral.dat) direct to the case.\n
+\item{output.case}{Write output (boundary.dat, lateral.dat) direct to the case.
 Output.case must be a character vector combine (case.name, sobek.project)
 like c('case name', 'd:/so21302/main.lit')}
 }

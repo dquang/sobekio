@@ -8,7 +8,7 @@
 #' @param lat.out Output path for Lateral.dat (full file path)
 #' @param col.sep Column seperator of ID & Input Data files. Default TAB.
 #' @param dec.char Decimal character of ID & Input Data files. Default ","
-#' @param output.case Write output (boundary.dat, lateral.dat) direct to the case.\n
+#' @param output.case Write output (boundary.dat, lateral.dat) direct to the case.
 #' Output.case must be a character vector combine (case.name, sobek.project)
 #'  like c('case name', 'd:/so21302/main.lit')
 #' @details Example for id.file

@@ -16,6 +16,7 @@ Imports:
 	dplyr,
 	stringr,
 	grid,
-	htmlTable
+	htmlTable,
+	cowplot
 Suggests:
     testthat
