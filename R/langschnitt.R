@@ -7,7 +7,7 @@
 #' @param lt.by Linetype defining by this value
 #' @param color.by Coloring by this value
 #' @param facet.by Facetting by this value
-#' @param compare.by Calculating delta by this value
+#' @param compare.by Calculating delta by this value. Default 'zustand'
 #' @param color.name Name of color in the legend
 #' @param lt.name Name of linetype in the legend
 #' @param delta Should delta also plotted?
@@ -23,7 +23,7 @@
 #' @param text.x.bottom.angle Angle of text at bottom
 #' @param ntick.x Minimum number of ticks on x-axis. Default = 10
 #' @param a.fill Fill color of the highlight area
-#' @param a.alpha Transparent ratio (alpha blending) of the highlight area 
+#' @param a.alpha Transparent ratio (alpha blending) of the highlight area
 #' @param master.tbl Master table
 #' @param verbose Print some messages if TRUE
 #' @return a ggplot2 graphic
@@ -37,7 +37,7 @@ plot_drv <- function(
   lt.by = 'zustand',
   color.by = 'vgf',
   facet.by = NULL,
-  compare.by = NULL,
+  compare.by = 'zustand',
   group.by = compare.by,
   color.name = 'Farbe',
   lt.name = 'Linienart',
@@ -90,7 +90,7 @@ plot_drv <- function(
     }
   }
   if (is.null(plot.title)){
-    plot.title <- paste('Längsschnitte',
+    plot.title <- paste('Längsschnitt',
                        str_extract(y.lab, 'Abfluss|Wasserstand'),
                        'entlang DRV:', name
                        )
@@ -151,12 +151,22 @@ plot_drv <- function(
   #----delta == TRUE----
   if (isTRUE(delta)){
     data_tbl[, group := seq_len(.N), by = get(compare.by)]
+    y2_name <- paste('Delta', str_to_sentence(compare.by),
+                     ifelse(param == 'discharge', '(m³)', '(m)')
+    )
+
     if (compare.by != group.by){
+      y2_name <- paste('Delta', str_to_sentence(compare.by),
+                       'nach', str_to_sentence(group.by), 'gruppiert',
+                       ifelse(param == 'discharge', '(m³)', '(m)')
+      )
+      lt.by <- compare.by
+      color.by <- group.by
       data_tbl_delta <-
         dcast(data_tbl, group  ~ get(compare.by) + get(group.by)  ,
               value.var = 'scheitel')
       for (i in grp_vars){
-        col_i <- paste('delta', i, sep = '_')
+        col_i <- paste('Delta', i, sep = '_')
         col_1 <- paste(cmp_vars[1], i, sep = '_')
         col_2 <- paste(cmp_vars[2], i, sep = '_')
         data_tbl_delta[, eval(col_i) := get(col_1) - get(col_2)]
@@ -167,10 +177,8 @@ plot_drv <- function(
                              variable.name = group.by,
                              value.name = 'delta',
                              sort = FALSE)
-      data_tbl_delta[, eval(group.by) := substring(get(group.by), 7)]
-      data_tbl <- merge(data_tbl, data_tbl_delta, by = c('group', group.by))
-      lt.by <- compare.by
-      color.by <- group.by
+      colnames(data_tbl_delta)[2] <- 'delta_color'
+      data_tbl <- merge(data_tbl, data_tbl_delta, by = c('group'))
     } else{
       data_tbl_delta <-
         dcast(data_tbl, group  ~ get(compare.by),
@@ -180,10 +188,12 @@ plot_drv <- function(
       data_tbl_delta[, delta := get(col_1) - get(col_2)]
       data_tbl_delta[, eval(col_1) := NULL]
       data_tbl_delta[, eval(col_2) := NULL]
+      data_tbl_delta[, delta_color := paste('Delta',
+                                            str_to_sentence(compare.by))
+                     ]
       data_tbl <-
-        merge(data_tbl, data_tbl_delta, by = 'group')
+        merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
     }
-    data_tbl[, delta_color := paste('delta', get(group.by), sep = "_")]
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
     if (y2_max - y2_min > 10) {
       y2_min <- round(y2_min,-1)
@@ -193,6 +203,7 @@ plot_drv <- function(
     if (y2_min * y2.scale != y1_min) {
       y2_shift <- floor(y2_shift - y2_min * y2.scale)
     }
+    # y2_pretty <- pretty(y2_min, y2_max)
   }
   #----add graphic----
   if (verbose) print('Preparing graphic...')
@@ -243,6 +254,7 @@ plot_drv <- function(
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
   if (isTRUE(delta)){
+    y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <- g + geom_line(
       data = data_tbl,
       aes(
@@ -258,9 +270,9 @@ plot_drv <- function(
         sec.axis =
           sec_axis(
             trans = ~ . * 1 / y2.scale - y2_shift / y2.scale,
-            # breaks = y2_pretty,
-            # labels = round(y2_pretty, 2),
-            name = paste('Delta zwischen', compare.by)
+            breaks = y2_pretty,
+            labels = round(y2_pretty, 2),
+            name = y2_name
           )
       )
   }
@@ -308,7 +320,7 @@ plot_drv <- function(
 #' @param ntick.x Minimum number of ticks on x-axis. Default = 10
 #' @param highlight A vector of two locations (km), ex. c(4, 10) to be highlighted
 #' @param a.fill Fill color of the highlight area
-#' @param a.alpha Transparent ratio (alpha blending) of the highlight area 
+#' @param a.alpha Transparent ratio (alpha blending) of the highlight area
 #' @param master.tbl Master table
 #' @param verbose Print some messages if TRUE
 #' @return a ggplot2 graphic
@@ -383,10 +395,10 @@ plot_longprofile <- function(
     }
   }
   if (is.null(plot.title)){
-    plot.title <- paste('Längsschnitte ',
+    plot.title <- paste('Längsschnitt ',
                         str_extract(y.lab, 'Abfluss|Wasserstand'),
-                        ' entlang', river, '. von km: ', from.km, 
-                        ' bis km ', to.km, sep = ''
+                        ' entlang ', river, ' von KM ', from.km,
+                        ' bis KM ', to.km, sep = ''
     )
   }
   river_ids <- master.tbl[, .N, by = river]
@@ -443,14 +455,22 @@ plot_longprofile <- function(
   #----delta == TRUE----
   if (isTRUE(delta)){
     data_tbl[, group := seq_len(.N), by = get(compare.by)]
+    y2_name <- paste('Delta', str_to_sentence(compare.by),
+                     ifelse(param == 'discharge', '(m³)', '(m)')
+                     )
+
     if (compare.by != group.by){
+      y2_name <- paste('Delta', str_to_sentence(compare.by),
+                       'nach', str_to_sentence(group.by), 'gruppiert',
+                       ifelse(param == 'discharge', '(m³)', '(m)')
+                       )
       lt.by <- compare.by
       color.by <- group.by
       data_tbl_delta <-
         dcast(data_tbl, group  ~ get(compare.by) + get(group.by)  ,
               value.var = 'scheitel')
       for (i in grp_vars){
-        col_i <- paste('delta', i, sep = '_')
+        col_i <- paste('Delta', i, sep = '_')
         col_1 <- paste(cmp_vars[1], i, sep = '_')
         col_2 <- paste(cmp_vars[2], i, sep = '_')
         data_tbl_delta[, eval(col_i) := get(col_1) - get(col_2)]
@@ -461,8 +481,8 @@ plot_longprofile <- function(
                              variable.name = group.by,
                              value.name = 'delta',
                              sort = FALSE)
-      data_tbl_delta[, eval(group.by) := substring(get(group.by), 7)]
-      data_tbl <- merge(data_tbl, data_tbl_delta, by = c('group', group.by))
+      colnames(data_tbl_delta)[2] <- 'delta_color'
+      data_tbl <- merge(data_tbl, data_tbl_delta, by = c('group'))
     } else{
       data_tbl_delta <-
         dcast(data_tbl, group  ~ get(compare.by),
@@ -472,10 +492,12 @@ plot_longprofile <- function(
       data_tbl_delta[, delta := get(col_1) - get(col_2)]
       data_tbl_delta[, eval(col_1) := NULL]
       data_tbl_delta[, eval(col_2) := NULL]
+      data_tbl_delta[, delta_color := paste('Delta',
+                                            str_to_sentence(compare.by))
+                                            ]
       data_tbl <-
         merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
     }
-    data_tbl[, delta_color := paste('delta', get(group.by), sep = "_")]
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
     if (y2_max - y2_min > 10) {
       y2_min <- round(y2_min,-1)
@@ -535,6 +557,7 @@ plot_longprofile <- function(
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
   if (isTRUE(delta)){
+    y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <- g + geom_line(
       data = data_tbl,
       aes(
@@ -550,9 +573,9 @@ plot_longprofile <- function(
         sec.axis =
           sec_axis(
             trans = ~ . * 1 / y2.scale - y2_shift / y2.scale,
-            # breaks = y2_pretty,
-            # labels = round(y2_pretty, 2),
-            name = paste('Delta zwischen', compare.by)
+            breaks = y2_pretty,
+            labels = round(y2_pretty, 2),
+            name = y2_name
           )
       )
   }

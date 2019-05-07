@@ -159,7 +159,7 @@ get_segment_id_tbl <- function(
       id_tbl[zustand == zustand_in_cases[i],
              ID_F := get(zustand_in_cases[i])]
     }
-    
+
   }
   id_tbl$zustand <- NULL
   id_tbl$case_desc <- NULL
@@ -205,8 +205,8 @@ get_segment_data <- function(
   )
   segment_data_list <- list()
   if (isTRUE(verbose)){
-    print(paste('Getting data for', 
-                round(nrow(id_tbl)/length(case.list)), 
+    print(paste('Getting data for',
+                round(nrow(id_tbl)/length(case.list)),
                 'ID(s) in', length(case.list), 'case(s)'))
     print('Please be patient....')
   }
@@ -244,7 +244,7 @@ get_segment_data <- function(
   segment_data <- merge(segment_data,
                     id_tbl[, .SD, .SDcols = -c('ID')],
                     by = c('case', 'ID_F'), sort = FALSE)
-  
+
   return(segment_data)
 }
 
@@ -600,82 +600,6 @@ get_drv_data <- function(
 
   return(drv_data)
 }
-
-
-#' #' Get related time series for a river segment
-#' #' @param name Name of the measure
-#' #' @param case.list List of the cases
-#' #' @param case.desc Case name standardized
-#' #' @param param Parameter discharge/waterlevel
-#' #' @param sobek.project Path to sobek project
-#' #' @param to.upstream Distance to upstream (km) to get data
-#' #' @param to.downstream Distance to downstream (km) to get data
-#' #' @param get.max Should max value or whole time series return? Default only max value
-#' #' @param master.tbl Master table
-#' #' @param verbose Should some message be displayed?
-#' #' @param get.max Should maximal value return or whole time series? Default only max value.
-#' #' @return a data.table
-#' #' @export
-#' get_river_segment_data <- function(
-#'   river = NULL,
-#'   from.km = NULL,
-#'   to.km = NULL,
-#'   case.list = NULL,
-#'   case.desc = case.list,
-#'   param = NULL,
-#'   sobek.project = NULL,
-#'   to.upstream = 0,
-#'   to.downstream = 0,
-#'   get.max = TRUE,
-#'   master.tbl = NULL,
-#'   verbose = TRUE
-#' ){
-#'   stopifnot(is.numeric(to.upstream) & is.numeric(to.downstream))
-#'   id_tbl <- get_id_tbl(
-#'     name = name,
-#'     case.list = case.list,
-#'     drv = TRUE,
-#'     to.upstream = to.upstream,
-#'     to.downstream = to.downstream,
-#'     case.desc = case.desc,
-#'     master.tbl = master.tbl
-#'   )
-#'   drv_data_list <- list()
-#'   if(param == 'discharge'){
-#'     for (i in seq_along(case.list)){
-#'       drv_data_list[[i]] <- his_from_case(
-#'         case.list = case.list[[i]],
-#'         sobek.project = sobek.project,
-#'         param = param,
-#'         qID = id_tbl[case == case.list[[i]] &
-#'                        ID_TYPE == 'qID', ID_F],
-#'         verbose = FALSE
-#'       )
-#'     }
-#'   } else{
-#'     for (i in seq_along(case.list)){
-#'       drv_data_list[[i]] <- his_from_case(
-#'         case.list = case.list[[i]],
-#'         sobek.project = sobek.project,
-#'         param = param,
-#'         wID = id_tbl[case == case.list[[i]] &
-#'                        ID_TYPE == 'wID', ID_F],
-#'         verbose = FALSE
-#'       )
-#'     }
-#'   }
-#'   drv_data <- rbindlist(drv_data_list, use.names = FALSE)
-#'   if (isTRUE(get.max)){
-#'     drv_data <- drv_data[, lapply(.SD, max, na.rm = TRUE),
-#'                          .SDcols = -c("ts"), by = case] %>%
-#'       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
-#'   }
-#'   drv_data <- merge(drv_data,
-#'                     id_tbl[, .SD, .SDcols = -c('ID')],
-#'                     by = c('case', 'ID_F'), sort = FALSE)
-#'
-#'   return(drv_data)
-#' }
 
 
 #' Calculate maximum values for a measure and its referenced location

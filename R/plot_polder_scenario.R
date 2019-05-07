@@ -542,12 +542,20 @@ plot_polder_scenario <- function(
         delta_mea[, eval(cmp_vars[2]) := NULL]
         delta_data <- merge(delta_data, delta_mea, by = 'ts',
                             sort = FALSE)
-
       }
-      delta_data <- melt(delta_data,
-                         id.vars = 'ts', value.name = 'value',
-                         variable.name = 'Delta')
+    } else{
+      delta_data <- dcast(id_data, ts ~ get(compare.by),
+                         value.var = 'Nach')
+      # delta_data[, delta_pos := 'Delta an der Maßnahme']
+      delta_data[, `Delta an der Maßnahme` := get(cmp_vars[1]) - get(cmp_vars[2])]
+      delta_data[, eval(cmp_vars[1]) := NULL]
+      delta_data[, eval(cmp_vars[2]) := NULL]
+      # delta_data <- merge(delta_data, delta_mea, by = 'ts',
+                          # sort = FALSE)
     }
+    delta_data <- melt(delta_data,
+                       id.vars = 'ts', value.name = 'value',
+                       variable.name = 'Delta')
     delta_title <- ifelse(param == 'discharge',
                           paste('Abfluss Differenz (',
                                 cmp_vars[1], " - ", cmp_vars[2], ")",
