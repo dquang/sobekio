@@ -630,7 +630,7 @@ get_polder_max <- function(
   volume = TRUE,
   ref.mID = NULL,
   compare.by = NULL,
-  group.by = NULL,
+  group.by = compare.by,
   master.tbl = NULL,
   verbose = TRUE
 ){

@@ -533,16 +533,16 @@ plot_polder_scenario <- function(
                          get(cmp_vars[1]) - get(cmp_vars[2])]
       delta_data[, eval(cmp_vars[1]) := NULL]
       delta_data[, eval(cmp_vars[2]) := NULL]
-      if (param == 'waterlevel'){
-        delta_mea <- dcast(id_data, ts ~ get(compare.by),
-                            value.var = 'Nach')
-        # delta_data[, delta_pos := 'Delta an der Maßnahme']
-        delta_mea[, `Delta an der Maßnahme` := get(cmp_vars[1]) - get(cmp_vars[2])]
-        delta_mea[, eval(cmp_vars[1]) := NULL]
-        delta_mea[, eval(cmp_vars[2]) := NULL]
-        delta_data <- merge(delta_data, delta_mea, by = 'ts',
-                            sort = FALSE)
-      }
+      # if (param == 'waterlevel'){
+      delta_mea <- dcast(id_data, ts ~ get(compare.by),
+                         value.var = 'Nach')
+      # delta_data[, delta_pos := 'Delta an der Maßnahme']
+      delta_mea[, `Delta an der Maßnahme` := get(cmp_vars[1]) - get(cmp_vars[2])]
+      delta_mea[, eval(cmp_vars[1]) := NULL]
+      delta_mea[, eval(cmp_vars[2]) := NULL]
+      delta_data <- merge(delta_data, delta_mea, by = 'ts',
+                          sort = FALSE)
+      # }
     } else{
       delta_data <- dcast(id_data, ts ~ get(compare.by),
                          value.var = 'Nach')

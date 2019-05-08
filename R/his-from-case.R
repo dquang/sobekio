@@ -17,6 +17,7 @@
 #' @param copy.his Should .HIS files copied to the output folders?
 #' @param out.folder Parent folder for the output.
 #' @param verbose Should message be displayed?
+#' @param get.max If TRUE, and there is only one type of ID, the max values will return
 #' @return A list of data.table
 #' @export
 his_from_case<- function(
@@ -33,7 +34,9 @@ his_from_case<- function(
   f.comment = "#",
   copy.his = FALSE, # copy .HIS file to destination folder?
   out.folder = ".",
-  verbose = TRUE) {
+  verbose = TRUE,
+  get.max = FALSE # instead of get the time series, get the max values only
+  ) {
   wk_dir <- getwd()
   str_as_factor <- default.stringsAsFactors()
   options("stringsAsFactors" = FALSE)
@@ -322,7 +325,13 @@ his_from_case<- function(
   }
   options("stringsAsFactors" = str_as_factor)
   setwd(wk_dir)
-  if (length(result) == 1) result <- result[[1]]
+  if (length(result) == 1) {
+    result <- result[[1]]
+    # get the max values if get.max == TRUE, only for one type of ID
+    if (isTRUE(get.max)){
+      result <- result[, lapply(.SD, max, na.rm = TRUE), by = case]
+    }
+  }
   return(result)
 }
 

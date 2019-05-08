@@ -16,7 +16,7 @@
 #' @param y.lab y-axis label
 #' @param to.upstream distance (km) to upstream of the DRV to be included in the graphic
 #' @param to.downstream distance (km) to downstream of the DRV to be included in the graphic
-#' @param y2.scale scale of y2-axis
+#' @param y2.scale scale of y2-axis. Default value will be automatic calculated.
 #' @param plot.title Title of the graphic
 #' @param text.size Size of text
 #' @param text.x.top.angle Angle of text at top
@@ -48,7 +48,7 @@ plot_drv <- function(
                  'Abfluss (m³/s)', 'Wasserstand (m+NHN)'),
   to.upstream = 0,
   to.downstream = 0,
-  y2.scale = 10,
+  y2.scale = NULL,
   plot.title = NULL,
   text.size = 12,
   text.x.top.angle = 90L,
@@ -195,15 +195,27 @@ plot_drv <- function(
         merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
     }
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
+    y2_max <- max(data_tbl$delta, na.rm = TRUE)
     if (y2_max - y2_min > 10) {
       y2_min <- round(y2_min,-1)
     } else {
       y2_min <- floor(y2_min)
     }
-    if (y2_min * y2.scale != y1_min) {
-      y2_shift <- floor(y2_shift - y2_min * y2.scale)
+    if (is.null(y2.scale)){
+      y2_length <- y2_max - y2_min
+      y1_length <- y1_max - y1_min
+      y2.scale <- round(y1_length/y2_length, 3)
+      if (isTRUE(verbose)) print(paste('tried with y2.scale =', y2.scale))
+    } else{
+      y2_max <- y1_max/y2.scale
     }
-    # y2_pretty <- pretty(y2_min, y2_max)
+
+    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    if (y1_pretty[5] < y1_max){
+      y1_max <- ceiling(y1_max)
+      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    }
+    y2_shift <- floor(y1_pretty[1] - y2_min*y2.scale)
   }
   #----add graphic----
   if (verbose) print('Preparing graphic...')
@@ -303,6 +315,7 @@ plot_drv <- function(
 #' @param lt.by Linetype defining by this value
 #' @param color.by Coloring by this value
 #' @param facet.by Facetting by this value
+#' @param facet.scale Facetting scale. Default 'fixed'
 #' @param compare.by Calculating delta by this value
 #' @param color.name Name of color in the legend
 #' @param lt.name Name of linetype in the legend
@@ -312,7 +325,7 @@ plot_drv <- function(
 #' @param y.lab y-axis label
 #' @param to.upstream distance (km) to upstream of the DRV to be included in the graphic
 #' @param to.downstream distance (km) to downstream of the DRV to be included in the graphic
-#' @param y2.scale scale of y2-axis
+#' @param y2.scale scale of y2-axis. Default value will be automatic calculated
 #' @param plot.title Title of the graphic
 #' @param text.size Size of text
 #' @param text.x.top.angle Angle of text at top
@@ -335,7 +348,8 @@ plot_longprofile <- function(
   param = 'discharge',
   lt.by = 'zustand',
   color.by = 'vgf',
-  facet.by = NULL,
+  facet.by = 'hwe',
+  facet.scale = 'fixed',
   compare.by = 'zustand',
   group.by = compare.by,
   color.name = 'Farbe',
@@ -345,7 +359,7 @@ plot_longprofile <- function(
   x.lab = 'Lage (KM)',
   y.lab = ifelse(param == 'discharge',
                  'Abfluss (m³/s)', 'Wasserstand (m+NHN)'),
-  y2.scale = 10,
+  y2.scale = NULL,
   plot.title = NULL,
   text.size = 12,
   text.x.top.angle = 90L,
@@ -441,16 +455,21 @@ plot_longprofile <- function(
   x_max <- data_tbl[, max(km, na.rm = TRUE)]
   y1_min <- data_tbl[, min(scheitel, na.rm = TRUE)]
   y1_max <- data_tbl[, max(scheitel, na.rm = TRUE)]
-  y2_max <- y1_max/y2.scale
-  y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-  y2_shift <- y1_pretty[1]
-  y2_min <- y2_shift/y2.scale
+  # y2_max <- y1_max/y2.scale
+  # y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+  # y2_shift <- y1_pretty[1]
+  # if(!is.null(y2.scale)){
+  #   y2_min <- y2_shift/y2.scale
+  # } else{
+  #   y2_min <- NULL
+  # }
+
   # rounding to integer or to multiple of ten
-  if (y2_max - y2_min > 10) {
-    y2_min <- round(y2_min, -1)
-  } else {
-    y2_min <- floor(y2_min)
-  }
+  # if (y2_max - y2_min > 10) {
+  #   y2_min <- round(y2_min, -1)
+  # } else {
+  #   y2_min <- floor(y2_min)
+  # }
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   #----delta == TRUE----
   if (isTRUE(delta)){
@@ -481,8 +500,9 @@ plot_longprofile <- function(
                              variable.name = group.by,
                              value.name = 'delta',
                              sort = FALSE)
+      data_tbl_delta <- data_tbl_delta[!is.na(delta)]
       colnames(data_tbl_delta)[2] <- 'delta_color'
-      data_tbl <- merge(data_tbl, data_tbl_delta, by = c('group'))
+      data_tbl <- merge(data_tbl, data_tbl_delta, by = 'group')
     } else{
       data_tbl_delta <-
         dcast(data_tbl, group  ~ get(compare.by),
@@ -499,14 +519,27 @@ plot_longprofile <- function(
         merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
     }
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
+    y2_max <- max(data_tbl$delta, na.rm = TRUE)
     if (y2_max - y2_min > 10) {
       y2_min <- round(y2_min,-1)
     } else {
       y2_min <- floor(y2_min)
     }
-    if (y2_min * y2.scale != y1_min) {
-      y2_shift <- floor(y2_shift - y2_min * y2.scale)
+    if (is.null(y2.scale)){
+      y2_length <- y2_max - y2_min
+      y1_length <- y1_max - y1_min
+      y2.scale <- round(y1_length/y2_length, 3)
+      if (isTRUE(verbose)) print(paste('tried with y2.scale =', y2.scale))
+    } else{
+      y2_max <- y1_max/y2.scale
     }
+
+    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    if (y1_pretty[5] < y1_max){
+      y1_max <- ceiling(y1_max)
+      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    }
+    y2_shift <- floor(y1_pretty[1] - y2_min*y2.scale)
   }
   #----add graphic----
   if (verbose) print('Preparing graphic...')
@@ -607,7 +640,7 @@ plot_longprofile <- function(
   }
 
   if (!is.null(facet.by)){
-    g <- g + facet_grid(rows = ensym(facet.by))
+    g <- g + facet_wrap(~ get(facet.by), scales = facet.scale)
   }
 
   return(g)

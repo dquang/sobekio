@@ -7,7 +7,8 @@
 his_from_case(case.list = "", sobek.project = "", param = 1,
   qID = NULL, wID = NULL, lID = NULL, sID = NULL, mID = NULL,
   f.sep = "\\t", f.header = FALSE, f.comment = "#",
-  copy.his = FALSE, out.folder = ".", verbose = TRUE)
+  copy.his = FALSE, out.folder = ".", verbose = TRUE,
+  get.max = FALSE)
 }
 \arguments{
 \item{case.list}{Path to the file containing SOBEK Cases to work with}
@@ -39,6 +40,8 @@ Second column (col.name = "name") is for Names correspond to the IDs}
 \item{out.folder}{Parent folder for the output.}
 
 \item{verbose}{Should message be displayed?}
+
+\item{get.max}{If TRUE, and there is only one type of ID, the max values will return}
 }
 \value{
 A list of data.table
