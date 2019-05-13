@@ -203,7 +203,7 @@ get_segment_data <- function(
     case.desc = case.desc,
     master.tbl = master.tbl
   )
-  segment_data_list <- list()
+  segment_data_list <- list(rep(NA, length(case.list)))
   if (isTRUE(verbose)){
     print(paste('Getting data for',
                 round(nrow(id_tbl)/length(case.list)),
@@ -239,11 +239,20 @@ get_segment_data <- function(
     segment_data <- segment_data[, lapply(.SD, max, na.rm = TRUE),
                          .SDcols = -c("ts"), by = case] %>%
       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
+    segment_data[is.infinite(scheitel), scheitel := NA]
+    segment_data <- merge(segment_data,
+                          id_tbl[, .SD, .SDcols = -c('ID')],
+                          by = c('case', 'ID_F'), sort = FALSE)
+  } else{
+    segment_data <- segment_data %>%
+      melt(id.vars = c('ts', 'case'),
+           variable.name = 'ID_F', 
+           value.name = 'value') %>%
+      merge(
+            id_tbl[, .SD, .SDcols = -c('ID')],
+            by = c('case', 'ID_F'), sort = FALSE)
   }
-  segment_data[is.infinite(scheitel), scheitel := NA]
-  segment_data <- merge(segment_data,
-                    id_tbl[, .SD, .SDcols = -c('ID')],
-                    by = c('case', 'ID_F'), sort = FALSE)
+
 
   return(segment_data)
 }

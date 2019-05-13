@@ -132,21 +132,10 @@ plot_drv <- function(
                        ID_TYPE == 'wID' & nchar(besonderheit) > 0,
                        c("km", "besonderheit")]
   }
-
   x_min <- data_tbl[, min(km, na.rm = TRUE)]
   x_max <- data_tbl[, max(km, na.rm = TRUE)]
   y1_min <- data_tbl[, min(scheitel, na.rm = TRUE)]
   y1_max <- data_tbl[, max(scheitel, na.rm = TRUE)]
-  y2_max <- y1_max/y2.scale
-  y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-  y2_shift <- y1_pretty[1]
-  y2_min <- y2_shift/y2.scale
-  # rounding to integer or to multiple of ten
-  if (y2_max - y2_min > 10) {
-    y2_min <- round(y2_min, -1)
-  } else {
-    y2_min <- floor(y2_min)
-  }
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   #----delta == TRUE----
   if (isTRUE(delta)){
@@ -154,7 +143,7 @@ plot_drv <- function(
     y2_name <- paste('Delta', str_to_sentence(compare.by),
                      ifelse(param == 'discharge', '(m³)', '(m)')
     )
-
+    
     if (compare.by != group.by){
       y2_name <- paste('Delta', str_to_sentence(compare.by),
                        'nach', str_to_sentence(group.by), 'gruppiert',
@@ -177,8 +166,9 @@ plot_drv <- function(
                              variable.name = group.by,
                              value.name = 'delta',
                              sort = FALSE)
+      data_tbl_delta <- data_tbl_delta[!is.na(delta)]
       colnames(data_tbl_delta)[2] <- 'delta_color'
-      data_tbl <- merge(data_tbl, data_tbl_delta, by = c('group'))
+      data_tbl <- merge(data_tbl, data_tbl_delta, by = 'group')
     } else{
       data_tbl_delta <-
         dcast(data_tbl, group  ~ get(compare.by),
@@ -194,28 +184,62 @@ plot_drv <- function(
       data_tbl <-
         merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
     }
+    data_tbl[, delta := round(delta, 3)]
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
     y2_max <- max(data_tbl$delta, na.rm = TRUE)
     if (y2_max - y2_min > 10) {
-      y2_min <- round(y2_min,-1)
+      y2_min <- round(y2_min, -1)
     } else {
-      y2_min <- floor(y2_min)
+      if (abs(y2_min) > 1) y2_min <- floor(y2_min)
     }
     if (is.null(y2.scale)){
       y2_length <- y2_max - y2_min
       y1_length <- y1_max - y1_min
-      y2.scale <- round(y1_length/y2_length, 3)
+      y2.scale <- round(y1_length / y2_length / 2)
       if (isTRUE(verbose)) print(paste('tried with y2.scale =', y2.scale))
-    } else{
-      y2_max <- y1_max/y2.scale
+    }
+    y2_shift <- y1_min - y2_min * y2.scale
+    # y2_max <- (y1_max - y2_shift)/ y2.scale
+    y1_max <- max(y1_max,
+                  y2_max * y2.scale + y2_shift)
+    y1_min <- min(y1_min,
+                  y2_min * y2.scale + y2_shift)
+    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    check_y1_pretty <- (max(y1_pretty) - min(y1_pretty)) / (y1_max - y1_min)
+    if (length(y1_pretty) < 5 | check_y1_pretty > 1){
+      y1_min_1 <- y1_min * 10
+      y1_max_1 <- y1_max * 10
+      y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+      y1_pretty <- y1_pretty/10
+      # y2_pretty <- (y1_pretty - y2_shift) / y2.scale
+    }
+    y2_pretty <- (y1_pretty - y2_shift) / y2.scale
+    # print(y1_pretty)
+    y2_pmin <- min(y2_pretty)
+    y2_pmax <- max(y2_pretty)
+    if (0 %between% c(y2_pmin, y2_pmax)){
+      # print(y2_pretty)
+      pos_y2_zero <- ceiling(abs(y2_pmax / (y2_pmax - y2_pmin)))
+      if (pos_y2_zero > length(y1_pretty)) pos_y2_zero  <- length(y1_pretty)
+      y2_shift <- y1_pretty[pos_y2_zero]
+      y1_max <- max(y1_max,
+                    y2_max * y2.scale + y2_shift)
+      y1_min <- min(y1_min,
+                    y2_min * y2.scale + y2_shift)
+      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+      check_y1_pretty <- (max(y1_pretty) - min(y1_pretty)) / (y1_max - y1_min)
+      if (length(y1_pretty) < 5 | check_y1_pretty > 1){
+        y1_min_1 <- y1_min * 10
+        y1_max_1 <- y1_max * 10
+        y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+        y1_pretty <- y1_pretty/10
+      }
+      y2_pretty <- (y1_pretty - y2_shift) / y2.scale
+      y2_pretty <- unique(sort(c(y2_pretty, 0)))
     }
 
-    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-    if (y1_pretty[5] < y1_max){
-      y1_max <- ceiling(y1_max)
-      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-    }
-    y2_shift <- floor(y1_pretty[1] - y2_min*y2.scale)
+    data_tbl[get(compare.by) == cmp_vars[2], delta := NA]
+    data_tbl[get(compare.by) == cmp_vars[2], delta_color := NA]
   }
   #----add graphic----
   if (verbose) print('Preparing graphic...')
@@ -266,24 +290,24 @@ plot_drv <- function(
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
   if (isTRUE(delta)){
-    y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <- g + geom_line(
       data = data_tbl,
       aes(
         y = delta * y2.scale + y2_shift,
         # shape = !!ensym(compare.by),
         color = delta_color,
-        linetype = !!ensym(compare.by)
+        linetype = 'Delta'
       ),
       size = 1
     ) +
       scale_y_continuous(
         breaks = y1_pretty,
+        labels = y1_pretty,
         sec.axis =
           sec_axis(
-            trans = ~ . * 1 / y2.scale - y2_shift / y2.scale,
+            trans = ~ (. - y2_shift) / y2.scale,
             breaks = y2_pretty,
-            labels = round(y2_pretty, 2),
+            labels = round(y2_pretty, 3),
             name = y2_name
           )
       )
@@ -455,21 +479,6 @@ plot_longprofile <- function(
   x_max <- data_tbl[, max(km, na.rm = TRUE)]
   y1_min <- data_tbl[, min(scheitel, na.rm = TRUE)]
   y1_max <- data_tbl[, max(scheitel, na.rm = TRUE)]
-  # y2_max <- y1_max/y2.scale
-  # y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-  # y2_shift <- y1_pretty[1]
-  # if(!is.null(y2.scale)){
-  #   y2_min <- y2_shift/y2.scale
-  # } else{
-  #   y2_min <- NULL
-  # }
-
-  # rounding to integer or to multiple of ten
-  # if (y2_max - y2_min > 10) {
-  #   y2_min <- round(y2_min, -1)
-  # } else {
-  #   y2_min <- floor(y2_min)
-  # }
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   #----delta == TRUE----
   if (isTRUE(delta)){
@@ -518,28 +527,61 @@ plot_longprofile <- function(
       data_tbl <-
         merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
     }
+    data_tbl[, delta := round(delta, 3)]
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
     y2_max <- max(data_tbl$delta, na.rm = TRUE)
     if (y2_max - y2_min > 10) {
-      y2_min <- round(y2_min,-1)
+      y2_min <- round(y2_min, -1)
     } else {
-      y2_min <- floor(y2_min)
+      if (abs(y2_min) > 1) y2_min <- floor(y2_min)
     }
     if (is.null(y2.scale)){
       y2_length <- y2_max - y2_min
       y1_length <- y1_max - y1_min
-      y2.scale <- round(y1_length/y2_length, 3)
+      y2.scale <- round(y1_length / y2_length / 2)
       if (isTRUE(verbose)) print(paste('tried with y2.scale =', y2.scale))
-    } else{
-      y2_max <- y1_max/y2.scale
     }
-
+    y2_shift <- y1_min - y2_min * y2.scale
+    # y2_max <- (y1_max - y2_shift)/ y2.scale
+    y1_max <- max(y1_max,
+                  y2_max * y2.scale + y2_shift)
+    y1_min <- min(y1_min,
+                  y2_min * y2.scale + y2_shift)
     y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-    if (y1_pretty[5] < y1_max){
-      y1_max <- ceiling(y1_max)
-      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    check_y1_pretty <- (max(y1_pretty) - min(y1_pretty)) / (y1_max - y1_min)
+    if (length(y1_pretty) < 5 | check_y1_pretty > 1){
+      y1_min_1 <- y1_min * 10
+      y1_max_1 <- y1_max * 10
+      y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+      y1_pretty <- y1_pretty/10
+      # y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     }
-    y2_shift <- floor(y1_pretty[1] - y2_min*y2.scale)
+    y2_pretty <- (y1_pretty - y2_shift) / y2.scale
+    # print(y1_pretty)
+    y2_pmin <- min(y2_pretty)
+    y2_pmax <- max(y2_pretty)
+    if (0 %between% c(y2_pmin, y2_pmax)){
+      # print(y2_pretty)
+      pos_y2_zero <- ceiling(abs(y2_pmax / (y2_pmax - y2_pmin)))
+      if (pos_y2_zero > length(y1_pretty)) pos_y2_zero  <- length(y1_pretty)
+      y2_shift <- y1_pretty[pos_y2_zero]
+      y1_max <- max(y1_max,
+                    y2_max * y2.scale + y2_shift)
+      y1_min <- min(y1_min,
+                    y2_min * y2.scale + y2_shift)
+      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+      check_y1_pretty <- (max(y1_pretty) - min(y1_pretty)) / (y1_max - y1_min)
+      if (length(y1_pretty) < 5 | check_y1_pretty > 1){
+        y1_min_1 <- y1_min * 10
+        y1_max_1 <- y1_max * 10
+        y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+        y1_pretty <- y1_pretty/10
+      }
+      y2_pretty <- (y1_pretty - y2_shift) / y2.scale
+      y2_pretty <- unique(sort(c(y2_pretty, 0)))
+    }
+    data_tbl[get(compare.by) == cmp_vars[2], delta := NA]
+    data_tbl[get(compare.by) == cmp_vars[2], delta_color := NA]
   }
   #----add graphic----
   if (verbose) print('Preparing graphic...')
@@ -590,14 +632,13 @@ plot_longprofile <- function(
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
   if (isTRUE(delta)){
-    y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <- g + geom_line(
       data = data_tbl,
       aes(
         y = delta * y2.scale + y2_shift,
         # shape = !!ensym(compare.by),
         color = delta_color,
-        linetype = !!ensym(compare.by)
+        linetype = 'Delta'
       ),
       size = 1
     ) +
@@ -605,9 +646,9 @@ plot_longprofile <- function(
         breaks = y1_pretty,
         sec.axis =
           sec_axis(
-            trans = ~ . * 1 / y2.scale - y2_shift / y2.scale,
+            trans = ~ (. - y2_shift) / y2.scale,
             breaks = y2_pretty,
-            labels = round(y2_pretty, 2),
+            labels = round(y2_pretty, 3),
             name = y2_name
           )
       )

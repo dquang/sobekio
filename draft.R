@@ -4,13 +4,14 @@ library(cowplot)
 library(sobekio)
 library(tidyverse)
 #----default parameters-----
-river = NULL
-from.km = -Inf
-to.km = Inf
-case.list = NULL
+river = 'Main'
+from.km = 10
+to.km = 15
+case.list = c('Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit',
+              'Bezugszustand_ZPK_HW1988_Selten_1828_newReg')
 case.desc = case.list
-sobek.project = NULL
-param = 'discharge'
+sobek.project = 'c:/rhein.lit'
+param = 'waterlevel'
 lt.by = 'zustand'
 color.by = 'vgf'
 facet.by = NULL
@@ -18,12 +19,12 @@ compare.by = 'zustand'
 group.by = compare.by
 color.name = 'Farbe'
 lt.name = 'Linienart'
-delta = FALSE
+delta = TRUE
 reserve.x = FALSE
 x.lab = 'Lage (KM)'
 y.lab = ifelse(param == 'discharge',
                'Abfluss (m³/s)', 'Wasserstand (m+NHN)')
-y2.scale = 10
+y2.scale = NULL
 plot.title = NULL
 text.size = 12
 text.x.top.angle = 90L
@@ -34,7 +35,7 @@ highlight = NULL
 highlight.text = NULL
 a.fill = exl_std[3]
 a.alpha = 0.1
-master.tbl = NULL
+master.tbl = rhein_tbl
 verbose = TRUE
 #----setting parameters----
   river = 'Rhein'
@@ -55,52 +56,44 @@ verbose = TRUE
   master.tbl = rhein_tbl
 #---test full function----
 plot_longprofile(
-  river = 'Rhein',
-  from.km = 665,
-  to.km = 780,
-  case.list = c(
-    'Planzustand_ZPK_HW1995_Selten_ohne_Niederrhein',
-    'Planzustand_ZPK_HW1995_Selten_Eich_Wor_Zeit'
-  ),
-  case.desc = c(
-    'ohne Worringer_ZPK_HW1995_Selten_Nur_Eich',
-    'mit Worringer_ZPK_HW1995_Selten_Eich_Wor'
-  ),
+  river = 'Main',
+  from.km = 0,
+  to.km = 25,
+  case.list = c('Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit',
+                'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'),
+  # case.desc = case.list,
+  sobek.project = 'c:/rhein.lit',
   param = 'waterlevel',
   group.by = 'vgf',
   delta = TRUE,
-  y2.scale = 100,
-  sobek.project = so_prj,
+  y2.scale = 20,
+  # sobek.project = so_prj,
   master.tbl = rhein_tbl
 )
 
   plot_drv(
-    name = 'Muendelheim',
-    case.list = c(
-      'Planzustand_ZPK_HW1995_Selten_ohne_Niederrhein',
-      'Planzustand_ZPK_HW1995_Selten_Eich_Wor_Zeit'
-    ),
-    case.desc = c(
-      'ohne Worringer_ZPK_HW1995_Selten_Nur_Eich',
-      'mit Worringer_ZPK_HW1995_Selten_Eich_Wor'
-    ),
+    name = 'Hattersheim',
+    case.list = c('Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit',
+                  'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'),
+    # case.desc = case.list,
+    to.upstream = 10,
+    to.downstream = 20,
     param = 'waterlevel',
     compare.by = 'zustand',
     group.by = 'vgf',
     delta = TRUE,
-    y2.scale = 10,
-    sobek.project = so_prj,
+    y2.scale = 20,
+    sobek.project = 'c:/rhein.lit',
     master.tbl = rhein_tbl
   )
 
   plot_polder_scenario(
     name = 'Worringer',
-    case.list = c(
-      'Planzustand_ZPK_HW1988_Selten_ohne_Niederrhein',
-      'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit'),
-    case.desc = c(
-      'ohne Worringer_ZPK_HW1988_Selten_Nur_Eich',
-      'mit Worringer_ZPK_HW1988_Selten_Eich_Wor'),
+    case.list = c('Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit',
+                  'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'),
+    # case.desc = c(
+    #   'ohne Worringer_ZPK_HW1988_Selten_Nur_Eich',
+    #   'mit Worringer_ZPK_HW1988_Selten_Eich_Wor'),
     # ref.mID = 'p_duesseldorf',
     q.in = TRUE,
     q.out = TRUE,
@@ -114,7 +107,7 @@ plot_longprofile(
     peak.nday = 5,
     # date.break = '6 hours',
     # date.label = '%d.%m %H:%M',
-    sobek.project = so_prj,
+    sobek.project = 'c:/rhein.lit',
     master.tbl = rhein_tbl
   )
   plot_polder_scenario(
