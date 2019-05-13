@@ -7,7 +7,12 @@
 #' @export
 switch_DRV <- function(case.name, sobek.project, drv.name = NULL,
                        status = "mit", f.tbl){
-  def.tbl <- fread(f.tbl, sep = "\t", header = T, quote = "")
+  if (!is.data.table(f.tbl)){
+    def.tbl <- fread(f.tbl, sep = "\t", header = T, quote = "")
+  } else{
+    def.tbl <- copy(f.tbl)
+  }
+  stopifnot(drv.name %in% def.tbl$DRV)
   case_folder <- dirname(get_file_path(case.name = case.name,
                                        sobek.project = sobek.project,
                                        type = 'node'))

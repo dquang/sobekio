@@ -17,6 +17,7 @@
 #' @param delta.line Logical. Should Delta lines be plotted extra, beneath the main plot? Default is FALSE.
 #' @param rel.height Relative size of the main and the Delta plot. Default c(2, 0.7)
 #' @param compare.by Should the line be compare by 'case' or by 'location'
+#' @param group.by
 #' @param plot.title Title of the plot
 #' @param lt.name Name of the linetype legend
 #' @param color.name Name of the color legend
