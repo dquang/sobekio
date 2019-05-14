@@ -143,7 +143,7 @@ plot_drv <- function(
     y2_name <- paste('Delta', str_to_sentence(compare.by),
                      ifelse(param == 'discharge', '(m³)', '(m)')
     )
-    
+
     if (compare.by != group.by){
       y2_name <- paste('Delta', str_to_sentence(compare.by),
                        'nach', str_to_sentence(group.by), 'gruppiert',
@@ -195,6 +195,7 @@ plot_drv <- function(
     if (is.null(y2.scale)){
       y2_length <- y2_max - y2_min
       y1_length <- y1_max - y1_min
+      # make delta only a haft height of the main parameter
       y2.scale <- round(y1_length / y2_length / 2)
       if (isTRUE(verbose)) print(paste('tried with y2.scale =', y2.scale))
     }
@@ -654,7 +655,11 @@ plot_longprofile <- function(
       )
   }
   #----adding highlight area and facet----
+  if (!is.null(facet.by)){
+    g <- g + facet_wrap(~ get(facet.by), scales = facet.scale)
+  }
   if (!is.null(highlight)){
+    # hl_count <- length(highlight)
     g <- g + annotate('rect',
                       xmin = highlight[[1]],
                       xmax = highlight[[2]],
@@ -678,10 +683,6 @@ plot_longprofile <- function(
           angle = 90, vjust = 0, hjust = 0.5
         )
     }
-  }
-
-  if (!is.null(facet.by)){
-    g <- g + facet_wrap(~ get(facet.by), scales = facet.scale)
   }
 
   return(g)

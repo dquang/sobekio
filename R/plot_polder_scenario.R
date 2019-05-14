@@ -17,7 +17,7 @@
 #' @param delta.line Logical. Should Delta lines be plotted extra, beneath the main plot? Default is FALSE.
 #' @param rel.height Relative size of the main and the Delta plot. Default c(2, 0.7)
 #' @param compare.by Should the line be compare by 'case' or by 'location'
-#' @param group.by
+#' @param group.by Groupping for delta calculation
 #' @param plot.title Title of the plot
 #' @param lt.name Name of the linetype legend
 #' @param color.name Name of the color legend
@@ -244,9 +244,10 @@ plot_polder_scenario <- function(
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
                                 variable.name = 'Einlass',
                                 value.name = 'Q_Einlass')
+        id_data_einlass[, Einlass := paste("Q", Einlass)]
         g <- g + geom_line(data = id_data_einlass,
                            aes(y = Q_Einlass * y2.scale + y2_shift,
-                           color = 'Q Einlass'),
+                           color = Einlass),
                        size = 1)
       } else{
         g <- g + geom_line(aes(
@@ -255,34 +256,35 @@ plot_polder_scenario <- function(
         ),
         size = 1)
       }
-      if (isTRUE(q.out)){
-        y2_min <- id_data[, .SD,
-                          .SDcols = c(einlass_cols, auslass_cols)
-                          ] %>%
-          min(na.rm = TRUE)
-        if (y2_max - y2_min > 10) {
-          y2_min <- round(y2_min, -1)
-        } else {
-          y2_min <- floor(y2_min)
-        }
-        if (y2_min*y2.scale != y1_min) {
-          y2_shift <- floor(y2_shift - y2_min*y2.scale)
-        }
-        if (length(auslass_cols) > 1){
-          id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
-                                  variable.name = 'Auslass',
-                                  value.name = 'Q_Auslass')
-          g <- g + geom_line(data = id_data_auslass,
-                             aes(y = Q_Auslass * y2.scale + y2_shift,
-                                 color = 'Q Auslass'),
-                             size = 1)
-        } else{
-          g <- g + geom_line(aes(
-            y = !!ensym(auslass_cols) * y2.scale + y2_shift,
-            color = eval(paste('Q',  auslass_cols))
-          ),
-          size = 1)
-        }
+    }
+    if (isTRUE(q.out)){
+      y2_min <- id_data[, .SD,
+                        .SDcols = c(einlass_cols, auslass_cols)
+                        ] %>%
+        min(na.rm = TRUE)
+      if (y2_max - y2_min > 10) {
+        y2_min <- round(y2_min, -1)
+      } else {
+        y2_min <- floor(y2_min)
+      }
+      if (y2_min*y2.scale != y1_min) {
+        y2_shift <- floor(y2_shift - y2_min*y2.scale)
+      }
+      if (length(auslass_cols) > 1){
+        id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
+                                variable.name = 'Auslass',
+                                value.name = 'Q_Auslass')
+        id_data_auslass[, Auslass := paste("Q", Auslass)]
+        g <- g + geom_line(data = id_data_auslass,
+                           aes(y = Q_Auslass * y2.scale + y2_shift,
+                               color = Auslass),
+                           size = 1)
+      } else{
+        g <- g + geom_line(aes(
+          y = !!ensym(auslass_cols) * y2.scale + y2_shift,
+          color = eval(paste('Q',  auslass_cols))
+        ),
+        size = 1)
       }
     }
     #----working with WL----
@@ -328,9 +330,10 @@ plot_polder_scenario <- function(
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
                                 variable.name = 'Einlass',
                                 value.name = 'Q_Einlass')
+        id_data_einlass[, Einlass := paste('Q', Einlass)]
         g <- g + geom_line(data = id_data_einlass,
                            aes(y = Q_Einlass * y2.scale + y2_shift,
-                               color = 'Q Einlass'),
+                               color = Einlass),
                            size = 1)
       } else{
         g <- g + geom_line(aes(
@@ -339,35 +342,36 @@ plot_polder_scenario <- function(
         ),
         size = 1)
       }
-      if (isTRUE(q.out)){
-        auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
-        y2_min <- id_data[, .SD,
-                          .SDcols = c(einlass_cols, auslass_cols)
-                          ] %>%
-          min(na.rm = TRUE)
-        if (y2_max - y2_min > 10) {
-          y2_min <- round(y2_min, -1)
-        } else {
-          y2_min <- floor(y2_min)
-        }
-        if (y2_min*y2.scale != y1_min) {
-          y2_shift <- floor(y2_shift - y2_min*y2.scale)
-        }
-        if (length(auslass_cols) > 1){
-          id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
-                                  variable.name = 'Auslass',
-                                  value.name = 'Q_Auslass')
-          g <- g + geom_line(data = id_data_auslass,
-                             aes(y = Q_Auslass * y2.scale + y2_shift,
-                                 color = 'Q Auslass'),
-                             size = 1)
-        } else{
-          g <- g + geom_line(aes(
-            y = !!ensym(auslass_cols) * y2.scale + y2_shift,
-            color = eval(paste('Q', auslass_cols))
-          ),
-          size = 1)
-        }
+    }
+    if (isTRUE(q.out)){
+      auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
+      y2_min <- id_data[, .SD,
+                        .SDcols = c(einlass_cols, auslass_cols)
+                        ] %>%
+        min(na.rm = TRUE)
+      if (y2_max - y2_min > 10) {
+        y2_min <- round(y2_min, -1)
+      } else {
+        y2_min <- floor(y2_min)
+      }
+      if (y2_min*y2.scale != y1_min) {
+        y2_shift <- floor(y2_shift - y2_min*y2.scale)
+      }
+      if (length(auslass_cols) > 1){
+        id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
+                                variable.name = 'Auslass',
+                                value.name = 'Q_Auslass')
+        id_data_auslass[, Auslass := paste('Q', Auslass)]
+        g <- g + geom_line(data = id_data_auslass,
+                           aes(y = Q_Auslass * y2.scale + y2_shift,
+                               color = Auslass),
+                           size = 1)
+      } else{
+        g <- g + geom_line(aes(
+          y = !!ensym(auslass_cols) * y2.scale + y2_shift,
+          color = eval(paste('Q', auslass_cols))
+        ),
+        size = 1)
       }
     }
   }
@@ -493,7 +497,7 @@ plot_polder_scenario <- function(
       check_overlap = TRUE
     )
   }
-  if ((param == 'discharge' & isTRUE(w.canal))|isTRUE(q.in)){
+  if ((param == 'discharge' & isTRUE(w.canal))|isTRUE(q.in)|isTRUE(q.out)){
     y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <-  g +
       scale_y_continuous(
