@@ -3,39 +3,38 @@ library(testthat)
 library(cowplot)
 library(sobekio)
 library(tidyverse)
+so_prj <- 'd:/rhein.lit'
 #----default parameters-----
-river = 'Main'
-from.km = 10
-to.km = 15
-case.list = c('Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit',
-              'Bezugszustand_ZPK_HW1988_Selten_1828_newReg')
-case.desc = case.list
-sobek.project = 'c:/rhein.lit'
-param = 'waterlevel'
-lt.by = 'zustand'
-color.by = 'vgf'
-facet.by = NULL
-compare.by = 'zustand'
-group.by = compare.by
-color.name = 'Farbe'
-lt.name = 'Linienart'
-delta = TRUE
-reserve.x = FALSE
-x.lab = 'Lage (KM)'
-y.lab = ifelse(param == 'discharge',
-               'Abfluss (m³/s)', 'Wasserstand (m+NHN)')
-y2.scale = NULL
-plot.title = NULL
-text.size = 12
-text.x.top.angle = 90L
-text.x.top.size = 8L
-text.x.bottom.angle = 0L
-ntick.x = 10L
-highlight = NULL
-highlight.text = NULL
-a.fill = exl_std[3]
-a.alpha = 0.1
+
+
+sobek.project = so_prj
 master.tbl = rhein_tbl
+param = 'waterlevel'
+q.in = TRUE
+q.out = TRUE
+w.canal = FALSE
+ref.mID = 'p_koeln'
+y2.scale = NULL
+h.lines = NULL
+peak.nday = NULL
+peak.pegel = FALSE
+delta.pegel = FALSE
+delta.measure = TRUE
+delta.line = FALSE
+rel.heights = c(2, 0.7)
+compare.by = 'zustand'
+plot.title = NULL
+lt.name = 'Linienart'
+color.name = 'Farbe'
+# v.max = TRUE
+text.pos.x = 0
+text.pos.y = 1
+date.break = '3 days'
+date.label = '%d.%m.%y'
+text.size = 12
+text.x.angle = 0L
+polder.f = NULL
+polder.z = NULL
 verbose = TRUE
 #----setting parameters----
   river = 'Rhein'
@@ -88,32 +87,33 @@ plot_longprofile(
   )
 
   plot_polder_scenario(
-    name = 'Worringer',
-    case.list = c('Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit',
-                  'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'),
-    # case.desc = c(
-    #   'ohne Worringer_ZPK_HW1988_Selten_Nur_Eich',
-    #   'mit Worringer_ZPK_HW1988_Selten_Eich_Wor'),
-    # ref.mID = 'p_duesseldorf',
+    name = 'Lohrwardt',
+    case.list = c('Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+                  'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469'),
+    case.desc = c(
+      'mit Lohrwardt_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+      'ohne Lohrwardt_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469'),
+    ref.mID = 'p_rees',
     q.in = TRUE,
     q.out = TRUE,
     # compare.by = 'notiz',
     # facet.by = 'zustand',
     delta.line = TRUE,
     param = 'discharge',
-    y2.scale = 10,
+    # y2.scale = 0.05,
+    # y2.tick1 = -100,
     delta.measure = TRUE,
     delta.pegel = TRUE,
-    peak.nday = 5,
+    peak.nday = 3,
     # date.break = '6 hours',
     # date.label = '%d.%m %H:%M',
-    sobek.project = 'c:/rhein.lit',
+    sobek.project = 'D:/rheinNRW.lit',
     master.tbl = rhein_tbl
   )
   plot_polder_scenario(
     name = 'Orsoy',
     case.list = c(
-      'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit',
+      'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
       'Bezugszustand_ZPK_HW1988_Selten_1828_newReg'),
     case.desc = c(
       'ohne Worringer_ZPK_HW1988_Selten_Nur_Eich',

@@ -8,7 +8,10 @@
 #' @param q.out Logical. Should discharge through the outlet be plotted?
 #' @param w.canal Logical. Should Wt line inside the measure be plotted?
 #' @param ref.mID ID of Bezugspegel
-#' @param y2.scale Scaling between main and secondary y-axes. This is an important paramter. If the line for secondary axis is too big, try to change y2.scale
+#' @param y2.scale Scaling between main and secondary y-axes. 
+#' This is an important paramter. If the line for secondary axis is too big, try to change y2.scale
+#' y2.scale with be automatically calculated so that the height of the graph on y2-axis is about 3/4 those on y1-axis
+#' @param y2.tick1 The value of the first tick on the y2-axis. Using this a y2.scale to make y2-axis looks nice.
 #' @param h.lines list of (name = value) to be displayed as horizontal line
 #' @param peak.nday Should the plot limit to nday before and after the peak. Default is not (NULL). Otherwise please give a number of days
 #' @param peak.pegel If the plot should be limit to the peak area, should it be the peak of the referenced location (ref.mID). Default is not.
@@ -42,9 +45,12 @@ plot_polder_scenario <- function(
   param = 'discharge',
   q.in = FALSE,
   q.out = FALSE,
+  # sum.q.in = FALSE,
+  # sum.q.out = FALSE,
   w.canal = FALSE,
   ref.mID = NULL,
-  y2.scale = 25,
+  y2.scale = NULL,
+  y2.tick1 = NULL,
   h.lines = NULL,
   peak.nday = NULL,
   peak.pegel = FALSE,
@@ -66,8 +72,6 @@ plot_polder_scenario <- function(
   polder.f = NULL,
   polder.z = NULL,
   verbose = TRUE){
-
-
   #----checking input----
   # there should be only two cases
   stopifnot(length(unlist(case.list)) == 2)
@@ -167,6 +171,54 @@ plot_polder_scenario <- function(
   }
   #-----preparing plot-----
   if (isTRUE(verbose)) print('Preparing graphic...')
+  einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
+  auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
+  y2_axis <- isTRUE(q.in)|isTRUE(q.out)|(param == 'discharge' & isTRUE(w.canal))
+  if (isTRUE(y2_axis)) {
+    y1_cols <- c('Nach', 'Vor')
+    if (!is.null(ref.mID))
+      y1_cols <- c('Nach', 'Vor', 'Bezugspegel')
+    if (isTRUE(w.canal) &
+        param == 'waterlevel')
+      y1_cols <- c(y1_cols, 'W_innen')
+    y2_cols <- c(einlass_cols, auslass_cols)
+    if (isTRUE(w.canal) & param == 'discharge') {
+      q.in <- FALSE
+      q.out <- FALSE
+      y2_cols <- 'W_innen'
+    }
+    y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
+    y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
+    y2_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y2_cols]
+    y2_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y2_cols]
+    y1_length <- y1_max - y1_min
+    y2_length <- y2_max - y2_min
+    if (is.null(y2.scale)) {
+      y2.scale <- round(y1_length * 0.75 * 1000 / y2_length)
+      for (i in 0:3) {
+        # if (abs(y2.scale) > 1) y2.scale <- round(y2.scale)
+        if (abs(y2.scale) > 10 ** i)
+          y2.scale <- round(y2.scale, -i)
+      }
+      y2.scale <- y2.scale / 1000
+      y2_shift <- y1_min - y2_min * y2.scale
+      # if (y1_max < y2_max * y2.scale + y2_shift)
+    } else{
+      y2_shift <- round(y1_min - y2_min * y2.scale, 2)
+    }
+    if (y1_length < 10) {
+      y1_max_1 <- y1_max * 10
+      y1_min_1 <- y1_min * 10
+      y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+      y1_pretty <- y1_pretty / 10
+    } else{
+      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    }
+    y2_pretty <- (y1_pretty - y2_shift) / y2.scale
+    if (!is.null(y2.tick1)) {
+      y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
+    }
+  }
   if (!is.null(ref.mID)){
     g <- ggplot(data = id_data,
                 mapping = aes(x = ts, linetype = !!ensym(compare.by))
@@ -181,28 +233,7 @@ plot_polder_scenario <- function(
                 mapping = aes(x = ts, linetype = !!ensym(compare.by))
     )
   }
-  if (!is.null(ref.mID)){
-    y1_max <- id_data[, max(.SD, na.rm = TRUE),
-                      .SDcols = c('Nach', 'Vor', 'Bezugspegel')]
-    y1_min <- id_data[, min(.SD, na.rm = TRUE),
-                      .SDcols = c('Nach', 'Vor', 'Bezugspegel')]
-  } else{
-    y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
-    y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = c('Nach', 'Vor')]
-  }
-  y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
-  y2_max <- y1_max/y2.scale
-  y2_shift <- y1_pretty[1]
-  y2_min <- y2_shift/y2.scale
-  if (y2_max - y2_min > 10) {
-    y2_min <- round(y2_min, -1)
-  } else {
-    y2_min <- floor(y2_min)
-  }
-  y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
   if (isTRUE(verbose)) print('Adding hydrographs...')
-  einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
-  auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
   if (tolower(param) == 'discharge'){
     #----working with discharge----
     g <- g +
@@ -210,15 +241,15 @@ plot_polder_scenario <- function(
                 size = 1)
     if (isTRUE(w.canal)){
       q.in <- FALSE
-      y2_min <- min(id_data$W_innen, na.rm = TRUE)
-      if (y2_max - y2_min > 10) {
-        y2_min <- round(y2_min, -1)
-      } else {
-        y2_min <- floor(y2_min)
-      }
-      if (y2_min*y2.scale != y1_min) {
-        y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      }
+      # y2_min <- min(id_data$W_innen, na.rm = TRUE)
+      # if (y2_max - y2_min > 10) {
+      #   y2_min <- round(y2_min, -1)
+      # } else {
+      #   y2_min <- floor(y2_min)
+      # }
+      # if (y2_min*y2.scale != y1_min) {
+      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
+      # }
       # if parameter is discharge, move waterlevel to secondary axis
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
                              color = 'W in Maßnahme'),
@@ -227,18 +258,18 @@ plot_polder_scenario <- function(
     }
     if (isTRUE(q.in)){
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-      y2_min <- id_data[, .SD,
-                        .SDcols = einlass_cols
-                        ] %>%
-        min(na.rm = TRUE)
-      if (y2_max - y2_min > 10) {
-        y2_min <- round(y2_min, -1)
-      } else {
-        y2_min <- floor(y2_min)
-      }
-      if (y2_min*y2.scale != y1_min) {
-        y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      }
+      # y2_min <- id_data[, .SD,
+      #                   .SDcols = einlass_cols
+      #                   ] %>%
+      #   min(na.rm = TRUE)
+      # if (y2_max - y2_min > 10) {
+      #   y2_min <- round(y2_min, -1)
+      # } else {
+      #   y2_min <- floor(y2_min)
+      # }
+      # if (y2_min*y2.scale != y1_min) {
+      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
+      # }
       # adding Einlass lines
       if (length(einlass_cols) > 1){
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
@@ -258,18 +289,18 @@ plot_polder_scenario <- function(
       }
     }
     if (isTRUE(q.out)){
-      y2_min <- id_data[, .SD,
-                        .SDcols = c(einlass_cols, auslass_cols)
-                        ] %>%
-        min(na.rm = TRUE)
-      if (y2_max - y2_min > 10) {
-        y2_min <- round(y2_min, -1)
-      } else {
-        y2_min <- floor(y2_min)
-      }
-      if (y2_min*y2.scale != y1_min) {
-        y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      }
+      # y2_min <- id_data[, .SD,
+      #                   .SDcols = c(einlass_cols, auslass_cols)
+      #                   ] %>%
+      #   min(na.rm = TRUE)
+      # if (y2_max - y2_min > 10) {
+      #   y2_min <- round(y2_min, -1)
+      # } else {
+      #   y2_min <- floor(y2_min)
+      # }
+      # if (y2_min*y2.scale != y1_min) {
+      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
+      # }
       if (length(auslass_cols) > 1){
         id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
                                 variable.name = 'Auslass',
@@ -295,17 +326,17 @@ plot_polder_scenario <- function(
                 size = 1)
     if (isTRUE(w.canal)){
       y2_name <- 'Wasserstand (m+NHN)'
-      if(is.null(ref.mID)){
-        y1_cols <- c('Nach', 'Vor', 'W_innen')
-      } else{
-        y1_cols <- c('Nach', 'Vor', 'W_innen', 'Bezugspegel')
-      }
-      y1_max <- id_data[, max(.SD, na.rm = TRUE),
-                        .SDcols = y1_cols]
-      y1_min <- id_data[, min(.SD, na.rm = TRUE),
-                        .SDcols = c('Nach', 'Vor', 'W_innen')]
-      y2_max <- ceiling(y1_max/y2.scale)
-      y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
+      # if(is.null(ref.mID)){
+      #   y1_cols <- c('Nach', 'Vor', 'W_innen')
+      # } else{
+      #   y1_cols <- c('Nach', 'Vor', 'W_innen', 'Bezugspegel')
+      # }
+      # y1_max <- id_data[, max(.SD, na.rm = TRUE),
+      #                   .SDcols = y1_cols]
+      # y1_min <- id_data[, min(.SD, na.rm = TRUE),
+      #                   .SDcols = c('Nach', 'Vor', 'W_innen')]
+      # y2_max <- ceiling(y1_max/y2.scale)
+      # y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
       g <- g + geom_line(aes(y = W_innen,
                              color = 'W in Maßnahme'),
                          size = 1)
@@ -313,18 +344,18 @@ plot_polder_scenario <- function(
     if (isTRUE(q.in)){
       einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-      y2_min <- id_data[, .SD,
-                        .SDcols = einlass_cols
-                        ] %>%
-        min(na.rm = TRUE)
-      if (y2_max - y2_min > 10) {
-        y2_min <- round(y2_min, -1)
-      } else {
-        y2_min <- floor(y2_min)
-      }
-      if (y2_min*y2.scale != y1_min) {
-        y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      }
+      # y2_min <- id_data[, .SD,
+      #                   .SDcols = einlass_cols
+      #                   ] %>%
+      #   min(na.rm = TRUE)
+      # if (y2_max - y2_min > 10) {
+      #   y2_min <- round(y2_min, -1)
+      # } else {
+      #   y2_min <- floor(y2_min)
+      # }
+      # if (y2_min*y2.scale != y1_min) {
+      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
+      # }
       # adding Einlass lines
       if (length(einlass_cols) > 1){
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
@@ -344,19 +375,18 @@ plot_polder_scenario <- function(
       }
     }
     if (isTRUE(q.out)){
-      auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
-      y2_min <- id_data[, .SD,
-                        .SDcols = c(einlass_cols, auslass_cols)
-                        ] %>%
-        min(na.rm = TRUE)
-      if (y2_max - y2_min > 10) {
-        y2_min <- round(y2_min, -1)
-      } else {
-        y2_min <- floor(y2_min)
-      }
-      if (y2_min*y2.scale != y1_min) {
-        y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      }
+      # y2_min <- id_data[, .SD,
+      #                   .SDcols = c(einlass_cols, auslass_cols)
+      #                   ] %>%
+      #   min(na.rm = TRUE)
+      # if (y2_max - y2_min > 10) {
+      #   y2_min <- round(y2_min, -1)
+      # } else {
+      #   y2_min <- floor(y2_min)
+      # }
+      # if (y2_min*y2.scale != y1_min) {
+      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
+      # }
       if (length(auslass_cols) > 1){
         id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
                                 variable.name = 'Auslass',
@@ -497,13 +527,13 @@ plot_polder_scenario <- function(
       check_overlap = TRUE
     )
   }
-  if ((param == 'discharge' & isTRUE(w.canal))|isTRUE(q.in)|isTRUE(q.out)){
+  if (isTRUE(y2_axis)){
     y2_pretty <- (y1_pretty - y2_shift)/y2.scale
-    g <-  g +
+    g <- g +
       scale_y_continuous(
         breaks = y1_pretty,
         sec.axis =
-          sec_axis(trans = ~.*1/y2.scale - y2_shift/y2.scale,
+          sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
                    breaks = y2_pretty,
                    labels = round(y2_pretty, 2),
                    name = y2_name)
@@ -589,6 +619,11 @@ plot_polder_scenario <- function(
     g <- cowplot::plot_grid(g, g2, ncol = 1, rel_heights = rel.heights,
                             align = 'v', axis = 'l')
   }
-
+  if (isTRUE(verbose) & isTRUE(y2_axis)) {
+    print(paste('tried with y2.scale = ', y2.scale, 
+                ". Use y2.tick1 and y2.scale to adjust y2-axis",
+                sep = ""))
+  }
+    
   return(g)
 }
