@@ -398,6 +398,7 @@ plot_longprofile <- function(
   master.tbl = NULL,
   verbose = TRUE
 ){
+  stopifnot(length(unique(case.list)) == length(case.list))
   stopifnot(is.numeric(from.km) & is.numeric(to.km))
   if (!is.null(highlight)){
     stopifnot(is.numeric(highlight) & length(highlight) >1)
@@ -429,7 +430,10 @@ plot_longprofile <- function(
     if(compare.by != group.by){
       total_case <- unique(as.vector(outer(cmp_vars, grp_vars, paste, sep="_")))
       if (length(total_case) != length(case.list)){
-        stop("Combination of compare.by and group.by does not have the same length as case.list")
+        print("Combination of compare.by and group.by does not have the same length as case.list")
+        print('notiz can be modified and used as a groupping parameter')
+        stop('groupping by ', group.by,
+             'is not unique for calculating delta between ', compare.by)
       }
     }
   }

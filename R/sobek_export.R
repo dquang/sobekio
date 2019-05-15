@@ -12,7 +12,7 @@ sobek_export <- function(case.list,
                          his.only = FALSE
                          ){
   if (!dir.exists(dest)) dir.create(dest)
-  if (is.character(case.list) & file.exists(case.list)){
+  if (is.character(case.list[[1]]) & file.exists(case.list[[1]])){
     case.list <-  data.table(read.table(case.list,
                                         header = FALSE, sep ="\n",
                                         encoding = "windows-1252",
@@ -85,9 +85,10 @@ sobek_export <- function(case.list,
   sobek_reg[1,1] <- as.character(length(sobek_reg$V1) - 1)
   case_cmt <- data.table(case_folders, case.list)
   print('updating register...')
+  case_cmt[, case.list := paste("'", case.list, "'", sep = "")]
   write.table(case_cmt,
          file = paste(dest, "caselist.cmt", sep = "\\"),
-         quote = TRUE,
+         quote = FALSE,
          col.names = FALSE,
          row.names = FALSE,
          fileEncoding = "windows-1252",
