@@ -5,7 +5,7 @@ library(tidyverse)
 library(cowplot)
 
 setwd("Z:/M/M2/work/duong/NHWSP-Rhein/Berichte/modelle/rhein/NRW")
-
+so_prj <- 'd:/rhein.lit'
 #----ZPW & VGF1----
 wt <- his_from_case(
   c(
@@ -38,12 +38,12 @@ pz27_cases_ohne_Worringer <- c(
   'Planzustand_ZPK_HW2003_Selten_Nur_Eich'
 )
 pz27_cases_ohne_Worringer_desc <- c(
-  'ohne Worringer_HW1988_Mittel',
-  'ohne Worringer_HW1988_Selten',
-  'ohne Worringer_HW1995_Mittel',
-  'ohne Worringer_HW1995_Selten',
-  'ohne Worringer_HW2003_Mittel',
-  'ohne Worringer_HW2003_Selten'
+  'ohne_Worringer_HW1988_Mittel',
+  'ohne_Worringer_HW1988_Selten',
+  'ohne_Worringer_HW1995_Mittel',
+  'ohne_Worringer_HW1995_Selten',
+  'ohne_Worringer_HW2003_Mittel',
+  'ohne_Worringer_HW2003_Selten'
 )
 # cases Planzustände mit Worringer
 pz27_cases_mit_Worringer <- c(
@@ -55,12 +55,12 @@ pz27_cases_mit_Worringer <- c(
   'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit'
   )
 pz27_cases_mit_Worringer_desc <- c(
-  'mit Worringer_HW1988_Mittel',
-  'mit Worringer_HW1988_Selten',
-  'mit Worringer_HW1995_Mittel',
-  'mit Worringer_HW1995_Selten',
-  'mit Worringer_HW2003_Mittel',
-  'mit Worringer_HW2003_Selten'
+  'mit_Worringer_HW1988_Mittel',
+  'mit_Worringer_HW1988_Selten',
+  'mit_Worringer_HW1995_Mittel',
+  'mit_Worringer_HW1995_Selten',
+  'mit_Worringer_HW2003_Mittel',
+  'mit_Worringer_HW2003_Selten'
 )
 #---- Worringer long profiles----
 plot_longprofile(
@@ -220,37 +220,19 @@ qt_wor_ohne <- qt_wor_ohne %>% select(-ts) %>%
   dcast(variable ~ case)
 
 
-#' Get max value table
-#' @param case.w list of cases with the measure
-#' @param case.w.desc Description of case.w
-#' @param case.wo list of cases without the measure
-#' @param case.wo.desc Description of case.wo
-#' @param ... parameters to pass to function his_from_case
-#' @return a data.table
-get_delta_table <- function(
-  case.w = NULL,
-  case.w.desc = NULL,
-  case.wo = NULL,
-  case.wo.desc = NULL,
-  ...
-){
-  stopifnot(length(case.w) == length(case.wo))
-  stopifnot((is.null(case.w.desc) & is.null(case.wo.desc)) |
-              (!is.null(case.w.desc) & !is.null(case.wo.desc)))
+wor_tbl <- get_delta_table(
+  case.wo = pz27_cases_ohne_Worringer,
+  case.wo.desc = pz27_cases_ohne_Worringer_desc,
+  case.w = pz27_cases_mit_Worringer,
+  case.w.desc = pz27_cases_mit_Worringer_desc,
+  sobek.project = so_prj,
+  param = 'discharge',
+  mID =  c('p_worms', 'P_Mainz', 'p_kaub', 'p_andernach', 'p_bonn',
+          'p_koeln', 'p_duesseldorf', 'p_ruhrort', 'p_wesel', 'p_rees',
+          'p_emmerich')
+)
 
-  value_max_with <- his_from_case(case.list = case.w, get.max = TRUE, ...)
-  value_max_wo <- his_from_case(case.list = case.wo, get.max = TRUE, ...)
-  for (i in seq_along(case.w)) {
-    value_max_with[case == case.w[i], case := case.w.desc[i]]
-    value_max_wo[case == case.wo[i], case := case.wo.desc[i]]
-  }
-  value_max_with <- value_max_with %>% select(-ts) %>%
-    melt(id.vars = 'case') %>%
-    dcast(variable ~ case)
-  value_max_wo <- value_max_wo %>% select(-ts) %>%
-    melt(id.vars = 'case') %>%
-    dcast(variable ~ case)
-  result <- merge(value_max_with, value_max_wo, by = 'variable', sort = FALSE)
-
-  return(result)
-}
+# wor_tbl <- wor_tbl %>% mutate_at(vars(-variable), list(~round(., 2)))
+wor_tbl[, variable := toupper(variable)]
+cols <- colnames(wor_tbl)[-1]
+wor_tbl[, (cols) := round(.SD, 2), .SDcols = cols]

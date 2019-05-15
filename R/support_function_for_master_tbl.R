@@ -784,3 +784,47 @@ get_polder_max <- function(
 
   return(id_data_max)
 }
+
+
+#' Get max value table
+#' @param case.w list of cases with the measure
+#' @param case.w.desc Description of case.w
+#' @param case.wo list of cases without the measure
+#' @param case.wo.desc Description of case.wo
+#' @param ... parameters to pass to function his_from_case
+#' @export
+#' @return a data.table
+get_delta_table <- function(
+  case.w = NULL,
+  case.w.desc = NULL,
+  case.wo = NULL,
+  case.wo.desc = NULL,
+  ...
+){
+  stopifnot(length(case.w) == length(case.wo))
+  stopifnot((is.null(case.w.desc) & is.null(case.wo.desc)) |
+              (!is.null(case.w.desc) & !is.null(case.wo.desc)))
+  value_max_with <- his_from_case(case.list = case.w, get.max = TRUE, ...)
+  value_max_wo <- his_from_case(case.list = case.wo, get.max = TRUE, ...)
+  for (i in seq_along(case.w)) {
+    value_max_with[case == case.w[i], case := case.w.desc[i]]
+    value_max_wo[case == case.wo[i], case := case.wo.desc[i]]
+  }
+  value_max_with <- value_max_with %>% select(-ts) %>%
+    melt(id.vars = 'case') %>%
+    dcast(variable ~ case)
+  value_max_wo <- value_max_wo %>% select(-ts) %>%
+    melt(id.vars = 'case') %>%
+    dcast(variable ~ case)
+  data_tbl <- merge(value_max_with, value_max_wo, by = 'variable', sort = FALSE)
+  case_cols <- grep("[ts]", colnames(data_tbl), value = TRUE) %>% 
+    str_replace_all('mit|ohne', '') %>% unique()
+  for (i in case_cols){
+    col_1 <- paste('mit', i, sep = "")
+    col_2 <- paste('ohne', i, sep = "")
+    delta <- paste('delta', i, sep = "")
+    data_tbl[, eval(delta) := get(col_1) - get(col_2)]
+  }
+  return(data_tbl)
+}
+
