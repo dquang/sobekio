@@ -8,6 +8,8 @@
 #' @param color.by Coloring by this value
 #' @param facet.by Facetting by this value
 #' @param compare.by Calculating delta by this value. Default 'zustand'
+#' @param cmp.sort Should comparing parameter be sorted. Default is FALSE
+#' @param group.by Groupping for delta calculation
 #' @param color.name Name of color in the legend
 #' @param lt.name Name of linetype in the legend
 #' @param delta Should delta also plotted?
@@ -17,6 +19,7 @@
 #' @param to.upstream distance (km) to upstream of the DRV to be included in the graphic
 #' @param to.downstream distance (km) to downstream of the DRV to be included in the graphic
 #' @param y2.scale scale of y2-axis. Default value will be automatic calculated.
+#' @param y2.tick1 The value of the first tick on the y2-axis. Using this and y2.scale to make y2-axis looks nice.
 #' @param plot.title Title of the graphic
 #' @param text.size Size of text
 #' @param text.x.top.angle Angle of text at top
@@ -38,6 +41,7 @@ plot_drv <- function(
   color.by = 'vgf',
   facet.by = NULL,
   compare.by = 'zustand',
+  cmp.sort = FALSE,
   group.by = compare.by,
   color.name = 'Farbe',
   lt.name = 'Linienart',
@@ -49,6 +53,7 @@ plot_drv <- function(
   to.upstream = 0,
   to.downstream = 0,
   y2.scale = NULL,
+  y2.tick1 = NULL,
   plot.title = NULL,
   text.size = 12,
   text.x.top.angle = 90L,
@@ -67,6 +72,7 @@ plot_drv <- function(
       stop("compare.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel')")
     }
     cmp_vars <- unique(case_tbl[, get(compare.by)])
+    if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
     if (length(cmp_vars) != 2) {
       stop('compare.by must have two values not: ',
            str_flatten(cmp_vars, collapse = ", " ))
@@ -195,8 +201,13 @@ plot_drv <- function(
     if (is.null(y2.scale)){
       y2_length <- y2_max - y2_min
       y1_length <- y1_max - y1_min
-      # make delta only a haft height of the main parameter
-      y2.scale <- round(y1_length / y2_length / 2)
+      y2.scale <- y1_length * 0.5 * 1000 / y2_length
+      for (i in 0:3) {
+        # if (abs(y2.scale) > 1) y2.scale <- round(y2.scale)
+        if (abs(y2.scale) > 10 ** i)
+          y2.scale <- round(y2.scale, -i)
+      }
+      y2.scale <- y2.scale / 1000
       if (isTRUE(verbose)) print(paste('tried with y2.scale =', y2.scale))
     }
     y2_shift <- y1_min - y2_min * y2.scale
@@ -205,7 +216,14 @@ plot_drv <- function(
                   y2_max * y2.scale + y2_shift)
     y1_min <- min(y1_min,
                   y2_min * y2.scale + y2_shift)
-    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    if (y1_length < 10) {
+      y1_max_1 <- y1_max * 100
+      y1_min_1 <- y1_min * 100
+      y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+      y1_pretty <- y1_pretty / 100
+    } else{
+      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    }
     check_y1_pretty <- (max(y1_pretty) - min(y1_pretty)) / (y1_max - y1_min)
     if (length(y1_pretty) < 5 | check_y1_pretty > 1){
       y1_min_1 <- y1_min * 10
@@ -213,6 +231,9 @@ plot_drv <- function(
       y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
       y1_pretty <- y1_pretty/10
       # y2_pretty <- (y1_pretty - y2_shift) / y2.scale
+    }
+    if (!is.null(y2.tick1)) {
+      y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
     }
     y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     # print(y1_pretty)
@@ -235,10 +256,12 @@ plot_drv <- function(
         y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
         y1_pretty <- y1_pretty/10
       }
+      if (!is.null(y2.tick1)) {
+        y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
+      }
       y2_pretty <- (y1_pretty - y2_shift) / y2.scale
       y2_pretty <- unique(sort(c(y2_pretty, 0)))
     }
-
     data_tbl[get(compare.by) == cmp_vars[2], delta := NA]
     data_tbl[get(compare.by) == cmp_vars[2], delta_color := NA]
   }
@@ -342,6 +365,8 @@ plot_drv <- function(
 #' @param facet.by Facetting by this value
 #' @param facet.scale Facetting scale. Default 'fixed'
 #' @param compare.by Calculating delta by this value
+#' @param cmp.sort Should comparing parameter be sorted. Default is FALSE
+#' @param group.by Groupping for delta calculation
 #' @param color.name Name of color in the legend
 #' @param lt.name Name of linetype in the legend
 #' @param delta Should delta also plotted?
@@ -351,6 +376,7 @@ plot_drv <- function(
 #' @param to.upstream distance (km) to upstream of the DRV to be included in the graphic
 #' @param to.downstream distance (km) to downstream of the DRV to be included in the graphic
 #' @param y2.scale scale of y2-axis. Default value will be automatic calculated
+#' @param y2.tick1 The value of the first tick on the y2-axis. Using this and y2.scale to make y2-axis looks nice.
 #' @param plot.title Title of the graphic
 #' @param text.size Size of text
 #' @param text.x.top.angle Angle of text at top
@@ -376,6 +402,7 @@ plot_longprofile <- function(
   facet.by = 'hwe',
   facet.scale = 'fixed',
   compare.by = 'zustand',
+  cmp.sort = FALSE,
   group.by = compare.by,
   color.name = 'Farbe',
   lt.name = 'Linienart',
@@ -385,6 +412,7 @@ plot_longprofile <- function(
   y.lab = ifelse(param == 'discharge',
                  'Abfluss (m³/s)', 'Wasserstand (m+NHN)'),
   y2.scale = NULL,
+  y2.tick1 = NULL,
   plot.title = NULL,
   text.size = 12,
   text.x.top.angle = 90L,
@@ -412,6 +440,7 @@ plot_longprofile <- function(
       stop("compare.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel')")
     }
     cmp_vars <- unique(case_tbl[, get(compare.by)])
+    if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
     if (length(cmp_vars) != 2) {
       stop('compare.by must have two values not: ',
            str_flatten(cmp_vars, collapse = ", " ))
@@ -543,7 +572,13 @@ plot_longprofile <- function(
     if (is.null(y2.scale)){
       y2_length <- y2_max - y2_min
       y1_length <- y1_max - y1_min
-      y2.scale <- round(y1_length / y2_length / 2)
+      y2.scale <- y1_length * 0.5 * 1000 / y2_length
+      for (i in 0:3) {
+        # if (abs(y2.scale) > 1) y2.scale <- round(y2.scale)
+        if (abs(y2.scale) > 10 ** i)
+          y2.scale <- round(y2.scale, -i)
+      }
+      y2.scale <- y2.scale / 1000
       if (isTRUE(verbose)) print(paste('tried with y2.scale =', y2.scale))
     }
     y2_shift <- y1_min - y2_min * y2.scale
@@ -552,7 +587,14 @@ plot_longprofile <- function(
                   y2_max * y2.scale + y2_shift)
     y1_min <- min(y1_min,
                   y2_min * y2.scale + y2_shift)
-    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    if (y1_length < 10) {
+      y1_max_1 <- y1_max * 100
+      y1_min_1 <- y1_min * 100
+      y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+      y1_pretty <- y1_pretty / 100
+    } else{
+      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+    }
     check_y1_pretty <- (max(y1_pretty) - min(y1_pretty)) / (y1_max - y1_min)
     if (length(y1_pretty) < 5 | check_y1_pretty > 1){
       y1_min_1 <- y1_min * 10
@@ -560,6 +602,9 @@ plot_longprofile <- function(
       y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
       y1_pretty <- y1_pretty/10
       # y2_pretty <- (y1_pretty - y2_shift) / y2.scale
+    }
+    if (!is.null(y2.tick1)) {
+      y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
     }
     y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     # print(y1_pretty)
@@ -581,6 +626,9 @@ plot_longprofile <- function(
         y1_max_1 <- y1_max * 10
         y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
         y1_pretty <- y1_pretty/10
+      }
+      if (!is.null(y2.tick1)) {
+        y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
       }
       y2_pretty <- (y1_pretty - y2_shift) / y2.scale
       y2_pretty <- unique(sort(c(y2_pretty, 0)))

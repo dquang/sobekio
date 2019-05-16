@@ -246,7 +246,7 @@ get_segment_data <- function(
   } else{
     segment_data <- segment_data %>%
       melt(id.vars = c('ts', 'case'),
-           variable.name = 'ID_F', 
+           variable.name = 'ID_F',
            value.name = 'value') %>%
       merge(
             id_tbl[, .SD, .SDcols = -c('ID')],
@@ -791,39 +791,100 @@ get_polder_max <- function(
 #' @param case.w.desc Description of case.w
 #' @param case.wo list of cases without the measure
 #' @param case.wo.desc Description of case.wo
+#' @param id.name Names assign to the IDs
+#' @param html.out Output to html tables
+#' @param out.dec Output decimal
+#' @param param Discharge, waterlevel,...
 #' @param ... parameters to pass to function his_from_case
 #' @export
 #' @return a data.table
 get_delta_table <- function(
+  name = '',
   case.w = NULL,
   case.w.desc = NULL,
   case.wo = NULL,
   case.wo.desc = NULL,
+  id.names = NULL,
+  html.out = TRUE,
+  out.dec = ",",
+  param = 'discharge',
   ...
 ){
+  f_args <- as.list(match.call())
+  # OutDec <- getOption('OutDec')
+  # on.exit(options(OutDec = OutDec))
+  # options(OutDec = out.dec)
   stopifnot(length(case.w) == length(case.wo))
   stopifnot((is.null(case.w.desc) & is.null(case.wo.desc)) |
               (!is.null(case.w.desc) & !is.null(case.wo.desc)))
-  value_max_with <- his_from_case(case.list = case.w, get.max = TRUE, ...)
-  value_max_wo <- his_from_case(case.list = case.wo, get.max = TRUE, ...)
-  for (i in seq_along(case.w)) {
-    value_max_with[case == case.w[i], case := case.w.desc[i]]
-    value_max_wo[case == case.wo[i], case := case.wo.desc[i]]
+  if (!is.null(case.w.desc)){
+    stopifnot(length(unique(c(case.w.desc, case.wo.desc))) ==
+                length(c(case.w.desc, case.wo.desc))
+              )
+    stopifnot(str_replace_all(case.w.desc, 'mit', '') ==
+                str_replace_all(case.wo.desc, 'ohne', ''))
+    delta_cols <- str_replace_all(case.w.desc, 'mit', 'delta')
+    col_order <- c('Pegel', case.wo.desc, case.w.desc, delta_cols)
   }
+  # reading data from sobek
+  value_max_with <- his_from_case(case.list = case.w, get.max = TRUE,
+                                  param = param, ...)
+  value_max_wo <- his_from_case(case.list = case.wo, get.max = TRUE,
+                                param = param, ...)
+  # changing case names to their description
+  if (!is.null(case.w.desc)){
+    for (i in seq_along(case.w)) {
+      value_max_with[case == case.w[i], case := case.w.desc[i]]
+      value_max_wo[case == case.wo[i], case := case.wo.desc[i]]
+    }
+  }
+  # transforming and merging data
   value_max_with <- value_max_with %>% select(-ts) %>%
-    melt(id.vars = 'case') %>%
-    dcast(variable ~ case)
+    melt(id.vars = 'case', variable.name = 'Pegel') %>%
+    dcast(Pegel ~ case)
   value_max_wo <- value_max_wo %>% select(-ts) %>%
-    melt(id.vars = 'case') %>%
-    dcast(variable ~ case)
-  data_tbl <- merge(value_max_with, value_max_wo, by = 'variable', sort = FALSE)
-  case_cols <- grep("[ts]", colnames(data_tbl), value = TRUE) %>% 
-    str_replace_all('mit|ohne', '') %>% unique()
+    melt(id.vars = 'case', variable.name = 'Pegel') %>%
+    dcast(Pegel ~ case)
+  data_tbl <- merge(value_max_wo, value_max_with, by = 'Pegel', sort = FALSE)
+  # calculate delta
+  case_cols <- str_replace_all(case.w.desc, 'mit', '')
   for (i in case_cols){
     col_1 <- paste('mit', i, sep = "")
     col_2 <- paste('ohne', i, sep = "")
     delta <- paste('delta', i, sep = "")
     data_tbl[, eval(delta) := get(col_1) - get(col_2)]
+  }
+  if (!is.null(case.w.desc)){
+    setcolorder(data_tbl, c('Pegel', case.wo.desc, case.w.desc, delta_cols))
+    }
+  # rounding data
+  cols <- colnames(data_tbl)[-1]
+  if (param == 'waterlevel'){
+    data_tbl[, (cols) := round(.SD, 2), .SDcols = cols]
+  } else{
+    data_tbl[, (cols) := round(.SD), .SDcols = cols]
+  }
+
+  if (length(id.names) == length(data_tbl$Pegel)){
+    data_tbl$Pegel <- id.names
+  }
+  # exporting to html table
+  if (isTRUE(html.out)){
+    # formatting decimal mark, make it easy to copy to Excel
+    # data_tbl[, (cols) := format(.SD, decimal.mark = out.dec), .SDcols = cols]
+    ngroup <- length(case.wo)
+    data_tbl <- data_tbl %>% mutate_at(
+      vars(-Pegel), ~format(., decimal.mark = out.dec)
+    ) %>%
+      htmlTable::htmlTable(
+        caption = paste('Modellergebnis Tabelle für Maßnahme', name),
+        align = 'lr',
+        cgroup = c('',
+                   paste(f_args$case.wo, '(1)'),
+                   paste(f_args$case.w, '(2)'),
+                   'Delta (2) - (1)'),
+        n.cgroup = c(1, ngroup, ngroup, ngroup)
+      )
   }
   return(data_tbl)
 }

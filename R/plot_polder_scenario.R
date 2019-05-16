@@ -11,7 +11,7 @@
 #' @param y2.scale Scaling between main and secondary y-axes.
 #' This is an important paramter. If the line for secondary axis is too big, try to change y2.scale
 #' y2.scale with be automatically calculated so that the height of the graph on y2-axis is about 3/4 those on y1-axis
-#' @param y2.tick1 The value of the first tick on the y2-axis. Using this a y2.scale to make y2-axis looks nice.
+#' @param y2.tick1 The value of the first tick on the y2-axis. Using this and y2.scale to make y2-axis looks nice.
 #' @param h.lines list of (name = value) to be displayed as horizontal line
 #' @param peak.nday Should the plot limit to nday before and after the peak. Default is not (NULL). Otherwise please give a number of days
 #' @param peak.pegel If the plot should be limit to the peak area, should it be the peak of the referenced location (ref.mID). Default is not.
@@ -20,6 +20,7 @@
 #' @param delta.line Logical. Should Delta lines be plotted extra, beneath the main plot? Default is FALSE.
 #' @param rel.height Relative size of the main and the Delta plot. Default c(2, 0.7)
 #' @param compare.by Should the line be compare by 'case' or by 'location'
+#' @param cmp.sort Should comparing parameter be sorted. Default is FALSE
 #' @param group.by Groupping for delta calculation
 #' @param plot.title Title of the plot
 #' @param lt.name Name of the linetype legend
@@ -59,6 +60,7 @@ plot_polder_scenario <- function(
   delta.line = FALSE,
   rel.heights = c(2, 0.7),
   compare.by = 'zustand',
+  cmp.sort = FALSE,
   plot.title = NULL,
   lt.name = 'Linienart',
   color.name = 'Farbe',
@@ -95,6 +97,8 @@ plot_polder_scenario <- function(
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   # add case description columns, using for linetype later on
   id_data <- merge(id_data, case_tbl, by = 'case', sort = FALSE)
+  cmp_vars <- case_tbl[, get(compare.by)]
+  if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
   # read data for Bezugspegel
   if (!is.null(ref.mID)) {
     if (isTRUE(verbose))
@@ -136,8 +140,10 @@ plot_polder_scenario <- function(
     colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
     id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
     # get peak difference at the ref_measurement
-    scheitel_max_c1 <- ref_mID[case == case.list[[1]], max(Bezugspegel)]
-    scheitel_max_c2 <- ref_mID[case == case.list[[2]], max(Bezugspegel)]
+    scheitel_max_c1 <- id_data[get(compare.by) == cmp_vars[[1]],
+                               max(Bezugspegel)]
+    scheitel_max_c2 <- id_data[get(compare.by) == cmp_vars[[2]],
+                               max(Bezugspegel)]
     scheitel_ref_mID_delta <- scheitel_max_c1 - scheitel_max_c2
     scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta, 2)
     # rounding value for discharge
@@ -160,8 +166,8 @@ plot_polder_scenario <- function(
   # finding scheitel delta at the measure
   if (isTRUE(delta.measure)){
     # calculate diff between two max value (different moment)
-    scheitel_max_c1 <- id_data[case == case.list[[1]], max(Nach)]
-    scheitel_max_c2 <- id_data[case == case.list[[2]], max(Nach)]
+    scheitel_max_c1 <- id_data[get(compare.by) == cmp_vars[[1]], max(Nach)]
+    scheitel_max_c2 <- id_data[get(compare.by) == cmp_vars[[2]], max(Nach)]
     scheitel_measure_delta <- scheitel_max_c1 - scheitel_max_c2
     scheitel_measure_delta <- round(scheitel_measure_delta, 2)
     # rounding value for discharge
@@ -612,7 +618,6 @@ plot_polder_scenario <- function(
     ggtitle(plot.title)
   #----adding delta line beneath the main graphic----
   if (isTRUE(delta.line)){
-    cmp_vars <- case_tbl[, get(compare.by)]
     if(!is.null(ref.mID)){
       delta_data <- dcast(id_data, ts ~ get(compare.by),
                          value.var = 'Bezugspegel')
