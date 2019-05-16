@@ -399,7 +399,7 @@ plot_longprofile <- function(
   param = 'discharge',
   lt.by = 'zustand',
   color.by = 'vgf',
-  facet.by = 'hwe',
+  facet.by = NULL,
   facet.scale = 'fixed',
   compare.by = 'zustand',
   cmp.sort = FALSE,
@@ -504,11 +504,10 @@ plot_longprofile <- function(
   )
   data_tbl <- merge(data_tbl, case_tbl, by = 'case', sort = FALSE)
   data_tbl[, besonderheit := gsub('DRV_', '', besonderheit)]
-  b_tick <- data_tbl[case == case.list[[1]] &
+  b_tick <- id_tbl[case == case.list[[1]] &
                          nchar(besonderheit) > 0,
                        c("km", "besonderheit")
                      ]
-
   x_min <- data_tbl[, min(km, na.rm = TRUE)]
   x_max <- data_tbl[, max(km, na.rm = TRUE)]
   y1_min <- data_tbl[, min(scheitel, na.rm = TRUE)]

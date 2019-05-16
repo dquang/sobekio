@@ -136,7 +136,9 @@ get_segment_id_tbl <- function(
   }
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   river_name <- river # because it is confused with the 'river' column
-  id_tbl <- master.tbl[river == river_name & km >= from.km & km <= to.km]
+  id_tbl <- master.tbl[river == river_name & 
+                         km >= from.km & km <= to.km & !is.na(km)
+                       ]
   stopifnot(nrow(id_tbl) > 1)
   # creating new columns based on case name
   for (i in seq_along(case.desc)){
@@ -889,3 +891,123 @@ get_delta_table <- function(
   return(data_tbl)
 }
 
+
+#' Get max value table
+#' @param name Name of the "Maßnahme"
+#' @param bezug List of "Bezugszustand" cases
+#' @param plan.ohne List of "Planzustand ohne Maßnahme" cases
+#' @param plan.mit List of "Planzustand mit Maßnahme" cases
+#' @param hwe.list List of HWE (must unique)
+#' @param id.name Names assign to the IDs
+#' @param html.out Output to html tables
+#' @param out.dec Output decimal
+#' @param param Discharge, waterlevel,...
+#' @param ... parameters to pass to function his_from_case (ID, sobek.project)
+#' @export
+#' @return a data.table
+get_summary_tbl <- function(
+  name = '',
+  bezug = NULL,
+  plan.ohne = NULL,
+  plan.mit = NULL,
+  hwe.list = NULL,
+  id.names = NULL,
+  html.out = TRUE,
+  out.dec = ",",
+  param = 'discharge',
+  ...
+){
+  f_args <- as.list(match.call())
+  stopifnot(!is.null(id.names) & !is.null(bezug))
+  stopifnot(length(bezug) == length(plan.ohne))
+  stopifnot(length(plan.mit) == length(hwe.list))
+  stopifnot(length(plan.mit) == length(plan.ohne))
+  stopifnot(length(hwe.list) == length(unique(hwe.list)))
+
+  # reading data from sobek
+  bezug_tbl <- his_from_case(case.list = bezug, get.max = TRUE,
+                                  param = param, ...)
+  plan_ohne_tbl <- his_from_case(case.list = plan.ohne, get.max = TRUE,
+                                param = param, ...)
+  plan_mit_tbl <- his_from_case(case.list = plan.mit, get.max = TRUE,
+                                 param = param, ...)
+  # changing case names to their description
+
+  for (i in seq_along(hwe.list)) {
+    bezug_tbl[case == bezug[[i]], 
+              case := paste('bezug', hwe.list[[i]], sep = "_")]
+    plan_ohne_tbl[case == plan.ohne[[i]], 
+              case := paste('ohne', hwe.list[[i]], sep = "_")]
+    plan_mit_tbl[case == plan.mit[[i]], 
+                  case := paste('mit', hwe.list[[i]], sep = "_")]
+  }
+
+  # transforming and merging data
+  bezug_tbl <- bezug_tbl %>% select(-ts) %>%
+    melt(id.vars = 'case', variable.name = 'Pegel') %>%
+    dcast(Pegel ~ case)
+  plan_ohne_tbl <- plan_ohne_tbl %>% select(-ts) %>%
+    melt(id.vars = 'case', variable.name = 'Pegel') %>%
+    dcast(Pegel ~ case)
+  plan_mit_tbl <- plan_mit_tbl %>% select(-ts) %>%
+    melt(id.vars = 'case', variable.name = 'Pegel') %>%
+    dcast(Pegel ~ case)
+  data_tbl <- merge(bezug_tbl, plan_ohne_tbl, by = 'Pegel', sort = FALSE) %>% 
+    merge(plan_mit_tbl, by = 'Pegel', sort = FALSE)
+  cols <- c('Pegel', 
+            paste('bezug', hwe.list, sep = '_'),
+            paste('ohne', hwe.list, sep = "_"),
+            paste('d_ob', hwe.list, sep = "_"),
+            paste('mit', hwe.list, sep = "_"),
+            paste('d_mb', hwe.list, sep = "_"),
+            paste('d_mo', hwe.list, sep = "_")
+            )
+  # calculate delta
+  for (i in seq_along(hwe.list)){
+    col_bezug <- paste('bezug', hwe.list[[i]], sep = '_')
+    col_ohne <- paste('ohne', hwe.list[[i]], sep = "_")
+    col_mit <- paste('mit', hwe.list[[i]], sep = "_")
+    delta_ob <- paste('d_ob', hwe.list[[i]], sep = "_")
+    delta_mb <- paste('d_mb', hwe.list[[i]], sep = "_")
+    delta_mo <- paste('d_mo', hwe.list[[i]], sep = "_")
+    data_tbl[, eval(delta_ob) := get(col_ohne) - get(col_bezug)]
+    data_tbl[, eval(delta_mb) := get(col_mit) - get(col_bezug)]
+    data_tbl[, eval(delta_mo) := get(col_mit) - get(col_ohne)]
+  }
+  setcolorder(data_tbl, cols)
+  # rounding data
+  cols <- cols[-1]
+  if (param == 'waterlevel'){
+    data_tbl[, (cols) := round(.SD, 2), .SDcols = cols]
+  } else{
+    data_tbl[, (cols) := round(.SD), .SDcols = cols]
+  }
+  
+  if (length(id.names) == length(data_tbl$Pegel)){
+    data_tbl$Pegel <- id.names
+  }
+  # exporting to html table
+  if (isTRUE(html.out)){
+    # formatting decimal mark, make it easy to copy to Excel
+    # data_tbl[, (cols) := format(.SD, decimal.mark = out.dec), .SDcols = cols]
+    ngroup <- length(hwe.list)
+    data_tbl <- data_tbl %>% mutate_at(
+      vars(-Pegel), ~format(., decimal.mark = out.dec)
+    ) %>%
+      htmlTable::htmlTable(
+        caption = paste('Modellergebnis Tabelle für Maßnahme', name),
+        align = 'lr',
+        cgroup = c('',
+                   paste(f_args$bezug, '(1)'),
+                   paste(f_args$plan.ohne, '(2)'),
+                   'Delta (2) - (1)',
+                   paste(f_args$plan.mit, '(3)'),
+                   'Delta (3) - (1)',
+                   'Delta (3) - (2)'
+                   ),
+        
+        n.cgroup = c(1, rep(ngroup, 6))
+      )
+  }
+  return(data_tbl)
+}

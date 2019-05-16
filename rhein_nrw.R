@@ -28,10 +28,24 @@ wt <- his_from_case(
   get.max = TRUE,
   param = 'waterlevel'
 )
-#----results ZPK-----
+#----basic Info-----
 pegel_ID <- c('p_worms', 'P_Mainz', 'p_kaub', 'p_andernach', 'p_bonn',
-              'p_koeln', 'p_duesseldorf', 'p_ruhrort', 'p_wesel', 'p_rees',
+              'p_koeln', 'p_duesseldorf', 'p_ruhrort', 'p_wesel', 'p_rees_out',
               'p_emmerich')
+hwe_name <- c(
+  'hw88_m', 'hw88_s', 'hw95_m', 'hw95_s', 'hw_03m', 'hw_03s'
+)
+pegel_name <- c("WORMS",
+                "MAINZ",
+                "KAUB",
+                "ANDERNACH",
+                "BONN",
+                "KOELN",
+                "DUESSELDORF",
+                "RUHRORT",
+                "WESEL",
+                "REES",
+                "EMMERICH")
 Bezugszustand <- c(
   'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
   'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
@@ -206,6 +220,16 @@ map2(
   device = 'png'
 )
 #----- Worringer Table----
+# Bezugszustand
+Bezugszustand <- c(
+  'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
+  'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
+  'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
+  'Bezugszustand_ZPK_HW1995_Selten_1282_newReg',
+  'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
+  'Bezugszustand_ZPK_HW2003_Selten_1663_newReg'
+  
+)
 # cases Planzustände mit Worringer
 Planzustand_mit_Worringer <- c(
   'Planzustand_ZPK_HW1988_Mittel_Nur_Eich',
@@ -223,6 +247,29 @@ Planzustand_ohne_Worringer <- c(
   'Planzustand_ZPK_HW1995_Selten_ohne_Niederrhein',
   'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein',
   'Planzustand_ZPK_HW2003_Selten_Nur_Eich'
+)
+
+wor_fixCL_Q <- get_summary_tbl(
+  name = 'Worringer',
+  bezug = Bezugszustand,
+  plan.ohne = Planzustand_ohne_Worringer,
+  plan.mit = Planzustand_mit_Worringer,
+  hwe.list = hwe,
+  param = 'discharge',
+  id.names = pegel_name,
+  mID = pegel_ID,
+  sobek.project = so_prj
+)
+wor_fixCL_W <- get_summary_tbl(
+  name = 'Worringer',
+  bezug = Bezugszustand,
+  plan.ohne = Planzustand_ohne_Worringer,
+  plan.mit = Planzustand_mit_Worringer,
+  hwe.list = hwe,
+  param = 'waterlevel',
+  id.names = pegel_name,
+  mID = pegel_ID,
+  sobek.project = so_prj
 )
 wor_pzMit_vs_bz <- get_delta_table(
   name = 'Worringer',
@@ -302,82 +349,52 @@ Planzustand_ohne_Orsoy <- c(
   'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Muendelheim'
 
 )
-#+++mit Orsoy----
-orsoy_pzMit_vs_bz_fixCL <- get_delta_table(
-  name = 'Orsoy',
-  case.w = Planzustand_mit_Orsoy_fixCL,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
+#+++fixed CL----
+orsoy_fixCL_Q <- get_summary_tbl(
+  name = 'Orsoy (feste Schwellenshöhe)',
+  bezug = Bezugszustand,
+  plan.ohne = Planzustand_ohne_Orsoy,
+  plan.mit = Planzustand_mit_Orsoy_fixCL,
+  hwe.list = hwe,
   param = 'discharge',
-  sobek.project = so_prj,
-  mID =  pegel_ID
+  id.names = pegel_name,
+  mID = pegel_ID,
+  sobek.project = so_prj
 )
-orsoy_pzMit_vs_bz_passCL <- get_delta_table(
-  name = 'Orsoy',
-  case.w = Planzustand_mit_Orsoy_passCL,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
+orsoy_fixCL_W <- get_summary_tbl(
+  name = 'Orsoy (feste Schwellenshöhe)',
+  bezug = Bezugszustand,
+  plan.ohne = Planzustand_ohne_Orsoy,
+  plan.mit = Planzustand_mit_Orsoy_fixCL,
+  hwe.list = hwe,
+  param = 'waterlevel',
+  id.names = pegel_name,
+  mID = pegel_ID,
+  sobek.project = so_prj
+)
+#+++mod CL-----
+orsoy_modCL_Q <- get_summary_tbl(
+  name = 'Orsoy (passende Schwellenshöhe)',
+  bezug = Bezugszustand,
+  plan.ohne = Planzustand_ohne_Orsoy,
+  plan.mit = Planzustand_mit_Orsoy_passCL,
+  hwe.list = hwe,
   param = 'discharge',
-  sobek.project = so_prj,
-  mID =  pegel_ID
+  id.names = pegel_name,
+  mID = pegel_ID,
+  sobek.project = so_prj
 )
-orsoy_pzMit_vs_bz_fixCL_WL <- get_delta_table(
-  name = 'Orsoy',
-  case.w = Planzustand_mit_Orsoy_fixCL,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
+orsoy_modCL_W <- get_summary_tbl(
+  name = 'Orsoy (passende Schwellenshöhe)',
+  bezug = Bezugszustand,
+  plan.ohne = Planzustand_ohne_Orsoy,
+  plan.mit = Planzustand_mit_Orsoy_passCL,
+  hwe.list = hwe,
   param = 'waterlevel',
-  sobek.project = so_prj,
-  mID =  pegel_ID
+  id.names = pegel_name,
+  mID = pegel_ID,
+  sobek.project = so_prj
 )
-orsoy_pzMit_vs_bz_passCL_WL <- get_delta_table(
-  name = 'Orsoy',
-  case.w = Planzustand_mit_Orsoy_passCL,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
-  param = 'waterlevel',
-  sobek.project = so_prj,
-  mID =  pegel_ID
-)
-#+++ohne Orsoy----
-orsoy_pzOhne_vs_bz <- get_delta_table(
-  name = 'Orsoy',
-  case.w = Planzustand_ohne_Orsoy,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
-  param = 'discharge',
-  sobek.project = so_prj,
-  mID =  pegel_ID
-)
-
-orsoy_pzOhne_vs_bz_WL <- get_delta_table(
-  name = 'Orsoy',
-  case.w = Planzustand_ohne_Orsoy,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
-  param = 'waterlevel',
-  sobek.project = so_prj,
-  mID =  pegel_ID
-)
-
 plot_longprofile(
   river = 'Rhein',
   from.km = 780,
@@ -406,55 +423,74 @@ Planzustand_mit_Lohrwardt <- c(
   'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
   'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
 )
-lohr_pzMit_vs_bz <- get_delta_table(
+lohr_tbl_Q <- get_summary_tbl(
   name = 'Lohrwardt',
-  case.w = Planzustand_mit_Lohrwardt,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
+  bezug = Bezugszustand,
+  plan.ohne = Planzustand_ohne_Lohrwardt,
+  plan.mit = Planzustand_mit_Lohrwardt,
+  hwe.list = hwe,
   param = 'discharge',
-  sobek.project = so_prj,
-  mID =  pegel_ID
+  id.names = pegel_name,
+  mID = pegel_ID,
+  sobek.project = so_prj
 )
-lohr_pzOhne_vs_bz <- get_delta_table(
+lohr_tbl_W <- get_summary_tbl(
   name = 'Lohrwardt',
-  case.w = Planzustand_ohne_Lohrwardt,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
-  param = 'discharge',
-  sobek.project = so_prj,
-  mID =  pegel_ID
-)
-lohr_pzOhne_vs_bz_WL <- get_delta_table(
-  name = 'Lohrwardt',
-  case.w = Planzustand_ohne_Lohrwardt,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
+  bezug = Bezugszustand,
+  plan.ohne = Planzustand_ohne_Lohrwardt,
+  plan.mit = Planzustand_mit_Lohrwardt,
+  hwe.list = hwe,
   param = 'waterlevel',
-  sobek.project = so_prj,
-  mID =  pegel_ID
-)
-lohr_pzMit_vs_bz_WL <- get_delta_table(
-  name = 'Lohrwardt',
-  case.w = Planzustand_mit_Lohrwardt,
-  case.w.desc = cases_mit_desc,
-  case.wo = Bezugszustand,
-  case.wo.desc = cases_ohne_desc,
-  html.out = TRUE,
-  id.names = toupper(str_replace_all(pegel_ID, '[pP]_', '')),
-  param = 'waterlevel',
-  sobek.project = so_prj,
-  mID =  pegel_ID
+  id.names = pegel_name,
+  mID = pegel_ID,
+  sobek.project = so_prj
 )
 
 #-Mündelheim----
 Planzustand_mit_Mündelheim <- Planzustand_ohne_Orsoy
 Planzustand_ohne_Mündelheim <- Planzustand_mit_Worringer
+
+#-----long long long profiles----
+system.time(rhein_q <- plot_longprofile(
+  river = 'Rhein',
+  # from.km = 510,
+  # to.km = 600,
+  case.list = c(
+    # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
+    'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
+    # 'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
+    'Bezugszustand_ZPK_HW1995_Selten_1282_newReg',
+    # 'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
+    # 'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
+    # 'Planzustand_ZPK_HW1988_Mittel_Nur_Eich_Orsoy_CL2469_Lohrwardt',
+    'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+    # 'Planzustand_ZPK_HW1995_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
+    'Planzustand_ZPK_HW1995_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
+    # 'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
+    # 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
+  ),
+  case.desc = c(
+    # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
+    'Bezugszustand_ZPK_HW1988_Selten_HW1988_Selten',
+    # 'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
+    'Bezugszustand_ZPK_HW1995_Selten_HW1995_Selten',
+    # 'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
+    # 'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
+    # 'Planzustand_ZPK_HW1988_Mittel_Nur_Eich_Orsoy_CL2469_Lohrwardt',
+    'Planzustand_ZPK_HW1988_Selten_HW1988_Selten',
+    # 'Planzustand_ZPK_HW1995_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
+    'Planzustand_ZPK_HW1995_Selten_HW1995_Selten'
+    # 'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
+    # 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
+  ),
+  param = 'discharge',
+  sobek.project = so_prj,
+  compare.by = 'zustand',
+  delta = TRUE,
+  facet.by = NULL,
+  group.by = 'hwe',
+  master.tbl = rhein_tbl
+))
+
+sobek_view('Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+           so_prj, 'c:/so21302')
