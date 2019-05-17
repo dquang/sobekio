@@ -27,6 +27,7 @@
 #' @param ntick.x Minimum number of ticks on x-axis. Default = 10
 #' @param a.fill Fill color of the highlight area
 #' @param a.alpha Transparent ratio (alpha blending) of the highlight area
+#' @param overlap List of overlap labels should be avoid
 #' @param master.tbl Master table
 #' @param verbose Print some messages if TRUE
 #' @return a ggplot2 graphic
@@ -62,6 +63,7 @@ plot_drv <- function(
   ntick.x = 10L,
   a.fill =  exl_std[3],
   a.alpha = 0.1,
+  overlap = NULL,
   master.tbl = NULL,
   verbose = TRUE
 ){
@@ -129,14 +131,23 @@ plot_drv <- function(
     ),
     km
     ]
-  if (param == 'discharge'){
-    b_tick <- data_tbl[case == case.list[[1]] & ID_TYPE == 'qID' &
-                         nchar(besonderheit) > 0,
-                       c("km", "besonderheit")]
-  } else{
-    b_tick <- data_tbl[case == case.list[[1]] &
-                       ID_TYPE == 'wID' & nchar(besonderheit) > 0,
-                       c("km", "besonderheit")]
+  b_tick <- data_tbl[case == case.list[[1]] &
+                       nchar(besonderheit) > 0,
+                     c("km", "besonderheit")
+                     ]
+  # processing overlap labels
+  if (!is.null(overlap)){
+    for (i in seq_along(overlap)){
+      # overlap_i <- b_tick[grepl(overlap[[i]], besonderheit), besonderheit][[1]]
+      overlap_i_pos <- b_tick[grepl(overlap[[i]], besonderheit), which = TRUE]
+      if (isTRUE(overlap_i_pos > 1)){
+        overlap_nchar <- nchar(b_tick[overlap_i_pos -  1, besonderheit])
+        b_tick[overlap_i_pos,
+               besonderheit := str_replace(besonderheit, 'Polder_|DRV_', '')]
+        b_tick[overlap_i_pos, besonderheit := paste(str_dup(' ', 2* overlap_nchar),
+                                                    '--', besonderheit)]
+      }
+    }
   }
   x_min <- data_tbl[, min(km, na.rm = TRUE)]
   x_max <- data_tbl[, max(km, na.rm = TRUE)]
@@ -193,14 +204,14 @@ plot_drv <- function(
     data_tbl[, delta := round(delta, 3)]
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
     y2_max <- max(data_tbl$delta, na.rm = TRUE)
+    y2_length <- y2_max - y2_min
+    y1_length <- y1_max - y1_min
     if (y2_max - y2_min > 10) {
       y2_min <- round(y2_min, -1)
     } else {
       if (abs(y2_min) > 1) y2_min <- floor(y2_min)
     }
     if (is.null(y2.scale)){
-      y2_length <- y2_max - y2_min
-      y1_length <- y1_max - y1_min
       y2.scale <- y1_length * 0.5 * 1000 / y2_length
       for (i in 0:3) {
         # if (abs(y2.scale) > 1) y2.scale <- round(y2.scale)
@@ -385,6 +396,7 @@ plot_drv <- function(
 #' @param highlight A vector of two locations (km), ex. c(4, 10) to be highlighted
 #' @param a.fill Fill color of the highlight area
 #' @param a.alpha Transparent ratio (alpha blending) of the highlight area
+#' @param overlap List of overlap labels should be avoid
 #' @param master.tbl Master table
 #' @param verbose Print some messages if TRUE
 #' @return a ggplot2 graphic
@@ -423,11 +435,13 @@ plot_longprofile <- function(
   highlight.text = NULL,
   a.fill = exl_std[3],
   a.alpha = 0.1,
+  overlap = NULL,
   master.tbl = NULL,
   verbose = TRUE
 ){
   stopifnot(length(unique(case.list)) == length(case.list))
   stopifnot(is.numeric(from.km) & is.numeric(to.km))
+  stopifnot(to.km > from.km)
   if (!is.null(highlight)){
     stopifnot(is.numeric(highlight) & length(highlight) >1)
     if(!is.null(highlight.text)){
@@ -466,13 +480,6 @@ plot_longprofile <- function(
       }
     }
   }
-  if (is.null(plot.title)){
-    plot.title <- paste('Längsschnitt ',
-                        str_extract(y.lab, 'Abfluss|Wasserstand'),
-                        ' entlang ', river, ' von KM ', from.km,
-                        ' bis KM ', to.km, sep = ''
-    )
-  }
   river_ids <- master.tbl[, .N, by = river]
   if (is.null(river)){
     setorder(river_ids, -N)
@@ -482,14 +489,14 @@ plot_longprofile <- function(
   }
   #----get data----
   if (verbose) print('Reading data...')
-  id_tbl <- get_segment_id_tbl(
-    river = river,
-    from.km = from.km,
-    to.km = to.km,
-    case.list = case.list,
-    case.desc = case.desc,
-    master.tbl = master.tbl
-  )
+  # id_tbl <- get_segment_id_tbl(
+  #   river = river,
+  #   from.km = from.km,
+  #   to.km = to.km,
+  #   case.list = case.list,
+  #   case.desc = case.desc,
+  #   master.tbl = master.tbl
+  # )
   data_tbl <- get_segment_data(
     river = river,
     from.km = from.km,
@@ -502,12 +509,38 @@ plot_longprofile <- function(
     master.tbl = master.tbl,
     verbose = verbose
   )
+  from.km <- max(min(data_tbl$km, na.rm = TRUE), from.km)
+  to.km <- min(max(data_tbl$km, na.rm = TRUE), to.km)
+  if (is.null(plot.title)){
+    plot.title <- paste('Längsschnitt ',
+                        str_extract(y.lab, 'Abfluss|Wasserstand'),
+                        ' entlang ', river, ' von KM ',
+                        format(from.km, nsmall = 2, decimal.mark = ","),
+                        ' bis KM ',
+                        format(to.km, nsmall = 2, decimal.mark = ","),
+                        sep = ''
+    )
+  }
   data_tbl <- merge(data_tbl, case_tbl, by = 'case', sort = FALSE)
-  data_tbl[, besonderheit := gsub('DRV_', '', besonderheit)]
-  b_tick <- id_tbl[case == case.list[[1]] &
+  # id_tbl[, besonderheit := gsub('DRV_', '', besonderheit)]
+  b_tick <- data_tbl[case == case.list[[1]] &
                          nchar(besonderheit) > 0,
                        c("km", "besonderheit")
                      ]
+  # processing overlap labels
+  if (!is.null(overlap)){
+    for (i in seq_along(overlap)){
+      # overlap_i <- b_tick[grepl(overlap[[i]], besonderheit), besonderheit][[1]]
+      overlap_i_pos <- b_tick[grepl(overlap[[i]], besonderheit), which = TRUE]
+      if (isTRUE(overlap_i_pos > 1)){
+        overlap_nchar <- nchar(b_tick[overlap_i_pos -  1, besonderheit])
+        b_tick[overlap_i_pos,
+               besonderheit := str_replace(besonderheit, 'Polder_|DRV_', '')]
+        b_tick[overlap_i_pos, besonderheit := paste(str_dup(' ', 2* overlap_nchar),
+                                                    '--', besonderheit)]
+      }
+    }
+  }
   x_min <- data_tbl[, min(km, na.rm = TRUE)]
   x_max <- data_tbl[, max(km, na.rm = TRUE)]
   y1_min <- data_tbl[, min(scheitel, na.rm = TRUE)]
@@ -563,14 +596,14 @@ plot_longprofile <- function(
     data_tbl[, delta := round(delta, 3)]
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
     y2_max <- max(data_tbl$delta, na.rm = TRUE)
+    y2_length <- y2_max - y2_min
+    y1_length <- y1_max - y1_min
     if (y2_max - y2_min > 10) {
       y2_min <- round(y2_min, -1)
     } else {
       if (abs(y2_min) > 1) y2_min <- floor(y2_min)
     }
     if (is.null(y2.scale)){
-      y2_length <- y2_max - y2_min
-      y1_length <- y1_max - y1_min
       y2.scale <- y1_length * 0.5 * 1000 / y2_length
       for (i in 0:3) {
         # if (abs(y2.scale) > 1) y2.scale <- round(y2.scale)
