@@ -3,7 +3,7 @@ library(sobekio)
 library(data.table)
 library(tidyverse)
 library(cowplot)
-library(htmlTable)
+library(pracma)
 
 setwd("Z:/M/M2/work/duong/NHWSP-Rhein/Berichte/modelle/rhein/NRW")
 # so_prj <- 'd:/rhein.lit'
@@ -568,10 +568,10 @@ Planzustand_mit_Mündelheim <- Planzustand_ohne_Orsoy
 Planzustand_ohne_Mündelheim <- Planzustand_mit_Worringer
 
 #-----long long long profiles----
-rhein_q <- plot_longprofile(
-  river = 'Rhein',
-  # from.km = 510,
-  # to.km = 600,
+plot_drv(
+  name = 'Muendelheim',
+  to.upstream = 30,
+  to.downstream = 10,
   case.list = c(
     # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
     'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
@@ -600,17 +600,19 @@ rhein_q <- plot_longprofile(
     # 'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
     # 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
   ),
-  param = 'discharge',
-  sobek.project = so_prj,
+  param = 'waterlevel',
+  sobek.project = 'c:/rhein.lit',
   compare.by = 'zustand',
   cmp.sort = TRUE,
   delta = TRUE,
-  y2.scale = 10,
-  y2.tick1 = -500,
+  a.fill = 'red',
+  a.alpha = 0.5,
+  # y2.scale = 10,
+  # y2.tick1 = -500,
   facet.by = NULL,
-  plot.title = 'Längschnitt Ablfuss entlang Rhein von KM 443,50 bis KM 866,00. HW 1988 Selten. Zielpegel Köln',
+  # plot.title = 'Längschnitt Ablfuss entlang Rhein von KM 443,50 bis KM 866,00. HW 1988 Selten. Zielpegel Köln',
   # group.by = 'hwe',
-  overlap = c('Selz','Wied' ,'Langel', 'RUHR', 'Lippe', 'REES'),
+  # overlap = c('Selz','Wied' ,'Langel', 'RUHR', 'Lippe', 'REES'),
   master.tbl = rhein_tbl
 )
 
@@ -672,3 +674,21 @@ ggsave('lohrwardt_03m.png', lohrwardt_w_03m,
        dpi = 600,
        device = 'png', width = 27, height = 20, units = 'cm'
        )
+
+qt <- his_from_case(
+  c('Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
+  'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'), 
+  sobek.project = 'c:/rhein.lit',
+  param = 'discharge', 
+  mID = c('p_mosel_muendung', 'P_Mainz', 'p_andernach')
+  )
+findpeaks(qt[case == 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+             p_mosel_muendung], nups = 10)
+ggplot(data = qt, aes(x = ts, y = p_mosel_muendung, color = case)) +
+  scale_x_datetime()+
+  theme(legend.position = 'bottom')+
+  geom_line(size = 1) +
+  geom_line(aes(y = P_Mainz), size = 1)
+  # geom_vline(xintercept = qt$ts[230]) +
+  # geom_vline(xintercept = qt$ts[461])+
+  # geom_vline(xintercept = qt$ts[555])
