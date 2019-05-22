@@ -116,7 +116,7 @@ plot_drv <- function(
                            get.max = TRUE,
                            verbose = verbose)
   data_tbl <- merge(data_tbl, case_tbl, by = 'case', sort = FALSE)
-  data_tbl[, besonderheit := gsub('DRV_', '', besonderheit)]
+  # data_tbl[, besonderheit := gsub('DRV_', '', besonderheit)]
   drv_begin_tick <- master.tbl[
     grepl(
       pattern = paste("DRV", name, 'Begin', sep = "_"),
@@ -157,14 +157,16 @@ plot_drv <- function(
   #----delta == TRUE----
   if (isTRUE(delta)){
     data_tbl[, group := seq_len(.N), by = get(compare.by)]
-    y2_name <- paste('Delta', str_to_sentence(compare.by),
-                     ifelse(param == 'discharge', '(m³)', '(m)')
+    y2_name <- paste('Delta', 
+                     # str_to_sentence(compare.by),
+                     ifelse(param == 'discharge', '(m³/s)', '(m)')
     )
 
     if (compare.by != group.by){
-      y2_name <- paste('Delta', str_to_sentence(compare.by),
+      y2_name <- paste('Delta', 
+                       # str_to_sentence(compare.by),
                        'nach', str_to_sentence(group.by), 'gruppiert',
-                       ifelse(param == 'discharge', '(m³)', '(m)')
+                       ifelse(param == 'discharge', '(m³/s)', '(m)')
       )
       lt.by <- compare.by
       color.by <- group.by
@@ -276,8 +278,15 @@ plot_drv <- function(
     data_tbl[get(compare.by) == cmp_vars[2], delta := NA]
     data_tbl[get(compare.by) == cmp_vars[2], delta_color := NA]
   }
+  # adding DRV multi ticks
+  
   #----add graphic----
   if (verbose) print('Preparing graphic...')
+  # preparing data for highlighting DRV
+  setorder(b_tick, km)
+  b_tick[grepl('DRV_([^,;]*)_Begin', besonderheit), drv_start := km]
+  b_tick[grepl('DRV_([^,;]*)_End', besonderheit), drv_end := km]
+  data_tbl <- merge(data_tbl, b_tick, by = c('km', 'besonderheit'), sort = FALSE)
   g <- ggplot(data = data_tbl,
               aes(x = km,
                   linetype = !!ensym(lt.by),
@@ -348,13 +357,29 @@ plot_drv <- function(
       )
   }
   #----adding DRV rectangle and facet----
-  g <- g + annotate('rect',
-                    xmin = drv_end_tick,
-                    xmax = drv_begin_tick,
-                    ymin = -Inf, ymax = Inf,
-                    fill =  a.fill,
-                    alpha = a.alpha
-                )
+  # if (highlight.all == TRUE)
+  # add_drv_anno <- function(start, end, g) {
+  #   g <- g + annotate(
+  #     'rect',
+  #     xmin = start,
+  #     xmax = end,
+  #     ymin = -Inf,
+  #     ymax = Inf,
+  #     fill =  a.fill,
+  #     alpha = a.alpha
+  #   )
+  # }
+  for (i in seq_along(b_tick[!is.na(drv_end), drv_end])){
+    g <- g + annotate(
+      'rect',
+      xmin = b_tick[!is.na(drv_start), drv_start][i],
+      xmax = b_tick[!is.na(drv_end), drv_end][i],
+      ymin = -Inf,
+      ymax = Inf,
+      fill =  a.fill,
+      alpha = a.alpha
+    )
+  }
   if (!is.null(facet.by)){
     g <- g + facet_grid(rows = ensym(facet.by))
   }
@@ -373,8 +398,6 @@ plot_drv <- function(
 #' @param param dicharge/waterlevel
 #' @param lt.by Linetype defining by this value
 #' @param color.by Coloring by this value
-#' @param facet.by Facetting by this value
-#' @param facet.scale Facetting scale. Default 'fixed'
 #' @param compare.by Calculating delta by this value
 #' @param cmp.sort Should comparing parameter be sorted. Default is FALSE
 #' @param group.by Groupping for delta calculation
@@ -411,8 +434,8 @@ plot_longprofile <- function(
   param = 'discharge',
   lt.by = 'zustand',
   color.by = 'vgf',
-  facet.by = NULL,
-  facet.scale = 'fixed',
+  # facet.by = NULL,
+  # facet.scale = 'fixed',
   compare.by = 'zustand',
   cmp.sort = FALSE,
   group.by = compare.by,
@@ -549,14 +572,16 @@ plot_longprofile <- function(
   #----delta == TRUE----
   if (isTRUE(delta)){
     data_tbl[, group := seq_len(.N), by = get(compare.by)]
-    y2_name <- paste('Delta', str_to_sentence(compare.by),
-                     ifelse(param == 'discharge', '(m³)', '(m)')
+    y2_name <- paste('Delta', 
+                     # str_to_sentence(compare.by),
+                     ifelse(param == 'discharge', '(m³/s)', '(m)')
                      )
 
     if (compare.by != group.by){
-      y2_name <- paste('Delta', str_to_sentence(compare.by),
+      y2_name <- paste('Delta', 
+                       # str_to_sentence(compare.by),
                        'nach', str_to_sentence(group.by), 'gruppiert',
-                       ifelse(param == 'discharge', '(m³)', '(m)')
+                       ifelse(param == 'discharge', '(m³/s)', '(m)')
                        )
       lt.by <- compare.by
       color.by <- group.by
@@ -739,9 +764,9 @@ plot_longprofile <- function(
       )
   }
   #----adding highlight area and facet----
-  if (!is.null(facet.by)){
-    g <- g + facet_wrap(~ get(facet.by), scales = facet.scale)
-  }
+  # if (!is.null(facet.by)){
+  #   g <- g + facet_wrap(~ get(facet.by), scales = facet.scale)
+  # }
   if (!is.null(highlight)){
     # hl_count <- length(highlight)
     g <- g + annotate('rect',

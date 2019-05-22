@@ -8,7 +8,9 @@
   trig_def[, orig_line_nr := .I]
   str_mt <-  str_match(trig_def$V1, "TRGR id '([^']*)'")
   trig_def$id <- str_mt[, 2]
-  trig_def[, id := id[1], .(cumsum(!is.na(id)))]
+  # cumulative sum of the id, i.e. 
+  # id takes the value of the first element, grouping by none-NA
+  trig_def[, id := id[1], by = .(cumsum(!is.na(id)))]
 
   return(trig_def)
 }

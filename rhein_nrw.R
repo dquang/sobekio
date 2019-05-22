@@ -3,7 +3,7 @@ library(sobekio)
 library(data.table)
 library(tidyverse)
 library(cowplot)
-library(htmlTable)
+library(pracma)
 
 setwd("Z:/M/M2/work/duong/NHWSP-Rhein/Berichte/modelle/rhein/NRW")
 # so_prj <- 'd:/rhein.lit'
@@ -32,7 +32,7 @@ wt <- his_from_case(
 pegel_ID <- c('p_worms', 'P_Mainz', 'p_kaub', 'p_andernach', 'p_bonn',
               'p_koeln', 'p_duesseldorf', 'p_ruhrort', 'p_wesel', 'p_rees_out',
               'p_emmerich')
-hwe <- c(
+hwe_name <- c(
   'hw88_m', 'hw88_s', 'hw95_m', 'hw95_s', 'hw_03m', 'hw_03s'
 )
 pegel_name <- c("WORMS",
@@ -301,37 +301,8 @@ wor_fixCL_Q <- get_summary_tbl(
   plan.mit = Planzustand_mit_Worringer,
   hwe.list = hwe,
   param = 'discharge',
-  html.out = TRUE,
-  id.names = c("WORMS",
-    "MAINZ",
-    'M_Nahe',
-    'L_Selz',
-    'L_Wisper',
-    "KAUB",
-    'M_Lahn',
-    'M_Mosel',
-    'L_Saynbach',
-    'L_Nette',
-    'L_Wied',
-    "ANDERNACH",
-    "BONN",
-    "KOELN"),
-  qID = c(
-    "17_P_Worms", # Worms
-    "Rhe_498.25_3901_P_Mainz", # Mainz
-    'Muendung_Main_Rhe_496.50_3901',
-    'Rhe_518.90_3901_Rhe_519.10_3901', # Selz
-    'Rhe_540.55_3901_Rhe_540.65_3901', # Wisper
-    "23_Rhe_546.35_3901", # Kaub
-    'Muendung_Lahn_Rhe_585.75_3901', # Lahn
-    'Rhe_592.30_3901_Rhe_592.50_3901', # Mosel
-    'Rhe_600.10_3901_Rhe_600.30_3901', # Saynbach
-    'Rhe_608.90_3901_Rhe_609.10_3901', # Nette
-    'Rhe_610.30_3901_Rhe_610.50_3901', # Wied
-    "Rhe_613.70_3901_Rhe_613.80_3901_Ande", # Andernach
-    "23_s3", # Bonn
-    "178" # Köln
-  ),
+  id.names = pegel_name,
+  mID = pegel_ID,
   sobek.project = so_prj
 )
 wor_fixCL_W <- get_summary_tbl(
@@ -597,10 +568,10 @@ Planzustand_mit_Mündelheim <- Planzustand_ohne_Orsoy
 Planzustand_ohne_Mündelheim <- Planzustand_mit_Worringer
 
 #-----long long long profiles----
-rhein_q <- plot_longprofile(
-  river = 'Rhein',
-  # from.km = 510,
-  # to.km = 600,
+plot_drv(
+  name = 'Muendelheim',
+  to.upstream = 30,
+  to.downstream = 10,
   case.list = c(
     # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
     'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
@@ -629,17 +600,19 @@ rhein_q <- plot_longprofile(
     # 'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
     # 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
   ),
-  param = 'discharge',
-  sobek.project = so_prj,
+  param = 'waterlevel',
+  sobek.project = 'c:/rhein.lit',
   compare.by = 'zustand',
   cmp.sort = TRUE,
   delta = TRUE,
-  y2.scale = 10,
-  y2.tick1 = -500,
+  a.fill = 'red',
+  a.alpha = 0.5,
+  # y2.scale = 10,
+  # y2.tick1 = -500,
   facet.by = NULL,
-  plot.title = 'Längschnitt Ablfuss entlang Rhein von KM 443,50 bis KM 866,00. HW 1988 Selten. Zielpegel Köln',
+  # plot.title = 'Längschnitt Ablfuss entlang Rhein von KM 443,50 bis KM 866,00. HW 1988 Selten. Zielpegel Köln',
   # group.by = 'hwe',
-  overlap = c('Selz','Wied' ,'Langel', 'RUHR', 'Lippe', 'REES'),
+  # overlap = c('Selz','Wied' ,'Langel', 'RUHR', 'Lippe', 'REES'),
   master.tbl = rhein_tbl
 )
 
@@ -702,130 +675,20 @@ ggsave('lohrwardt_03m.png', lohrwardt_w_03m,
        device = 'png', width = 27, height = 20, units = 'cm'
        )
 
-
-#-----explaining hw1995, 2003----
-rhein_q <- plot_longprofile(
-  river = 'Rhein',
-  # from.km = 510,
-  # to.km = 600,
-  case.list = c(
-    # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
-    'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
-    # 'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
-    # 'Bezugszustand_ZPK_HW1995_Selten_1282_newReg',
-    # 'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
-    # 'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
-    'Planzustand_ZPK_HW1988_Selten_Nur_Eich'
-    # 'Planzustand_ZPK_HW2003_Selten_Nur_Eich'
-
-  ),
-  case.desc = c(
-    # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
-    '2. Bezugszustand_ZPK_HW1988_Selten_HW1988_Selten',
-    # 'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
-    # 'Bezugszustand_ZPK_HW1995_Selten_HW1995_Selten',
-    # 'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
-    # 'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
-    # 'Planzustand_ZPK_HW1988_Mittel_Nur_Eich_Orsoy_CL2469_Lohrwardt',
-    '1. Planzustand_ZPK_HW1988_Selten_HW1988_Selten'
-    # 'Planzustand_ZPK_HW1995_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
-    # 'Planzustand_ZPK_HW1995_Selten_HW1995_Selten'
-    # 'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
-    # 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
-  ),
-  param = 'discharge',
-  sobek.project = so_prj,
-  compare.by = 'zustand',
-  cmp.sort = TRUE,
-  delta = TRUE,
-  y2.scale = 10,
-  y2.tick1 = -500,
-  facet.by = NULL,
-  plot.title = 'Längschnitt Ablfuss entlang Rhein von KM 443,50 bis KM 866,00. HW 1988 Selten. Zielpegel Köln',
-  # group.by = 'hwe',
-  overlap = c('Selz','Wied' ,'Langel', 'RUHR', 'Lippe', 'REES'),
-  master.tbl = rhein_tbl
-)
-Bezugszustand
-rhein_q <- get_delta_table(
-  name = 'Guntersblum',
-  # from.km = 510,
-  # to.km = 600,
-  case.list = c(
-    # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
-    'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
-    # 'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
-    # 'Bezugszustand_ZPK_HW1995_Selten_1282_newReg',
-    # 'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
-    # 'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
-    'Planzustand_ZPK_HW1988_Selten_Nur_Eich'
-    # 'Planzustand_ZPK_HW2003_Selten_Nur_Eich'
-
-  ),
-  case.desc = c(
-    # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
-    '2. Bezugszustand_ZPK_HW1988_Selten_HW1988_Selten',
-    # 'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
-    # 'Bezugszustand_ZPK_HW1995_Selten_HW1995_Selten',
-    # 'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
-    # 'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
-    # 'Planzustand_ZPK_HW1988_Mittel_Nur_Eich_Orsoy_CL2469_Lohrwardt',
-    '1. Planzustand_ZPK_HW1988_Selten_HW1988_Selten'
-    # 'Planzustand_ZPK_HW1995_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
-    # 'Planzustand_ZPK_HW1995_Selten_HW1995_Selten'
-    # 'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
-    # 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
-  ),
-  param = 'discharge',
-  sobek.project = so_prj,
-  compare.by = 'zustand',
-  cmp.sort = TRUE,
-  delta = TRUE,
-  y2.scale = 10,
-  y2.tick1 = -500,
-  facet.by = NULL,
-  plot.title = 'Längschnitt Ablfuss entlang Rhein von KM 443,50 bis KM 866,00. HW 1988 Selten. Zielpegel Köln',
-  # group.by = 'hwe',
-  overlap = c('Selz','Wied' ,'Langel', 'RUHR', 'Lippe', 'REES'),
-  master.tbl = rhein_tbl
-)
-
-plot_multi_lines(
-  case.list = c(
-    # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
-    'Bezugszustand_ZPK_HW1988_Selten_1828_newReg',
-    # 'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
-    # 'Bezugszustand_ZPK_HW1995_Selten_1282_newReg',
-    # 'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
-    # 'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
-    'Planzustand_ZPK_HW1988_Selten_Nur_Eich'
-    # 'Planzustand_ZPK_HW2003_Selten_Nur_Eich'
-
-  ),
-  case.desc = c(
-    # 'Bezugszustand_ZPK_HW1988_Mittel_1563_newReg',
-    '2. Bezugszustand_ZPK_HW1988_Selten_HW1988_Selten',
-    # 'Bezugszustand_ZPK_HW1995_Mittel_1188_newReg',
-    # 'Bezugszustand_ZPK_HW1995_Selten_HW1995_Selten',
-    # 'Bezugszustand_ZPK_HW2003_Mittel_1527_newReg',
-    # 'Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
-    # 'Planzustand_ZPK_HW1988_Mittel_Nur_Eich_Orsoy_CL2469_Lohrwardt',
-    '1. Planzustand_ZPK_HW1988_Selten_HW1988_Selten'
-    # 'Planzustand_ZPK_HW1995_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
-    # 'Planzustand_ZPK_HW1995_Selten_HW1995_Selten'
-    # 'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
-    # 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
-  ),
-  param = 'discharge',
-  sobek.project = so_prj,
-  id.list = c(
-    # 'p_worms',
-    # 'P_Mainz',
-    'p_kaub',
-    'p_andernach',
-    'p_main_muendung',
-    'p_mosel_muendung',
-    'p_lahn_muendung'
+qt <- his_from_case(
+  c('Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
+  'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'), 
+  sobek.project = 'c:/rhein.lit',
+  param = 'discharge', 
+  mID = c('p_mosel_muendung', 'P_Mainz', 'p_andernach')
   )
-  # master.tbl = rhein_tbl
-)
+findpeaks(qt[case == 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+             p_mosel_muendung], nups = 10)
+ggplot(data = qt, aes(x = ts, y = p_mosel_muendung, color = case)) +
+  scale_x_datetime()+
+  theme(legend.position = 'bottom')+
+  geom_line(size = 1) +
+  geom_line(aes(y = P_Mainz), size = 1)
+  # geom_vline(xintercept = qt$ts[230]) +
+  # geom_vline(xintercept = qt$ts[461])+
+  # geom_vline(xintercept = qt$ts[555])
