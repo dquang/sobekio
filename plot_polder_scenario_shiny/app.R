@@ -10,12 +10,12 @@ library(rstudioapi)
 # test data
 
 polders <- rhein_tbl[grepl('Polder_', besonderheit), besonderheit] %>%
-    str_match('Polder_([^,;]*)') 
+    str_match('Polder_([^,;]*)')
 polders <- polders[, 2]%>%
-    str_replace('Polder_|_Innen|_Vor|_Nach|_Vol|_Einlass.*|_Auslass.*|_Ende|_Beginn', 
+    str_replace('Polder_|_Innen|_Vor|_Nach|_Vol|_Einlass.*|_Auslass.*|_Ende|_Beginn',
                 '') %>%
     unique()
-# case_cmt <- read.table('c:/rhein.lit/caselist.cmt', sep = ' ', 
+# case_cmt <- read.table('c:/rhein.lit/caselist.cmt', sep = ' ',
 #                        col.names = c('case_number', 'case_name'),
 #                        stringsAsFactors = FALSE)
 ui <- miniPage(
@@ -25,8 +25,8 @@ ui <- miniPage(
             "Basic Parameters",
             icon = icon("sliders"),
             miniContentPanel(
-                textInput("sobek_cmt", 'Path to sobek project: ', 
-                          "c:\\rhein.lit", width = '100%')
+                textInput("sobek_cmt", 'Path to sobek project: ',
+                          "d:\\so21302\\rhein29a.lit", width = '100%')
                 ,
                 multiInput(
                     inputId = "case_list",
@@ -44,18 +44,18 @@ ui <- miniPage(
                 ),
                 actionButton("read_data", "Read data", width = '100%')
             )
-        ), 
+        ),
         miniTabPanel("Graphic options", icon = icon("list-alt"),
                      checkboxGroupInput(
-                         'plotption',
+                         'plot_option',
                          'Choose plotting options: ',
                          choices = list(
-                             'Einlass Ganglinie(n)' = TRUE,
-                             'Auslass Ganglinie(n)'= TRUE,
+                             'Einlass Ganglinie(n)' = 'q_in',
+                             'Auslass Ganglinie(n)'= 'q_out',
                              # 'delta.measure',
                              # 'delta.pegel',
-                             'Delta line'= TRUE,
-                             'Sort delta parameters' = TRUE
+                             'Delta line'= 'delta_line',
+                             'Sort delta parameters' = 'cmp_sort'
                          )
                      ),
                      numericInput('y2_scale', 'y2_scale', value = NA),
@@ -82,6 +82,7 @@ server <- function(input, output, session){
     #---- create reactive version of the parameters----
     # volumes  <-  getVolumes()
     sobek_cmt <- reactive(input$sobek_cmt)
+    plot_option <- reactive(input$plot_option)
     # sobek_cmt_path <- reactive(input$sobek_cmt)
     case_desc <- reactive(input$case_desc)
     # update input$case_list if input file has changed
@@ -90,11 +91,11 @@ server <- function(input, output, session){
     #         output$plot_option <- renderText(function(){
     #             list.files(choose.dir())})
     #     }
-    #     
-    #     
+    #
+    #
     # })
     observeEvent(input$sobek_cmt, {
-        
+
         # shinyDirChoose(input, 'sobek_cmt', roots = c(home = '~'))
         cmt_path <- paste(sobek_cmt(), '/caselist.cmt', sep = '')
         if (file.exists(cmt_path)){
@@ -120,17 +121,12 @@ server <- function(input, output, session){
     case_desc <- eventReactive(
         input$read_data,
         {
-            str_trim(str_split(case_desc, ',')[[1]])
+            str_trim(str_split(case_list(), ',')[[1]])
         }
         )
-    
-    plot_option <- eventReactive(input$make_plot, 
-                                 {
-                                    input$plot_option 
-                                 })
     #----init values----
-    g_data <- reactiveValues(df = NULL, 
-                             case_tbl = NULL, 
+    g_data <- reactiveValues(df = NULL,
+                             case_tbl = NULL,
                              id_tbl = NULL,
                              polder_name = NULL,
                              case_list = NULL,
@@ -179,26 +175,58 @@ server <- function(input, output, session){
             sobek.project =   sobek_cmt(),
             master.tbl = rhein_tbl
         )
-        g_data$case_tbl <- parse_case(case.desc = case_desc(), 
-                                      orig.name = case_list())
-        g_data$df <- merge(g_data$df, g_data$case_tbl, by = 'case')
+        # g_data$case_tbl <- parse_case(case.desc = case_list(),
+                                      # orig.name = case_list())
+        # g_data$df <- merge(g_data$df, g_data$case_tbl, by = 'case')
     })
     observeEvent(input$make_plot,{
         if (!is.null(g_data$df)){
+            p_options <- paste(plot_option(), collapse = ",")
+            q_in <- grepl('q_in', p_options)
+            q_out <- grepl('q_out', p_options)
+            delta_line <- grepl('delta_line', p_options)
+            cmp_sort <- grepl('cmp_sort', p_options)
             output$polder_plot <- renderPlot({
-                g <- ggplot(data = g_data$df, 
-                       aes(x = ts, y = Nach, 
-                           color = case, 
-                           linetype = zustand
-                           )
-                       ) +
-                    scale_x_datetime() + geom_line()+
-                    theme_bw() + theme(legend.position = 'bottom')
-                
-                if (grepl('q.in', plot_option())){
-                    g <- geom_line(aes(y = Einlass, color = 'Q_Einlass'))
-                }
-                
+                # g <- ggplot(data = g_data$df,
+                #        aes(x = ts, y = Nach,
+                #            color = case,
+                #            linetype = zustand
+                #            )
+                #        ) +
+                #     scale_x_datetime() + geom_line()+
+                #     theme_bw() + theme(legend.position = 'bottom')
+
+                # if (grepl('delta_line', p_options)){
+                #     g <- g + geom_line(aes(y = Einlass, color = 'Q_Einlass'))
+                # }
+
+                tryCatch(
+                    g <- plot_shiny(
+                        name = polder_name(),
+                        id_data = g_data$df,
+                        case.list = case_list(),
+                        param = parameter(),
+                        sobek.project = sobek_cmt(),
+                        q.in = q_in,
+                        q.out = q_out,
+                        delta.line = delta_line,
+                        master.tbl = rhein_tbl
+                    ),
+                    error = function(error_message) {
+                        output$plot_msg <- renderText({
+                            print(error_message)
+                        })
+                        g <- ggplot()
+                        # g <- ggplot(data = data.frame(x = 1, y = 1),
+                        #             aes(x = 1, y = 1)) +
+                        #     annotate('text',
+                        #              x = 1 ,
+                        #              y = 1,
+                        #              label = 'Error while plotting....')
+                        g
+                    }
+                )
+                g
             })
         } else{
             output$plot_msg <- renderText({

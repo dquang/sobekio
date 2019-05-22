@@ -157,13 +157,13 @@ plot_drv <- function(
   #----delta == TRUE----
   if (isTRUE(delta)){
     data_tbl[, group := seq_len(.N), by = get(compare.by)]
-    y2_name <- paste('Delta', 
+    y2_name <- paste('Delta',
                      # str_to_sentence(compare.by),
                      ifelse(param == 'discharge', '(m³/s)', '(m)')
     )
 
     if (compare.by != group.by){
-      y2_name <- paste('Delta', 
+      y2_name <- paste('Delta',
                        # str_to_sentence(compare.by),
                        'nach', str_to_sentence(group.by), 'gruppiert',
                        ifelse(param == 'discharge', '(m³/s)', '(m)')
@@ -278,15 +278,23 @@ plot_drv <- function(
     data_tbl[get(compare.by) == cmp_vars[2], delta := NA]
     data_tbl[get(compare.by) == cmp_vars[2], delta_color := NA]
   }
-  # adding DRV multi ticks
-  
   #----add graphic----
   if (verbose) print('Preparing graphic...')
   # preparing data for highlighting DRV
-  setorder(b_tick, km)
+  # km_order = ifelse(isTRUE(reserve.x), -1, 1)
+  setorderv(b_tick, cols = 'km', order = ifelse(isTRUE(reserve.x), -1, 1))
   b_tick[grepl('DRV_([^,;]*)_Begin', besonderheit), drv_start := km]
   b_tick[grepl('DRV_([^,;]*)_End', besonderheit), drv_end := km]
+  b_tick[grepl('DRV_([^,;]*)_Begin', besonderheit), drv_nr := .I]
   data_tbl <- merge(data_tbl, b_tick, by = c('km', 'besonderheit'), sort = FALSE)
+  # finding DRV list for highlighting them correctly, due to overlapping
+  drv_list <- b_tick[grepl('DRV_([^,;]*)_Begin|DRV_([^,;]*)_End', besonderheit),
+                     besonderheit] %>%
+    str_replace('DRV_', '') %>%
+    str_replace('_Beginn', '') %>%
+    str_replace('_Ende', '') %>%
+    unique()
+  # data_tbl <- merge(data_tbl, b_tick, by = c('km', 'besonderheit'), sort = FALSE)
   g <- ggplot(data = data_tbl,
               aes(x = km,
                   linetype = !!ensym(lt.by),
@@ -369,11 +377,31 @@ plot_drv <- function(
   #     alpha = a.alpha
   #   )
   # }
-  for (i in seq_along(b_tick[!is.na(drv_end), drv_end])){
+  for (i in seq_along(drv_list)){
+    x_min <- b_tick[grepl(paste('DRV', drv_list[i], 'Begin', sep = "_"), besonderheit),
+                         drv_start]
+    x_max <- b_tick[grepl(paste('DRV', drv_list[i], 'End', sep = "_"), besonderheit),
+                    drv_end]
+    # print(paste('Name:', drv_list[i], x_min, x_max))
+    # print(x_max)
+    if (length(x_min) == 0 | length(x_max) == 0) next
+    # if (length(x_min) == 0){
+    #   x_min <- ifelse(isTRUE(reserve.x),
+    #                   no = x_pretty[1],
+    #                   yes = x_pretty[length(x_pretty)]
+    #                   )
+    # }
+    # if (length(x_max) == 0){
+    #   x_max <- ifelse(isTRUE(reserve.x),
+    #                   yes = x_pretty[1],
+    #                   no = x_pretty[length(x_pretty)]
+    #                   )
+    # }
+    # print(paste('Name:', drv_list[i], x_min, x_max))
     g <- g + annotate(
       'rect',
-      xmin = b_tick[!is.na(drv_start), drv_start][i],
-      xmax = b_tick[!is.na(drv_end), drv_end][i],
+      xmin = x_min,
+      xmax = x_max,
       ymin = -Inf,
       ymax = Inf,
       fill =  a.fill,
@@ -572,13 +600,13 @@ plot_longprofile <- function(
   #----delta == TRUE----
   if (isTRUE(delta)){
     data_tbl[, group := seq_len(.N), by = get(compare.by)]
-    y2_name <- paste('Delta', 
+    y2_name <- paste('Delta',
                      # str_to_sentence(compare.by),
                      ifelse(param == 'discharge', '(m³/s)', '(m)')
                      )
 
     if (compare.by != group.by){
-      y2_name <- paste('Delta', 
+      y2_name <- paste('Delta',
                        # str_to_sentence(compare.by),
                        'nach', str_to_sentence(group.by), 'gruppiert',
                        ifelse(param == 'discharge', '(m³/s)', '(m)')

@@ -37,7 +37,7 @@
 #' @param master.tbl Table of ID Coding of the sobek network
 #' @return A ggplot2 graphic
 #' @export
-plot_polder_scenario_shiny <- function(
+plot_shiny <- function(
   name = NULL,
   id_data = NULL,
   case.list = NULL,
@@ -532,7 +532,7 @@ plot_polder_scenario_shiny <- function(
       hjust = 0,
       vjust = 1
     )
-  
+
   if (!is.null(h.lines)){
     # id_hlines with 2 cols: V1, case
     for (i in seq_along(h.lines)){
@@ -668,6 +668,6 @@ plot_polder_scenario_shiny <- function(
                 ". Use y2.tick1 and y2.scale to adjust y2-axis",
                 sep = ""))
   }
-  
+
   return(g)
 }
