@@ -64,7 +64,6 @@ plot_polder_scenario <- function(
   plot.title = NULL,
   lt.name = 'Linienart',
   color.name = 'Farbe',
-  # v.max = TRUE,
   text.pos.x = 0,
   text.pos.y = 1,
   date.break = '3 days',
