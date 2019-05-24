@@ -46,7 +46,7 @@ plot_drv <- function(
   group.by = compare.by,
   color.name = 'Farbe',
   lt.name = 'Linienart',
-  delta = FALSE,
+  delta = TRUE,
   reserve.x = FALSE,
   x.lab = 'Lage (KM)',
   y.lab = ifelse(param == 'discharge',
@@ -70,8 +70,8 @@ plot_drv <- function(
   stopifnot(is.numeric(to.upstream) & is.numeric(to.downstream))
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   if (!is.null(compare.by)){
-    if(!compare.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel')){
-      stop("compare.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel')")
+    if(!compare.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')){
+      stop("compare.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')")
     }
     cmp_vars <- unique(case_tbl[, get(compare.by)])
     if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
@@ -81,21 +81,29 @@ plot_drv <- function(
     }
   }
   if (!is.null(group.by)){
-    grp_vars <- unique(case_tbl[, get(group.by)])
-    if (!group.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel')){
-      stop("group.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel')")
+    if (!group.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')){
+      stop("group.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')")
     }
+    grp_vars <- unique(case_tbl[, get(group.by)])
   }
-  if (isTRUE(delta)){
-    if (is.null(compare.by) | is.null(group.by)){
+  if (isTRUE(delta)) {
+    if (is.null(compare.by) | is.null(group.by)) {
       stop('For caculating delta, compare.by and group.by must be specified!')
     }
-    if(compare.by != group.by){
-      total_case <- unique(as.vector(outer(cmp_vars, grp_vars, paste, sep="_")))
-      if (length(total_case) != length(case.list)){
-        stop("Combination of compare.by and group.by does not have the same length as case.list")
+    total_case <-
+      unique(as.vector(outer(cmp_vars, grp_vars, paste, sep = "_")))
+    if (compare.by != group.by){
+      if (length(total_case) != length(case.list)) {
+        stop("Combination of compare.by and group.by is not distinct
+             for calculating delta")
+      }
+    } else{
+      if (!near(length(total_case)/ 2, length(case.list), 0.1)) {
+        stop("Combination of compare.by and group.by is not distinct
+             for calculating delta")
       }
     }
+
   }
   if (is.null(plot.title)){
     plot.title <- paste('Längsschnitt',
@@ -286,7 +294,8 @@ plot_drv <- function(
   b_tick[grepl('DRV_([^,;]*)_Begin', besonderheit), drv_start := km]
   b_tick[grepl('DRV_([^,;]*)_End', besonderheit), drv_end := km]
   b_tick[grepl('DRV_([^,;]*)_Begin', besonderheit), drv_nr := .I]
-  data_tbl <- merge(data_tbl, b_tick, by = c('km', 'besonderheit'), sort = FALSE)
+  data_tbl <- merge(data_tbl, b_tick, by = c('km', 'besonderheit'), all.x = TRUE,
+                    sort = FALSE)
   # finding DRV list for highlighting them correctly, due to overlapping
   drv_list <- b_tick[grepl('DRV_([^,;]*)_Begin|DRV_([^,;]*)_End', besonderheit),
                      besonderheit] %>%

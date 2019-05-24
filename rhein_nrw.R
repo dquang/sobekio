@@ -287,6 +287,39 @@ Planzustand_ohne_Worringer <- c(
   'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein',
   'Planzustand_ZPK_HW2003_Selten_Nur_Eich'
 )
+
+plot_longprofile(
+  from.km = 668,
+  to.km = 670,
+  case.list = c(
+    # grep('Mittel', Planzustand_mit_Worringer, value = TRUE),
+    grep('Mittel', Planzustand_mit_Worringer, value = TRUE)
+                ),
+  param = 'waterlevel',
+  compare.by = NULL,
+  color.by = 'hwe',
+  # lt.by =
+  sobek.project = so_prj,
+  delta = FALSE,
+  master.tbl = rhein_tbl
+)
+plot_polder(
+  name = 'Langel',
+  case.list = c(
+    # grep('Mittel', Planzustand_mit_Worringer, value = TRUE),
+    grep('Mittel', Planzustand_mit_Worringer, value = TRUE)
+  ),
+  param = 'waterlevel',
+  facet.by = 'hwe',
+  q.in = TRUE,
+  y2.scale = 0.05,
+  # compare.by = NULL,
+  # color.by = 'hwe',
+  # lt.by =
+  sobek.project = so_prj,
+  # delta = FALSE,
+  master.tbl = rhein_tbl
+)
 wtk <- his_from_case(
   Planzustand_ohne_Worringer, mID = 'p_koeln', param = 'waterlevel',
   sobek.project = so_prj, get.max = TRUE
@@ -482,33 +515,7 @@ plot_longprofile(
 )
 #----- Lohrwardt Table----
 # cases Planzustände ohne Lohrwardt
-lohrwardt_w_03m <- plot_polder_scenario(
-  name = 'Lohrwardt',
-  case.list = c(
-    'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
-    'Planzustand_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469'
-  ),
-  case.desc = c(
-    'Mit Lohrwardt_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469_Lohrwardt',
-    'Ohne Lohrwardt_ZPK_HW2003_Mittel_ohne_Niederrhein_Orsoy_CL2469'
-  ),
-  # ref.mID = 'p_duesseldorf',
-plot.title = 'Wasserstand Ganglinien für Maßnahme Lohrwardt. Modellhochwasser 2003 Mittel',
-  q.in = TRUE,
-  q.out = TRUE,
-  cmp.sort = TRUE,
-  delta.line = TRUE,
-  peak.nday = 4,
-  y2.scale = 0.02,
-  y2.tick1 = 0,
-  date.break = '1 day',
-  master.tbl = rhein_tbl,
-  sobek.project = so_prj,
-  delta.pegel = TRUE,
-  param = 'waterlevel'
-)
-lohrwardt_w_03m
-lohrwardt_w_98s <- plot_polder_scenario(
+lohrwardt_w_88s <- plot_polder_scenario(
   name = 'Lohrwardt',
   case.list = c(
     'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
@@ -523,14 +530,72 @@ lohrwardt_w_98s <- plot_polder_scenario(
   q.out = TRUE,
   cmp.sort = TRUE,
   delta.line = TRUE,
-  peak.nday = 4,
-  y2.scale = 0.005,
+  peak.nday = 1,
+  # y2.scale = 0.005,
   y2.tick1 = -50,
   master.tbl = rhein_tbl,
   sobek.project = so_prj,
   delta.pegel = TRUE,
-  param = 'waterlevel'
+  date.break = '2 hours',
+  date.label = "%H",
+  param = 'discharge'
 )
+lohrwardt_w_88s
+lohrwardt_w_95s <- plot_polder_scenario(
+  name = 'Lohrwardt',
+  case.list = c(
+    'Planzustand_ZPK_HW1995_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+    'Planzustand_ZPK_HW1995_Selten_Eich_Wor_Zeit_Orsoy_CL2469'
+  ),
+  case.desc = c(
+    'Mit Lohrwardt_ZPK_HW1995_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+    'Ohne Lohrwardt_ZPK_HW1995_Selten_Eich_Wor_Zeit_Orsoy_CL2469'
+  ),
+  # ref.mID = 'p_duesseldorf',
+  q.in = TRUE,
+  q.out = TRUE,
+  cmp.sort = TRUE,
+  delta.line = TRUE,
+  peak.nday = 2,
+  # y2.scale = 0.005,
+  y2.tick1 = -50,
+  master.tbl = rhein_tbl,
+  sobek.project = so_prj,
+  delta.pegel = TRUE,
+  date.break = '2 hours',
+  date.label = "%H",
+  param = 'discharge'
+)
+lohrwardt_w_95s
+lohrwardt_w_03s <- plot_polder_scenario(
+  name = 'Lohrwardt',
+  case.list = c(
+    'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+    'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469'
+  ),
+  case.desc = c(
+    'Mit Lohrwardt_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+    'Ohne Lohrwardt_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469'
+  ),
+  # ref.mID = 'p_duesseldorf',
+# plot.title = 'Wasserstand Ganglinien für Maßnahme Lohrwardt. Modellhochwasser 2003 Mittel',
+  q.in = TRUE,
+  q.out = TRUE,
+  cmp.sort = TRUE,
+  delta.line = TRUE,
+  peak.nday = 2,
+  # y2.scale = 0.02,
+  # y2.tick1 = 0,
+  # date.break = '1 day',
+  master.tbl = rhein_tbl,
+  sobek.project = so_prj,
+  delta.pegel = TRUE,
+date.break = '2 hours',
+date.label = "%H",
+  param = 'discharge'
+)
+lohrwardt_w_03s
+
 Planzustand_ohne_Lohrwardt <- Planzustand_mit_Orsoy_fixCL
 Planzustand_mit_Lohrwardt <- c(
   'Planzustand_ZPK_HW1988_Mittel_Nur_Eich_Orsoy_CL2469_Lohrwardt',
@@ -677,9 +742,9 @@ ggsave('lohrwardt_03m.png', lohrwardt_w_03m,
 
 qt <- his_from_case(
   c('Bezugszustand_ZPK_HW2003_Selten_1663_newReg',
-  'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'), 
+  'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'),
   sobek.project = 'c:/rhein.lit',
-  param = 'discharge', 
+  param = 'discharge',
   mID = c('p_mosel_muendung', 'P_Mainz', 'p_andernach')
   )
 findpeaks(qt[case == 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',

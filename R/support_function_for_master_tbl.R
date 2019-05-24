@@ -136,7 +136,7 @@ get_segment_id_tbl <- function(
   }
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   river_name <- river # because it is confused with the 'river' column
-  id_tbl <- master.tbl[river == river_name & 
+  id_tbl <- master.tbl[river == river_name &
                          km >= from.km & km <= to.km & !is.na(km)
                        ]
   stopifnot(nrow(id_tbl) > 1)
@@ -640,11 +640,43 @@ get_polder_max <- function(
   w.canal = TRUE,
   volume = TRUE,
   ref.mID = NULL,
-  compare.by = NULL,
+  cmp.sort = FALSE,
+  compare.by = 'zustand',
   group.by = compare.by,
   master.tbl = NULL,
   verbose = TRUE
 ){
+  stopifnot(
+    compare.by %in% c('zustand', 'vgf', 'hwe', 'notiz', 'zielpegel') &
+      group.by %in% c('zustand', 'vgf', 'hwe', 'notiz', 'zielpegel')
+  )
+  stopifnot(!is.null(name) & !is.null(master.tbl) &
+              !is.null(sobek.project) & !is.null(case.list)
+            )
+  case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
+  cmp_vars <- unique(case_tbl[, get(compare.by)])
+  if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
+  if (length(cmp_vars) != 2) {
+    stop('compare.by must have two values not: ',
+         str_flatten(cmp_vars, collapse = ", " ))
+  }
+  grp_vars <- unique(case_tbl[, get(group.by)])
+  # if (is.null(compare.by) | is.null(group.by)) {
+  #   stop('For caculating delta, compare.by and group.by must be specified!')
+  # }
+  total_case <-
+    unique(as.vector(outer(cmp_vars, grp_vars, paste, sep = "_")))
+  if (compare.by != group.by){
+    if (length(total_case) != length(case.list)) {
+      stop("Combination of compare.by and group.by is not distinct
+             for calculating delta")
+    }
+  } else{
+    if (!near(length(total_case)/ 2, length(case.list), 0.1)) {
+      stop("Combination of compare.by and group.by is not distinct
+             for calculating delta")
+    }
+  }
   if (isTRUE(verbose)) print('Reading data at the measure...')
   id_data <- get_polder_data(
     name = name,
@@ -655,7 +687,7 @@ get_polder_max <- function(
     sobek.project = sobek.project,
     master.tbl = master.tbl
   )
-  col_get_delta <- 'Nach'
+  # reading data for ref.mID
   if (!is.null(ref.mID)) {
     if (isTRUE(verbose)) print('Reading data for ref.mID...')
     if (length(ref.mID) > 1) {
@@ -689,7 +721,6 @@ get_polder_max <- function(
     }
     colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
     id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
-    col_get_delta <- c('Nach', 'Bezugspegel')
   }
   id_data_max <- id_data[, lapply(.SD, max, na.rm = TRUE),
                          .SDcols = -c('ts'),
@@ -706,84 +737,58 @@ get_polder_max <- function(
     )
     id_data_max <- merge(id_data_max, id_vol, by = 'case', sort = FALSE)
   }
-  case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
+  col_get_delta <- colnames(id_data_max)[-1]
   id_data_max <- merge(id_data_max, case_tbl, by = 'case', sort = FALSE)
-
-
-  if (!is.null(compare.by)) {
-    if (compare.by == 'location') {
-      id_data_max[, delta_loc := Nach - Vor]
-    } else{
-      con_chk <-
-        compare.by %in% c('zustand', 'vgf', 'hwe', 'notiz', 'zielpegel')
-      cmp_cols <- unique(id_data_max[, get(compare.by)])
-      if (con_chk & length(cmp_cols) == 2) {
-        if (is.null(group.by)) {
-          id_data_max[, group := seq_len(.N), by = eval(compare.by)]
-          id_data_delta <- id_data_max[, .SD,
-                                       .SDcols = c('group', col_get_delta,
-                                                   compare.by)]
-          id_data_delta <-
-            dcast(id_data_delta, group ~ get(compare.by),
-                  value.var = col_get_delta)
-          for (i in seq_along(col_get_delta)) {
-            col_i <- paste('delta_', col_get_delta[i], sep = "")
-            if (is.null(ref.mID)){
-              col_1 <- cmp_cols[1]
-              col_2 <-  cmp_cols[2]
-            } else{
-              col_1 <- paste(col_get_delta[i], cmp_cols[1], sep = "_")
-              col_2 <- paste(col_get_delta[i], cmp_cols[2], sep = "_")
-            }
-            id_data_delta[, eval(col_i) := get(col_1) - get(col_2)]
-            id_data_delta[, eval(col_1) := NULL]
-            id_data_delta[, eval(col_2) := NULL]
-          }
-          id_data_max <- merge(id_data_max, id_data_delta, by = 'group')
-          id_data_max$group = NULL
-        }else{
-          group_chk <- length(id_data_max[, get(group.by)])
-          if (group_chk > 1) {
-            id_data_delta <- id_data_max[, .SD,
-                                         .SDcols = c(group.by, col_get_delta,
-                                                     compare.by)]
-            id_data_delta <-
-              dcast(id_data_delta, get(group.by) ~ get(compare.by),
-                    value.var = col_get_delta)
-            colnames(id_data_delta)[1] <- group.by
-            for (i in seq_along(col_get_delta)) {
-              col_i <- paste('delta_', col_get_delta[i], sep = "")
-              col_1 <-
-                paste(col_get_delta[i], cmp_cols[1], sep = "_")
-              col_2 <-
-                paste(col_get_delta[i], cmp_cols[2], sep = "_")
-              id_data_delta[, eval(col_i) := get(col_1) - get(col_2)]
-              id_data_delta[, eval(col_1) := NULL]
-              id_data_delta[, eval(col_2) := NULL]
-            }
-            id_data_max <-
-              merge(id_data_max, id_data_delta, by = group.by)
-          } else{
-            print(paste(
-              'To get delta by',
-              group.by,
-              'grouping, number of groups must be more than 1'
-            ))
-          }
-        }
-      } else{
-        print(
-          paste(
-            'To get delta for',
-            compare.by,
-            'it must has two unique values',
-            'and compare.by must be in c(\'zustand\', \'vgf\', \'hwe\', \'notiz\', \'zielpegel\', \'location\')'
-          )
-        )
+  id_data_max[, group := seq_len(.N), by = eval(compare.by)]
+  if (compare.by != group.by) {
+    for (i in col_get_delta) {
+      data_tbl_delta <-
+        dcast(id_data_max,
+              group  ~ get(compare.by) + get(group.by)  ,
+              value.var = i)
+      for (j in grp_vars) {
+        col_j <- paste('Delta', i, j, sep = '_')
+        col_1 <- paste(cmp_vars[1], j, sep = '_')
+        col_2 <- paste(cmp_vars[2], j, sep = '_')
+        data_tbl_delta[, eval(col_j) := get(col_1) - get(col_2)]
+        data_tbl_delta[, eval(col_1) := NULL]
+        data_tbl_delta[, eval(col_2) := NULL]
       }
+      data_tbl_delta <- melt(
+        data_tbl_delta,
+        id.vars = 'group',
+        variable.name = group.by,
+        value.name = paste('Delta', i, sep = '_'),
+        sort = FALSE
+      )
+      data_tbl_delta[, eval(group.by) :=
+                       str_replace(get(group.by),
+                                   paste('Delta_', i, "_", sep = ""), '')
+                     ]
+      id_data_max <- merge(id_data_max, data_tbl_delta,
+                           by = c(group.by, 'group'), sort = FALSE)
+    }
+  } else{
+    for (i in col_get_delta){
+      data_tbl_delta <-
+        dcast(id_data_max, group  ~ get(compare.by),
+              value.var = i)
+      col_1 <- cmp_vars[1]
+      col_2 <- cmp_vars[2]
+      delta_col_name <- paste('delta', i, sep = '_')
+      data_tbl_delta[, eval(delta_col_name) := get(col_1) - get(col_2)]
+      data_tbl_delta[, eval(col_1) := NULL]
+      data_tbl_delta[, eval(col_2) := NULL]
+      id_data_max <-
+        merge(id_data_max, data_tbl_delta, by = 'group', sort = FALSE)
     }
   }
-
+  col_keep <- c('case',
+                  col_get_delta,
+                  paste('Delta', col_get_delta, sep = "_"),
+                  group.by)
+  if (group.by != compare.by) col_keep <- c(col_keep, compare.by)
+  id_data_max <- id_data_max[, .SD, .SDcols = col_keep]
   return(id_data_max)
 }
 
@@ -934,11 +939,11 @@ get_summary_tbl <- function(
   # changing case names to their description
 
   for (i in seq_along(hwe.list)) {
-    bezug_tbl[case == bezug[[i]], 
+    bezug_tbl[case == bezug[[i]],
               case := paste('bezug', hwe.list[[i]], sep = "_")]
-    plan_ohne_tbl[case == plan.ohne[[i]], 
+    plan_ohne_tbl[case == plan.ohne[[i]],
               case := paste('ohne', hwe.list[[i]], sep = "_")]
-    plan_mit_tbl[case == plan.mit[[i]], 
+    plan_mit_tbl[case == plan.mit[[i]],
                   case := paste('mit', hwe.list[[i]], sep = "_")]
   }
 
@@ -952,9 +957,9 @@ get_summary_tbl <- function(
   plan_mit_tbl <- plan_mit_tbl %>% select(-ts) %>%
     melt(id.vars = 'case', variable.name = 'Pegel') %>%
     dcast(Pegel ~ case)
-  data_tbl <- merge(bezug_tbl, plan_ohne_tbl, by = 'Pegel', sort = FALSE) %>% 
+  data_tbl <- merge(bezug_tbl, plan_ohne_tbl, by = 'Pegel', sort = FALSE) %>%
     merge(plan_mit_tbl, by = 'Pegel', sort = FALSE)
-  cols <- c('Pegel', 
+  cols <- c('Pegel',
             paste('bezug', hwe.list, sep = '_'),
             paste('ohne', hwe.list, sep = "_"),
             paste('d_ob', hwe.list, sep = "_"),
@@ -982,7 +987,7 @@ get_summary_tbl <- function(
   } else{
     data_tbl[, (cols) := round(.SD), .SDcols = cols]
   }
-  
+
   if (length(id.names) == length(data_tbl$Pegel)){
     data_tbl$Pegel <- id.names
   }
@@ -1005,7 +1010,7 @@ get_summary_tbl <- function(
                    'Delta (3) - (1)',
                    'Delta (3) - (2)'
                    ),
-        
+
         n.cgroup = c(1, rep(ngroup, 6))
       )
   }
