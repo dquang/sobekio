@@ -515,10 +515,22 @@ plot_longprofile(
 )
 #----- Lohrwardt Table----
 # cases Planzustände ohne Lohrwardt
+# Lohrwardt TMW
+# case ohne Lohrwardt
+ohne_Lohrwardt <- c(
+  'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+'Planzustand_ZPK_HW1995_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt')
+
+qt <- his_from_case(
+  ohne_Lohrwardt,  so_prj, param = 'discharge', mID = 'p_lohrwardt_out'
+  )
+# sobek_sim('Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt_3', so_prj, so_dir)
+polder_tmv(qt[case == ohne_Lohrwardt[1]], volume = 18.6)
 lohrwardt_w_88s <- plot_polder_scenario(
   name = 'Lohrwardt',
   case.list = c(
-    'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt',
+    'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt_3',
     'Planzustand_ZPK_HW1988_Selten_Eich_Wor_Zeit_Orsoy_CL2469'
   ),
   case.desc = c(
@@ -530,17 +542,28 @@ lohrwardt_w_88s <- plot_polder_scenario(
   q.out = TRUE,
   cmp.sort = TRUE,
   delta.line = TRUE,
-  peak.nday = 1,
-  # y2.scale = 0.005,
+  peak.nday = 3,
+  # w.canal = TRUE,
+  # y2.scale = 1,
   y2.tick1 = -50,
   master.tbl = rhein_tbl,
   sobek.project = so_prj,
   delta.pegel = TRUE,
   date.break = '2 hours',
   date.label = "%H",
-  param = 'discharge'
+  param = 'waterlevel'
 )
 lohrwardt_w_88s
+polder_tmv(qt[case == ohne_Lohrwardt[2]], volume = 19.27)
+plot_multi_lines(
+  ohne_Lohrwardt[3], sobek.project = so_prj, param = 'waterlevel',
+  mID = c('p_lohrwardt_in', 'p_lohrwardt_out', 'p_lohrwardt_mitte')
+)
+plot_multi_lines(
+  ohne_Lohrwardt[3], sobek.project = so_prj, param = 'crest level',
+  sID = c('lohrwardt_zu_1', 'lohrwardt_zu_2')
+)
+qplot(st$lohrwardt_zu_2)
 lohrwardt_w_95s <- plot_polder_scenario(
   name = 'Lohrwardt',
   case.list = c(
@@ -564,7 +587,7 @@ lohrwardt_w_95s <- plot_polder_scenario(
   delta.pegel = TRUE,
   date.break = '2 hours',
   date.label = "%H",
-  param = 'discharge'
+  param = 'waterlevel'
 )
 lohrwardt_w_95s
 lohrwardt_w_03s <- plot_polder_scenario(

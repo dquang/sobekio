@@ -16,7 +16,7 @@ volume_center <- function(
   ndowns = nups
 ){
   # stopifnot(column %in% colnames(indt)
-  indt <- indt[, get(column)]
+  indt <- indt[, c('ts', column)]
   colnames(indt) <- c('ts', 'value')
   indt[, orig_row := .I]
   if (is.null(peak.min)){

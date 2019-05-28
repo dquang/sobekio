@@ -1,3 +1,12 @@
+#' Plot the W~Q curve at a measurement station (pegel)
+#'
+#' This function take an mID and draw the waterlevel-discharge at its location
+#'
+#' @param pegel Name of the measurement station (for the plot title)
+#' @param ... other parameter to pass to his_from_case function
+#'
+#' @return a ggplot2 graphic
+#' @export
 w_q_pegel <- function(
   pegel = NULL,
   ...

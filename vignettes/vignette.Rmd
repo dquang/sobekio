@@ -36,16 +36,6 @@ case_list <- c('2013_Basis_V6_hist_HW1988_lubw180830_mittel',
           '2013_Basis_V6_hist_HW1995_lubw180830_selten',
           '2013_Basis_V6_hist_HW2003_lubw180830_mittel',
           '2013_Basis_V6_hist_HW2003_lubw180830_selten')
-case_file <- "D:/Users/Duong/Documents/sobekio/tmp/cases.txt"
-# case list as data.frame
-case_df <- data.table::fread(case_file,
-                             header = FALSE,
-                             sep = "\t",
-                             blank.lines.skip = TRUE,
-                             stringsAsFactors = FALSE,
-                             quote = ""
-                             )
-
 # single his.file
 hfile <- "d:/so21302/rhein29a.lit/200/reachseg.his"
 # list of qid
