@@ -34,29 +34,54 @@ switch_DRV <- function(case.name, sobek.project, drv.name = NULL,
 
 
 #' Set possible flow  direction. Use it to close or open a simple weir
-#' @param weir.id ID of the weir
-#' @param f.struct Path toe control.def file, get it by function get_file_path
-#' @param direction Possible flow direction (0-both, 1-positive, 2-negative, 3-no flow)
+#' @param w.id ID of the weir
+#' @param def.file Path to struct.def file, get it by function get_file_path
+#' @param w.rt Possible flow direction (0-both, 1-positive, 2-negative, 3-no flow)
+#' @param w.cl Crest level
+#' @param w.cw Crest width
 #' @export
-set_weir_pfd <- function(weir.id, f.struct, direction = 1L){
-  if (!direction %in% c(0L, 1L, 2L, 3L)) stop('wrong direction value')
-  control.def <- fread(file = f.struct,
+set_weir_info <- function(w.id, struct.def,
+                          w.rt = NULL, w.cl = NULL, w.cw = NULL){
+
+  stopifnot(is.numeric(w.cl) & is.numeric(w.cw))
+  st_def <- fread(file = struct.def,
                        header = F,
                        sep = "\n")
-  id_pattern = paste("STDS id '", weir.id, "' ", sep = '')
-  check <- grep(id_pattern, control.def$V1)
-  if (length(check) == 1){
-    control.def[grepl(id_pattern, V1),
-                V1:=sub("rt [0-9]{1}",
-                        paste("rt ", direction, sep = " "),
-                        V1)]
-    fwrite(control.def, f.struct, col.names = F, row.names = F, quote = FALSE)
-    return(TRUE)
-  } else{
-    return(FALSE)
+  id_pattern = paste("STDS id '", w.id, "' ", sep = '')
+  st_line <- grep(id_pattern, st_def$V1)
+  f_changed <- FALSE
+  if (length(st_line) == 1){
+    if (!is.null(w.rt)){
+      if (!w.rt %in% c(0L, 1L, 2L, 3L)) stop('wrong direction value')
+      f_changed <- TRUE
+      st_def[st_line,
+             V1 := str_replace(V1,
+                               "rt [0-9]{1}",
+                               paste("rt ", w.rt, sep = ""))]
+    }
+    if (!is.null(w.cl)){
+      f_changed <- TRUE
+      stopifnot(is.numeric(w.cl))
+      st_def[st_line,
+             V1 := str_replace(V1,
+                               "cl [^ ]+ ",
+                               paste("cl ", w.cl, " ", sep = ""))]
+    }
+    if (!is.null(w.cw)){
+      f_changed <- TRUE
+      st_def[st_line,
+             V1 := str_replace(V1,
+                               "cw [^ ]+ ",
+                               paste("cw ", w.cw, " ", sep = ""))]
+    }
   }
+  if (f_changed){
+    fwrite(st_def, struct.def, col.names = F, row.names = F, quote = FALSE)
+  } else{
+    warning('Weir ID not found or no information provided. File was not written!')
+  }
+  return(f_changed)
 }
-
 
 pf_extract <- function(pf.str, ptype = 'id'){
   pattern <-  "CRSN id '(.*)' di '(.*)' rl (\\S*) (.*)"
@@ -123,4 +148,65 @@ change_rl_rs <- function(crsn.id, pf.df, rl.new = 0, rs.new = rl.new + 10){
                   )
   }
   return(cout)
+}
+
+
+
+#' FUNCTION_TITLE
+#'
+#' FUNCTION_DESCRIPTION
+#'
+#' @param case.list DESCRIPTION.
+#' @param w.in.rt DESCRIPTION.
+#' @param w.in.cl DESCRIPTION.
+#' @param w.in.cw DESCRIPTION.
+#' @param w.out.rt DESCRIPTION.
+#' @param w.out.cl DESCRIPTION.
+#' @param w.out.cw DESCRIPTION.
+#' @param sobek.project DESCRIPTION.
+#'
+#' @return RETURN_DESCRIPTION
+#' @examples
+#' # ADD_EXAMPLES_HERE
+set_nahe_on <- function(
+  case.list = NULL,
+  w.in.rt = 0,
+  w.in.cl = 86.17,
+  w.in.cw = 300,
+  w.out.rt = 0,
+  w.out.cl = 86.17,
+  w.out.cw = 200,
+  sobek.project = so_prj
+){
+  for (case in case.list){
+    p_def_f <- get_file_path(case.name = case,
+                             sobek.project = sobek.project,
+                             type = 'profile.def')
+    p_dat_f <- get_file_path(case.name = case,
+                             sobek.project = sobek.project,
+                             type = 'profile.dat')
+    ct_def_f <- get_file_path(case.name = case,
+                              sobek.project = sobek.project,
+                              type = 'control.def')
+    st_def_f <- get_file_path(case.name = case,
+                              sobek.project = sobek.project,
+                              type = 'struct.def')
+    # changing STRUCT.DEF for opening sponsheim_wehr_in and sponsheim_wehr_out
+    set_weir_info(
+      w.id = 'sponsheim_wehr_in',
+      struct.def = st_def_f,
+      w.rt = w.in.rt,
+      w.cl = w.in.cl,
+      w.cw = w.in.cw
+    )
+    set_weir_info(
+      w.id = 'sponsheim_wehr_out',
+      struct.def = st_def_f,
+      w.rt = w.out.rt,
+      w.cl = w.out.cl,
+      w.cw = w.out.cw
+    )
+    # changing PROFILE.DAT to open Bretzenheim
+
+  }
 }

@@ -91,40 +91,42 @@ plot_multi_lines <- function(
       warning("id.names is not same length as id.list. Names were not changed")
     }
   }
+  # cut table to peak.nday
   if(!is.null(peak.nday)){
-    qt[, value_max := max(.SD, na.rm = TRUE), .SDcols = -c('ts'), by = case]
-    cols <- colnames(qt[, .SD, .SDcols = -c('ts', 'case', 'value_max')])
+    cols <- colnames(qt[, .SD, .SDcols = -c('ts', 'case')])
     if (is.null(peak.col)){
+      qt[, value_max := max(.SD, na.rm = TRUE), .SDcols = -c('ts'), by = case]
       for (col_name in cols){
         qt[get(eval(col_name)) == value_max, ts_peak := ts]
-        qt[, ts_peak := min(ts_peak, na.rm = TRUE), by = case]
-        qt[, ts_min := ts_peak - peak.nday * 24 * 3600]
-        qt[, ts_max := ts_peak + peak.nday * 24 * 3600]
       }
-      qt[, fil := (ts >= ts_min & ts <= ts_max), by = case]
-      qt <- qt[fil == TRUE]
-      qt[, c('fil', 'ts_min', 'ts_max', 'ts_peak', 'value_max') :=
-           list(rep(NULL,5))]
     } else{
       if (peak.col %in% cols){
+        qt[, value_max := max(.SD, na.rm = TRUE),
+           .SDcols = peak.col, by = case]
         qt[get(eval(peak.col)) == value_max, ts_peak := ts]
-        qt[, ts_peak := min(ts_peak, na.rm = TRUE), by = case]
-        qt[, ts_min := ts_peak - peak.nday * 24 * 3600]
-        qt[, ts_max := ts_peak + peak.nday * 24 * 3600]
-        qt[, fil := (ts >= ts_min & ts <= ts_max), by = case]
-        qt <- qt[fil == TRUE]
-        qt[, c('fil', 'ts_min', 'ts_max', 'ts_peak', 'value_max') :=
-             list(rep(NULL,5))]
       } else {
-        warning('There is no column with name: ', peak.col, ' in the data table')
+        warning('There is no column with name: "', peak.col, '" in the data table',
+                '. The peak is peak of column that has the max value')
+        qt[, value_max := max(.SD, na.rm = TRUE), .SDcols = -c('ts'), by = case]
+        for (col_name in cols){
+          qt[get(eval(col_name)) == value_max, ts_peak := ts]
+        }
       }
     }
+    qt[, ts_peak := min(ts_peak, na.rm = TRUE), by = case]
+    qt[, ts_min := ts_peak - peak.nday * 24 * 3600]
+    qt[, ts_max := ts_peak + peak.nday * 24 * 3600]
+    qt <- qt[ts >= ts_min & ts <= ts_max]
+    qt[, c('ts_min', 'ts_max', 'ts_peak', 'value_max') :=
+         list(rep(NULL, 4))]
   }
+  # data transformation for graphic
   qt <- melt(qt, id.vars = c('ts', 'case'))
   qt[, variable := str_replace_all(variable, "_", " ")]
   qt[, variable := str_to_title(variable)]
   qt[, variable := str_replace_all(variable, " ", "_")]
   qt <- merge(qt, case_type, by = 'case', sort = FALSE)
+  # make graphic
   g <- ggplot(qt,
               aes(x = ts, y = value,
                   color = variable,

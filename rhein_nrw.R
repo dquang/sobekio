@@ -148,7 +148,7 @@ plot_longprofile(
   y2.scale = 20,
   y2.tick1 = -250,
   # group.by = 'hwe',
-  facet.by = 'hwe',
+  # facet.by = 'hwe',
   param = 'discharge',
   delta = TRUE,
   overlap = c('Polder_Langel', 'Ruhr', 'Lippe', 'REES'),
@@ -586,7 +586,7 @@ lohrwardt_w_95s <- plot_polder_scenario(
   sobek.project = so_prj,
   delta.pegel = TRUE,
   date.break = '2 hours',
-  date.label = "%H",
+  date.label = "%d %H",
   param = 'waterlevel'
 )
 lohrwardt_w_95s
@@ -606,7 +606,7 @@ lohrwardt_w_03s <- plot_polder_scenario(
   q.out = TRUE,
   cmp.sort = TRUE,
   delta.line = TRUE,
-  peak.nday = 2,
+  peak.nday = 5,
   # y2.scale = 0.02,
   # y2.tick1 = 0,
   # date.break = '1 day',
