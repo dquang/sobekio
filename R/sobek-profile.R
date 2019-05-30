@@ -165,9 +165,8 @@ change_rl_rs <- function(crsn.id, pf.df, rl.new = 0, rs.new = rl.new + 10){
 #' @param w.out.cw DESCRIPTION.
 #' @param sobek.project DESCRIPTION.
 #'
-#' @return RETURN_DESCRIPTION
-#' @examples
-#' # ADD_EXAMPLES_HERE
+#' @export
+
 set_nahe_on <- function(
   case.list = NULL,
   w.in.rt = 0,
@@ -207,6 +206,59 @@ set_nahe_on <- function(
       w.cw = w.out.cw
     )
     # changing PROFILE.DAT to open Bretzenheim
-
+    p_dat <- fread(p_dat_f, sep = "\n", header = FALSE)
+    p_dat[grepl("CRSN id 'bretz_.*", V1),
+          V1 := str_replace_all(V1, " rl 200 ", " rl 0 ")]
+    fwrite(p_dat, file = p_dat_f, quote = FALSE, col.names = FALSE)
   }
+}
+
+
+#' This function read the profile.def to a data.table
+#' 
+#' @param case Sobek case name
+#' @param sobek.project Path to sobek project
+#' @param all.line Get all data with TBLE or only information table? Default is TRUE
+#' @result a data.table
+#' @export
+get_profile_tbl <- function(
+  case,
+  sobek.project,
+  all.line = TRUE
+  ){
+  p_dat_f <- get_file_path(case.name = case, 
+                           sobek.project = sobek.project,
+                           type = 'profile.dat')
+  p_def_f <- get_file_path(case.name = case, 
+                           sobek.project = sobek.project,
+                           type = 'profile.def')
+  p_dat <- fread(p_dat_f, sep = "\n", header = FALSE)
+  p_def <- fread(p_def_f, sep = "\n", header = FALSE)
+  # parse DAT file
+  # id of cross-section
+  p_dat[, id := str_match(V1, "CRSN id '([^']+)' ")[, 2]]
+  # id of the cross-section DEFINITION
+  p_dat[, def_id := str_match(V1, " di '([^']+)' ")[, 2]]
+  # reference level 1
+  p_dat[, rl := as.numeric(str_match(V1, " rl (\\d*\\.*\\d*) ")[, 2])]
+  # surface level right
+  p_dat[, rs := as.numeric(str_match(V1, " rs (\\d*\\.*\\d*) ")[, 2])]
+  # parse DEF File
+  p_def[, orig_id := .I]
+  p_def[, def_id := str_match(V1, "CRDS id '([^']+)' ")[, 2]]
+  p_def[!is.na(def_id), def_nm := str_match(V1, " nm '([^']+)' ")[, 2]]
+  p_def[!is.na(def_id), ty := str_match(V1, " ty (\\d{1,2}) ")[, 2]]
+  p_def[, V2 := shift(V1, n = 2, type = 'lead')]
+  p_def[!is.na(def_id), zb := as.numeric(str_match(V2, "^(\\d*\\.*\\d*) ")[, 2])]
+  p_def[, V2 :=NULL ]
+  # p_def_tbl <- p_def[!is.na(id)]
+  if (isTRUE(all.line)){
+    p_def[, def_id := def_id[1], .(cumsum(!is.na(def_id)))]
+  } else{
+    p_def <- p_def[!is.na(def_id)]
+  }
+  p_def[, V1 := NULL]
+  p_dat <- merge(p_dat, p_def, by = 'def_id', sort = FALSE)
+  p_dat[, zb := zb + rl]
+  return(p_dat)
 }

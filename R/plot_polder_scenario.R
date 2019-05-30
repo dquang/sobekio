@@ -50,6 +50,7 @@ plot_polder_scenario <- function(
   # sum.q.out = FALSE,
   w.canal = FALSE,
   ref.mID = NULL,
+  ref2 = NULL,
   y2.scale = NULL,
   y2.tick1 = NULL,
   h.lines = NULL,

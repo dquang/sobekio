@@ -5,19 +5,7 @@ library(sobekio)
 library(tidyverse)
 library(data.table)
 library(miniUI)
-library(leaflet)
-library(rstudioapi)
-# test data
 
-polders <- rhein_tbl[grepl('Polder_', besonderheit), besonderheit] %>%
-    str_match('Polder_([^,;]*)')
-polders <- polders[, 2]%>%
-    str_replace('Polder_|_Innen|_Vor|_Nach|_Vol|_Einlass.*|_Auslass.*|_Ende|_Beginn',
-                '') %>%
-    unique()
-# case_cmt <- read.table('c:/rhein.lit/caselist.cmt', sep = ' ',
-#                        col.names = c('case_number', 'case_name'),
-#                        stringsAsFactors = FALSE)
 ui <- miniPage(
     gadgetTitleBar("Plotting polder hydrographs"),
     miniTabstripPanel(
@@ -26,26 +14,26 @@ ui <- miniPage(
             icon = icon("sliders"),
             miniContentPanel(
                 textInput("sobek_cmt", 'Path to sobek project: ',
-                          "d:\\so21302\\rhein29a.lit", width = '100%')
+                          "c:/rhein.lit", width = '100%')
                 ,
-                multiInput(
+                selectInput(
                     inputId = "case_list",
                     label = "Select cases: ",
                     choices = "Please select caselist.cmt first",
                     width = "100%"
                 ),
-                textAreaInput('case_desc', 'Case formatting: ', width = '100%'),
-                selectInput('polder_name', 'Choose Polder Name',
-                            choices = polders, width = '100%'),
+                # textAreaInput('case_desc', 'Case formatting: ', width = '100%'),
+                selectInput('polder_name', 'Choose Structure',
+                            choices = 'Please choose case first', width = '100%'),
                 selectInput(
                     'parameter',
                     'Choose parameter: ',
                     choices = c('Waterlevel', 'Discharge'), width = '100%'
                 ),
-                actionButton("read_data", "Read data", width = '100%')
+                actionButton("read_data", "Read case information", width = '100%')
             )
         ),
-        miniTabPanel("Graphic options", icon = icon("list-alt"),
+        miniTabPanel("Structure Information", icon = icon("list-alt"),
                      checkboxGroupInput(
                          'plot_option',
                          'Choose plotting options: ',

@@ -164,7 +164,7 @@ plot_drv <- function(
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   #----delta == TRUE----
   if (isTRUE(delta)){
-    data_tbl[, group := seq_len(.N), by = get(compare.by)]
+    data_tbl[, group := seq_len(.N), by = list(compare.by)]
     y2_name <- paste('Delta',
                      # str_to_sentence(compare.by),
                      ifelse(param == 'discharge', '(m³/s)', '(m)')
@@ -195,7 +195,7 @@ plot_drv <- function(
                              sort = FALSE)
       data_tbl_delta <- data_tbl_delta[!is.na(delta)]
       colnames(data_tbl_delta)[2] <- 'delta_color'
-      data_tbl <- merge(data_tbl, data_tbl_delta, by = 'group')
+      data_tbl <- merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
     } else{
       data_tbl_delta <-
         dcast(data_tbl, group  ~ get(compare.by),
@@ -457,6 +457,7 @@ plot_drv <- function(
 #' @param a.fill Fill color of the highlight area
 #' @param a.alpha Transparent ratio (alpha blending) of the highlight area
 #' @param overlap List of overlap labels should be avoid
+#' @param talweg If TRUE, and param = waterlevel then the talweg line will be added
 #' @param master.tbl Master table
 #' @param verbose Print some messages if TRUE
 #' @return a ggplot2 graphic
@@ -496,6 +497,7 @@ plot_longprofile <- function(
   a.fill = exl_std[3],
   a.alpha = 0.1,
   overlap = NULL,
+  talweg = FALSE,
   master.tbl = NULL,
   verbose = TRUE
 ){
@@ -516,7 +518,7 @@ plot_longprofile <- function(
     cmp_vars <- unique(case_tbl[, get(compare.by)])
     if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
     if (length(cmp_vars) != 2) {
-      stop('compare.by must have two values not: ',
+      if (length(case.list) != 1) stop('compare.by must have two values not: ',
            str_flatten(cmp_vars, collapse = ", " ))
     }
   }
@@ -549,14 +551,6 @@ plot_longprofile <- function(
   }
   #----get data----
   if (verbose) print('Reading data...')
-  # id_tbl <- get_segment_id_tbl(
-  #   river = river,
-  #   from.km = from.km,
-  #   to.km = to.km,
-  #   case.list = case.list,
-  #   case.desc = case.desc,
-  #   master.tbl = master.tbl
-  # )
   data_tbl <- get_segment_data(
     river = river,
     from.km = from.km,
@@ -608,7 +602,7 @@ plot_longprofile <- function(
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   #----delta == TRUE----
   if (isTRUE(delta)){
-    data_tbl[, group := seq_len(.N), by = get(compare.by)]
+    data_tbl[, group := seq_len(.N), by = c(compare.by)]
     y2_name <- paste('Delta',
                      # str_to_sentence(compare.by),
                      ifelse(param == 'discharge', '(m³/s)', '(m)')
@@ -639,7 +633,7 @@ plot_longprofile <- function(
                              sort = FALSE)
       data_tbl_delta <- data_tbl_delta[!is.na(delta)]
       colnames(data_tbl_delta)[2] <- 'delta_color'
-      data_tbl <- merge(data_tbl, data_tbl_delta, by = 'group')
+      data_tbl <- merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
     } else{
       data_tbl_delta <-
         dcast(data_tbl, group  ~ get(compare.by),
@@ -732,6 +726,9 @@ plot_longprofile <- function(
   }
   #----add graphic----
   if (verbose) print('Preparing graphic...')
+  data_tbl[[compare.by]] <- factor(data_tbl[[compare.by]], 
+                                   levels = c(cmp_vars)
+                                   )
   g <- ggplot(data = data_tbl,
               aes(x = km,
                   linetype = !!ensym(lt.by),
@@ -830,6 +827,19 @@ plot_longprofile <- function(
         )
     }
   }
-
+  if (isTRUE(talweg) & param == 'waterlevel'){
+    if(isTRUE(verbose)) print('Reading profile...')
+    pf_tbl <- get_profile_tbl(
+      case = case.list[[1]],
+      all.line = FALSE,
+      sobek.project = sobek.project
+    )[, .(id, zb)]
+    data_tbl <- merge(data_tbl, pf_tbl, by.x = 'ID_F', by.y = 'id', sort = FALSE)
+    g <- g + geom_line(data = data_tbl, aes(y = zb,
+                           color = 'Talweg', 
+                           linetype = 'Talweg'),
+                  size = 1
+                  )
+  }
   return(g)
 }
