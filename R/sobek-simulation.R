@@ -73,23 +73,23 @@ sobek_sim <- function(case.name = NULL,
                        ),
             overwrite = TRUE,
             to = wk_folder)
-  sim_ini_f <- paste(system.file(package = 'sobekio'), 
+  sim_ini_f <- paste(system.file(package = 'sobekio'),
                      'simulate/simulate.ini', sep = '/')
   # file.copy(from = sim_ini_f, to = wk_folder, overwrite = TRUE)
   sim_ini <- fread(sim_ini_f, sep = "\t", header = FALSE)
   sim_ini[, V1 := gsub('_PROGRAM_DIR_', sobek.path, V1, fixed = TRUE)]
   setwd(wk_folder)
-  fwrite(sim_ini, file = 'simulate.ini', col.names = FALSE, 
+  fwrite(sim_ini, file = 'simulate.ini', col.names = FALSE,
          row.names = FALSE, quote = FALSE)
   cmd <- paste("cmd.exe /c ", sobek.path, "/programs/simulate.exe simulate.ini", sep = "")
   if (interactive()){
-    print("Waiting for Sobek Simulation.exe. 
+    print("Waiting for Sobek Simulation.exe.
           DO NOT terminate R or run any other commands...")
-    print("If you need to do something else with R, 
+    print("If you need to do something else with R,
           please open another session")
   } else{
     cat(
-      "Running simulation for case:\n", 
+      "Running simulation for case:\n",
       clist[case_number == c_number, case_name],
        "\nPlease DO NOT CLOSE this windows until the simulation has been done."
       )
@@ -208,8 +208,8 @@ sobek_sim <- function(case.name = NULL,
                   overwrite = TRUE)
         # copy restart folder back to restart folder
         if (dir.exists("../restart")){
-          files_list <- list.files("../restart", 
-                                   recursive = TRUE, 
+          files_list <- list.files("../restart",
+                                   recursive = TRUE,
                                    all.files = TRUE,
                                    no.. = TRUE)
           file.copy(from = files_list,
@@ -313,15 +313,15 @@ sobek_edit <- function(case.name = NULL,
     # removing temp. data
     setwd(tmp_folder)
     print('Copy files back to case folder...')
-    file.copy(from = list.files("WORK", 
-                                all.files = TRUE, 
+    file.copy(from = list.files("WORK",
+                                all.files = TRUE,
                                 recursive = TRUE,
-                                full.names = TRUE), 
+                                full.names = TRUE),
               to = c_folder, overwrite = TRUE)
-    file.copy(from = list.files('FIXED', 
-                                all.files = TRUE, 
+    file.copy(from = list.files('FIXED',
+                                all.files = TRUE,
                                 recursive = TRUE,
-                                full.names = TRUE), 
+                                full.names = TRUE),
               to = paste(sobek.project, 'FIXED', sep = "\\"),
               overwrite = TRUE)
     if (clear.temp) {
@@ -366,14 +366,14 @@ sobek_edit <- function(case.name = NULL,
       V1=list(
         '@echo off',
         cmd0,
-        paste('echo You are viewing case:', 
+        paste('echo You are viewing case:',
               clist[case_number == c_number, case_name]),
         'echo DO NOT close this windows until you have finished with NETTER',
-        cmd1, 
+        cmd1,
         'echo Copying edited data back to project and clearing. Please wait...',
         cmd11, cmd12, cmd2, cmd3, cmd4,
-        'call cmd /c "echo Done."',
-        'PAUSE' # does not work
+        'call cmd /c "echo Done."'#,
+        # 'PAUSE' # does not work
         )
                            )
     fwrite(cmd.file, file = cmd_f,
@@ -426,7 +426,7 @@ sobek_view <- function(case.name = NULL,
   dir.create(work_folder)
   file.copy(paste(c_folder, 'settings.dat', sep = "\\"), work_folder,
             overwrite = TRUE)
-  file.copy(paste(c_folder, 'casedesc.cmt', sep = "\\"), 
+  file.copy(paste(c_folder, 'casedesc.cmt', sep = "\\"),
             cmt_folder,
             overwrite = TRUE)
   # copy case folder to work folder
@@ -450,10 +450,10 @@ sobek_view <- function(case.name = NULL,
     f1[, V1 := gsub("_PROGRAM_DIR_", sobek.path,  V1, fixed = TRUE)]
     f1[, V1 := gsub("_PROJECT_DIR_SHORT_", sobek.project_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_PROJECT_DIR_", sobek.project, V1, fixed = TRUE)]
-    
+
     # f1[, V1 := gsub(fixed_folder, "_PROGRAM_DIR_\\fixed",  V1, fixed = TRUE)]
     f2 <- paste(cmt_folder, basename(i), sep = "\\")
-    fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE, 
+    fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE,
            col.names = FALSE)
   }
   for (i in work_files){
@@ -513,10 +513,10 @@ sobek_view <- function(case.name = NULL,
       V1=list(
         '@echo off',
         cmd0,
-        paste('echo You are viewing case:', 
+        paste('echo You are viewing case:',
               clist[case_number == c_number, case_name]),
         'echo DO NOT close this windows until you have finished with NETTER',
-        cmd1, 
+        cmd1,
         'echo Clearing...Please wait.',
         cmd2, cmd3, cmd4,
         'pause') # does not work

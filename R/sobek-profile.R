@@ -152,30 +152,29 @@ change_rl_rs <- function(crsn.id, pf.df, rl.new = 0, rs.new = rl.new + 10){
 
 
 
-#' FUNCTION_TITLE
+#' This function is only for open Sponsheim and Bretzenheim in Rhein model
 #'
 #' FUNCTION_DESCRIPTION
 #'
 #' @param case.list DESCRIPTION.
+#' @param sobek.project DESCRIPTION.
 #' @param w.in.rt DESCRIPTION.
 #' @param w.in.cl DESCRIPTION.
 #' @param w.in.cw DESCRIPTION.
 #' @param w.out.rt DESCRIPTION.
 #' @param w.out.cl DESCRIPTION.
 #' @param w.out.cw DESCRIPTION.
-#' @param sobek.project DESCRIPTION.
 #'
 #' @export
-
 set_nahe_on <- function(
   case.list = NULL,
+  sobek.project = so_prj,
   w.in.rt = 0,
   w.in.cl = 87,
   w.in.cw = 50,
   w.out.rt = 0,
   w.out.cl = 86.17,
-  w.out.cw = 50,
-  sobek.project = so_prj
+  w.out.cw = 50
 ){
   for (case in case.list){
     p_def_f <- get_file_path(case.name = case,
@@ -205,13 +204,33 @@ set_nahe_on <- function(
       w.cl = w.out.cl,
       w.cw = w.out.cw
     )
+    p_def <- get_profile_tbl(
+      case,
+      so_prj,
+      def.tbl = TRUE
+    )
+    dat_tbl <- p_def$dat
+    def_tbl <- p_def$def
     # changing PROFILE.DAT to open Bretzenheim
-    p_dat <- fread(p_dat_f, sep = "\n", header = FALSE)
-    p_def <- get_profile_tbl(case = case, sobek.project = sobek.project)
-    p_dat[grepl("CRSN id 'bretz_.*", V1),
-          V1 := str_replace_all(V1, " rl 200 ", " rl 0 ")]
-
-    fwrite(p_dat, file = p_dat_f, quote = FALSE, col.names = FALSE)
+    dat_tbl[grepl('bretz_\\d+', dat_id) ,
+            dat_file := str_replace(dat_file, " rl [^ ]* rs ", " rl 0 rs ")]
+    # change Z bottom of sponsheim_pr*
+    dat_tbl[grepl("sponsheim_.r", dat_id),
+            dat_file := str_replace(dat_file, ' rl [^ ]+ rs ', ' rl 86.17 rs ')
+            ]
+    # change PROFILE.DEF to adjust Sponsheim CRs
+    def_tbl[def_nm == "r_sponsheim_profile",
+            def_file := str_replace(def_file,
+                                    ' wm [^ ]+ rw [^ ]+ ',
+                                    ' wm 546.6 rw 546.6 ')]
+    def_tbl[def_id == 9477,
+            def_file := str_replace(def_file, "([^ ]+) ([^ ]+) ([^ ]+) <",
+            "\\1 546.6 546.6 <")]
+    # write profile.dat and profile.def
+    fwrite(dat_tbl[, .(dat_file)],
+           file = p_dat_f, quote = FALSE, col.names = FALSE)
+    fwrite(def_tbl[, .(def_file)],
+           file = p_def_f, quote = FALSE, col.names = FALSE)
   }
 }
 
@@ -259,16 +278,16 @@ get_profile_tbl <- function(
   setnames(p_def, 'V1', 'def_file')
   setnames(p_dat, 'V1', 'dat_file')
   # avoid duplicated records of Rhe_596.30_3901 in rhein model
-  p_def[def_id == 'Rhe_596.30_3901' & 
-          def_row_id > 18 & !is.na(def_id), 
+  p_def[def_id == 'Rhe_596.30_3901' &
+          def_row_id > 18 & !is.na(def_id),
         def_id := 'Rhe_596.30_3901_BK']
   p_dat <- merge(p_dat, p_def, by = 'def_id', sort = FALSE)
   p_dat[, zb := zb + rl]
   p_dat[, c("def_file", "def_row_id") := list(NULL, NULL)]
   p_def[, def_id := def_id[1], .(cumsum(!is.na(def_id)))]
-  
+
   result <- list(dat = p_dat, def = p_def)[c(dat.tbl, def.tbl)]
   if (length(result) == 1) result <- result[[1]]
-  
+
   return(result)
 }
