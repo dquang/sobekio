@@ -760,3 +760,33 @@ g_tmp <-  plot_longprofile(
   )
 g_tmp
 View(g_tmp$data)
+#----editing sobek_sim----
+cmt_files <- list.files("C:/So21503/CMTWORK", full.names = TRUE)
+cmt_pkg_folder <- "C:/Users/quang/Documents/sobekio/inst/network_edit"
+c_folder <- "C:\\\\SO21503\\\\VGTB.LIT\\\\[3#]"
+c_folder_short <- "\\\\SO21503\\\\VGTB.LIT\\\\[3#]"
+work_folder <- "C:\\\\SO21503\\\\VGTB.LIT\\\\WORK"
+work_folder_short <- "\\\\SO21503\\\\VGTB.LIT\\\\WORK"
+sobek.project <- "C:\\\\SO21503\\\\VGTB.LIT"
+sobek.project_short <- "\\\\SO21503\\\\VGTB.LIT"
+#' @import assertthat
+sobek.path_short <- "\\\\SO21503"
+sobek.path <- "C:\\\\SO21503"
+for (i in cmt_files){
+  f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
+  f1[, V1 := gsub(work_folder, "_WORK_DIR_", V1, ignore.case = TRUE)]
+  f1[, V1 := gsub(work_folder_short, "_WORK_DIR_", V1, ignore.case = TRUE)]
+  f1[, V1 := gsub(c_folder, "_WORK_DIR_", V1, ignore.case = TRUE)]
+  f1[, V1 := gsub(c_folder_short, "_WORK_DIR_", V1, ignore.case = TRUE)]
+  f1[, V1 := gsub(sobek.project, "_PROJECT_DIR_", V1, ignore.case = TRUE)]
+  f1[, V1 := gsub(sobek.project_short, "_PROJECT_DIR_", V1, ignore.case = TRUE)]
+  f1[, V1 := gsub(sobek.path,  "_PROGRAM_DIR_", V1, ignore.case = TRUE)]
+  f1[, V1 := gsub(sobek.path_short, "_PROGRAM_DIR_", V1, ignore.case = TRUE)]
+  # f1[, V1 := gsub("\\.\\.\\\\fixed", "_PROGRAM_DIR_\\\\fixed", V1, ignore.case = TRUE)]
+  f1[, V1 := gsub("\\.\\.\\\\work", "_WORK_DIR_", V1, ignore.case = TRUE)]
+  # f1[, V1 := gsub(fixed_folder, "_PROGRAM_DIR_\\fixed",  V1, fixed = TRUE)]
+  f2 <- paste(cmt_pkg_folder, basename(i), sep = "\\")
+  fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE, 
+         col.names = FALSE)
+}
+#----

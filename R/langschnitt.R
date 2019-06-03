@@ -831,7 +831,7 @@ plot_longprofile <- function(
     if(isTRUE(verbose)) print('Reading profile...')
     pf_tbl <- get_profile_tbl(
       case = case.list[[1]],
-      all.line = FALSE,
+      # all.line = FALSE,
       sobek.project = sobek.project
     )[, .(id, zb)]
     data_tbl <- merge(data_tbl, pf_tbl, by.x = 'ID_F', by.y = 'id', sort = FALSE)

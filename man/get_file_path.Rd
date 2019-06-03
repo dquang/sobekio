@@ -30,7 +30,6 @@ type -> file
 \item measstation: get path to measstat.his
 \item trigger: get path to trigger.def
 \item control.def: get path to control.def
-\item control.dat: get path to control.dat
 \item setting: get path to settings.dat
 \item profile.dat: get path to profile.dat
 \item profile.def: get path to profile.def

@@ -19,23 +19,32 @@ sobek_sim <- function(case.name = NULL,
                  quote = "'",
                  col.names = c("case_number", "case_name")
                  )
-  c_number <- .get_case_number(case.name, clist)
+  # cname_is_number <- grepl("^\\d{1,}$", case.name)
+  if(grepl("^\\d{1,}$", case.name)){
+    c_number <- case.name
+  } else{
+    c_number <- .get_case_number(case.name, clist)
+    stopifnot(!is.na(c_number))
+  }
   c_folder <- paste(sobek.project, c_number, sep = "/")
   wkd <- getwd()
   on.exit(setwd(wkd))
   # copy relative file to working folder
   setwd(sobek.path)
   tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
-  wk_folder_del <- paste(sobek.path, tmp_folder, sep = "\\")
+  # 03.06.2019 09:58 Change tmp_folder to absolut path,
+  # for copying all data back (also restart files)
+  tmp_folder <- paste(sobek.path, tmp_folder, sep = "\\")
+  wk_folder_del <- tmp_folder
   dir.create(tmp_folder)
-  # on.exit(unlink(wk_folder_del, recursive = T))
-  # on.exit(unlink(paste(sobek.path, wk_folder, sep ="/"), recursive = T))
+  # on.exit(unlink(wk_folder_del, recursive = TRUE))
+  # on.exit(unlink(paste(sobek.path, wk_folder, sep ="/"), recursive = TRUE))
   prj_files <- dir(sobek.project, full.names = TRUE)
   prj_files <- prj_files[!grepl("/[0-9]{1,}$", prj_files)]
-  prj_files <- prj_files[!grepl("/WORK", prj_files, ignore.case = T)]
-  prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = T)]
+  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|/NEWSTART|\\.his$", prj_files, ignore.case = TRUE)]
+  # prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = TRUE)]
   file.copy(from = prj_files,
-            overwrite = T,
+            overwrite = TRUE,
             to = tmp_folder,
             recursive = TRUE)
   # copy case folder to work folder
@@ -49,12 +58,12 @@ sobek_sim <- function(case.name = NULL,
   c_folder_in_tmp <- paste(tmp_folder, c_number, sep = "\\")
   if (!dir.exists(c_folder_in_tmp)) dir.create(c_folder_in_tmp)
   file.copy(from = c_folder_ohne_his,
-            overwrite = T,
+            overwrite = TRUE,
             to = c_folder_in_tmp,
             recursive = TRUE
             )
   # cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "\\")
-  wk_folder <- paste(sobek.path, tmp_folder, "WORK", sep = "\\")
+  wk_folder <- paste(tmp_folder, "WORK", sep = "\\")
   if(!dir.exists(wk_folder)) dir.create(wk_folder)
   file.copy(from = dir(c_folder, full.names = TRUE,
                        recursive = TRUE,
@@ -62,51 +71,54 @@ sobek_sim <- function(case.name = NULL,
                        include.dirs = TRUE,
                        no.. = TRUE
                        ),
-            overwrite = T,
+            overwrite = TRUE,
             to = wk_folder)
-  file.copy(from = paste(sobek.path, "programs/simulate.ini", sep = "/"),
-            overwrite = T,
-            to = wk_folder)
-  # fwrite(list())
+  sim_ini_f <- paste(system.file(package = 'sobekio'), 
+                     'simulate/simulate.ini', sep = '/')
+  # file.copy(from = sim_ini_f, to = wk_folder, overwrite = TRUE)
+  sim_ini <- fread(sim_ini_f, sep = "\t", header = FALSE)
+  sim_ini[, V1 := gsub('_PROGRAM_DIR_', sobek.path, V1, fixed = TRUE)]
   setwd(wk_folder)
-  file.rename(from = "status.cas",
-            to = "@STATUS.CAS")
-  # file.remove("status.cas")
+  fwrite(sim_ini, file = 'simulate.ini', col.names = FALSE, 
+         row.names = FALSE, quote = FALSE)
   cmd <- paste("cmd.exe /c ", sobek.path, "/programs/simulate.exe simulate.ini", sep = "")
-  print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
-  print("If you need to do something else with R, please open another session")
+  if (interactive()){
+    print("Waiting for Sobek Simulation.exe. 
+          DO NOT terminate R or run any other commands...")
+    print("If you need to do something else with R, 
+          please open another session")
+  } else{
+    cat(
+      "Running simulation for case:\n", 
+      clist[case_number == c_number, case_name],
+       "\nPlease DO NOT CLOSE this windows until the simulation has been done."
+      )
+  }
+
   system(command = cmd, wait = TRUE)
   so_res <- XML::xmlToList("simulate_log.xml")[[2]]
-  if (so_res[["Summary"]][["Succesfull"]] == "false"){
+  if (tolower(so_res[["Summary"]][["Succesfull"]]) == "false"){
     print("Simulation was not successful")
     if (so_res[["Summary"]][["ErrorSourceMsg"]]=="parsen"){
-      # print(getwd())
       parsen_msg <- fread(file = paste(wk_folder, "parsen.msg", sep = "\\"),
-                          blank.lines.skip = F,
-                          sep = "\n", header = F)
-      print(parsen_msg)
-      # parsen_msg <- parsen_msg[grep("Error", V1),]
+                          blank.lines.skip = FALSE,
+                          sep = "\n", header = FALSE)
       # cleaning before return
       setwd(wkd)
       unlink(wk_folder_del, recursive = TRUE)
+      if (!interactive()) print(parsen_msg)
       return(parsen_msg)
     } else{
-      print("Error message: ")
-      print(so_res[["Summary"]][["ErrorSourceMsg"]])
       setwd(wkd)
       unlink(wk_folder_del, recursive = TRUE)
-      return(NA)
+      if (!interactive()) print(so_res[["Summary"]])
+      return(so_res[["Summary"]])
     }
     setwd(wkd)
     unlink(wk_folder_del, recursive = TRUE)
   } else {
-      file.rename(from = "@status.cas",
-                  to = "STATUS.CAS")
-
-      # have to write: checking simulation status and display errors if any
-
       # update casedesc.cmt after simulation
-      cdesc <- data.table::fread(file = "casedesc.cmt", header = F, sep = "\n"
+      cdesc <- data.table::fread(file = "casedesc.cmt", header = FALSE, sep = "\n"
                                  )
       cdesc[V1 %like% "^PLUVIUS1"] <- "PLUVIUS1 1"
       cdesc[V1 %like% "^MAPPER1"] <- "MAPPER1 2"
@@ -182,17 +194,29 @@ sobek_sim <- function(case.name = NULL,
                      paste("\\", c_number,"\\REACHDIM.HIA", sep = ""),
                      V1, fixed = TRUE)
             ]
-      fwrite(cdesc, file = "casedesc.cmt", col.names = F, row.names = F,
-             quote = F)
+      fwrite(cdesc, file = "casedesc.cmt", col.names = FALSE, row.names = FALSE,
+             quote = FALSE)
       # ask_cp <- readline("copy result back to the case folder? (y/n): ")
 
       if (overwrite){
-        files_list <- list.files(".", pattern = "*.*", all.files = TRUE,
+        # copy work folder back to case folder
+        files_list <- list.files(".", recursive = TRUE, all.files = TRUE,
                                  no.. = TRUE)
         file.copy(from = files_list,
                   to = c_folder,
-                  recursive = F,
+                  recursive = TRUE,
                   overwrite = TRUE)
+        # copy restart folder back to restart folder
+        if (dir.exists("../restart")){
+          files_list <- list.files("../restart", 
+                                   recursive = TRUE, 
+                                   all.files = TRUE,
+                                   no.. = TRUE)
+          file.copy(from = files_list,
+                    to = paste(sobek.project, 'restart', sep ="/") ,
+                    recursive = TRUE,
+                    overwrite = TRUE)
+        }
         print("done.")
       }
       # cleaning
@@ -211,7 +235,7 @@ sobek_sim <- function(case.name = NULL,
 #' @param external If TRUE, R will use a CMD session to start NETTER,
 #' and the current R session is available to user immediately.
 #' @export
-sobek_view <- function(case.name = NULL,
+sobek_edit <- function(case.name = NULL,
                       sobek.project = NULL,
                       sobek.path = NULL,
                       clear.temp = TRUE,
@@ -224,91 +248,89 @@ sobek_view <- function(case.name = NULL,
                  quote = "'",
                  col.names = c("case_number", "case_name")
   )
-  c_number <- .get_case_number(case.name, clist)
+  if(grepl("^\\d{1,}$", case.name)){
+    c_number <- case.name
+  } else{
+    c_number <- .get_case_number(case.name, clist)
+    stopifnot(!is.na(c_number))
+  }
   c_folder <- paste(sobek.project, c_number, sep = "\\")
   wkd <- getwd()
   on.exit(setwd(wkd))
   # copy relative file to working folder
   setwd(sobek.path)
   tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
+  tmp_folder <- paste(sobek.path, tmp_folder, sep = "\\")
+  wk_folder_del <- tmp_folder
   dir.create(tmp_folder)
   prj_files <- dir(sobek.project, full.names = TRUE)
-  prj_files <- prj_files[!grepl("[\\/][0-9]{1,}$", prj_files)]
-  prj_files <- prj_files[!grepl("/WORK", prj_files, ignore.case = T)]
-  prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = T)]
+  prj_files <- prj_files[!grepl("[\\/][0-9]{1,}$|\\.his$", prj_files)]
+  # for editing, the folder NEWSTART and RESTART are not needed
+  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|NEWSTART|RESTART", prj_files, ignore.case = TRUE)]
   file.copy(from = prj_files,
             to = tmp_folder,
-            overwrite = T,
+            overwrite = TRUE,
             recursive = TRUE)
+  cmt_folder <- paste(tmp_folder, "CMTWORK", sep = "\\")
+  wk_folder <- paste(tmp_folder, "WORK", sep = "\\")
+  if (!dir.exists(wk_folder)) dir.create(wk_folder)
+  if (!dir.exists(cmt_folder)) dir.create(cmt_folder)
   # copy case folder to work folder
   c_folder_ohne_his <- dir(c_folder, full.names = TRUE)
   c_folder_ohne_his <- c_folder_ohne_his[!grepl(pattern = '\\.his$',
                                                 x = c_folder_ohne_his,
-                                                ignore.case = TRUE
-                                                # fixed = TRUE
-  )
-  ]
-  c_folder_in_tmp <- paste(tmp_folder, c_number, sep = "\\")
-  if (!dir.exists(c_folder_in_tmp)) dir.create(c_folder_in_tmp)
-  file.copy(from = c_folder_ohne_his,
-            overwrite = T,
-            to = c_folder_in_tmp,
-            recursive = TRUE
-  )
-  wk_folder_del <- paste(sobek.path, tmp_folder, sep = "\\")
-  cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "\\")
-  wk_folder <- paste(sobek.path, tmp_folder, "WORK", sep = "\\")
-  if (!dir.exists(wk_folder)) dir.create(wk_folder)
-  if (!dir.exists(cmt_folder)) dir.create(cmt_folder)
+                                                ignore.case = TRUE)]
+  file.copy(from = c_folder_ohne_his,  overwrite = TRUE,  to = wk_folder)
   cmt_files <- list.files(paste(system.file(package = 'sobekio'),
-                                'network_view', sep = '/'),
+                                'network_edit', sep = '/'),
                           full.names = TRUE,
                           pattern = "\\.[:alnum:]*",
                           no.. = TRUE)
   for (i in cmt_files){
-    # print(i)
-
-    f1 <- fread(file = i, sep = "\n", quote = "", header = F)
-    f1[, V1 := gsub("_replace_this_", sobek.path, V1,
-                 fixed = TRUE)]
+    f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
+    f1[, V1 := gsub("_WORK_DIR_", wk_folder, V1, fixed = TRUE)]
+    f1[, V1 := gsub("_PROGRAM_DIR_", sobek.path, V1, fixed = TRUE)]
     f2 <- paste(cmt_folder, basename(i), sep = "\\")
-    fwrite(x = f1, file = f2, quote = F, row.names = F, col.names = F)
+    fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE, col.names = FALSE)
   }
-  file.copy(from = paste(c_folder, "casedesc.cmt", sep = "\\"),
-            overwrite = T,
-            to = cmt_folder)
-  file.copy(from = paste(sobek.path, "programs\\simulate.ini", sep = "\\"),
-            overwrite = T,
-            to = wk_folder)
-  file.copy(from = dir(c_folder, full.names = TRUE,
-                       recursive = TRUE,
-                       all.files = TRUE,
-                       include.dirs = TRUE,
-                       no.. = TRUE
-  ),
-  overwrite = T,
-  to = wk_folder)
-  file.copy(from = paste(sobek.path, "programs\\simulate.ini", sep = "\\"),
-            overwrite = T,
-            to = wk_folder)
   setwd(cmt_folder)
   if (!external){
+    #<FIXME: copy back only changed files!>
     cmd <- paste("cmd.exe /c ",
-                 sobek.path.c,
+                 sobek.path,
                  "\\programs\\netter.exe ntrpluv.ini ",
                  '..\\WORK\\NETWORK.NTW',
                  sep = "")
-    print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
-    print("If you need to do something else with R, please open another session")
-    # print(paste('Please using NETTER to open the network file in folder: ',
-    #       wk_folder, 'for Viewing'))
+    if (interactive()){
+      print("Waiting for NETTER. DO NOT terminate R or run any other commands...")
+      print("If you need to do something else with R, please open another session")
+    } else{
+      cat("You are editing case:\n",
+          clist[case_number == c_number, case_name],
+          "\nPlease DO NOT CLOSE this windows manually.")
+    }
     system(command = cmd, wait = TRUE)
     # removing temp. data
-    setwd(wkd)
+    setwd(tmp_folder)
+    print('Copy files back to case folder...')
+    file.copy(from = list.files("WORK", 
+                                all.files = TRUE, 
+                                recursive = TRUE,
+                                full.names = TRUE), 
+              to = c_folder, overwrite = TRUE)
+    file.copy(from = list.files('FIXED', 
+                                all.files = TRUE, 
+                                recursive = TRUE,
+                                full.names = TRUE), 
+              to = paste(sobek.project, 'FIXED', sep = "\\"),
+              overwrite = TRUE)
     if (clear.temp) {
+      print('Clearing temporary files...')
       unlink(wk_folder_del, recursive = TRUE)
     }
   } else {
+    cmd_f <- paste(sobek.path, '\\', basename(tmp_folder),
+                   '.cmd', sep = '')
     cmd0 <- paste('cd ', cmt_folder)
     cmd1 <- paste("call ",
                   sobek.path,
@@ -318,25 +340,45 @@ sobek_view <- function(case.name = NULL,
                  wk_folder,
                  '\\NETWORK.NTW',
                  sep = "")
+    # copy work folder back to the case folder, only newer files will be copied
+    cmd11 <- paste("call xcopy /D /Q /C /Y /E /H /R",
+                  wk_folder,
+                  # '\\*.* ',
+                  c_folder,
+                  # '\\',
+                  sep = " ")
+    # copy fixed folder back to the fixed folder, only newer files will be copied
+    cmd12 <- paste("call xcopy /D /Q /C /Y /E /H /R ",
+                   tmp_folder,
+                   '\\FIXED ',
+                   sobek.project,
+                   '\\FIXED',
+                   sep = "")
     cmd2 <- paste('cd ', sobek.path)
     cmd3 <- 'echo the temporary folder was not deleted!'
-    cmd4 <- paste('del ', sobek.path, '\\', tmp_folder, '.cmd', sep = '')
+    cmd4 <- paste('del ', cmd_f)
     # check the nchar(tmp_folder) to make sure not to delete anything incorrectly
     if (nchar(tmp_folder) > 0 && clear.temp) {
-      cmd3 <- paste('rmdir ', sobek.path, "\\", tmp_folder,
+      cmd3 <- paste('rmdir ', tmp_folder, "\\",
                     ' /s /q', sep = '')
     }
     cmd.file <- data.table(
       V1=list(
         '@echo off',
         cmd0,
+        paste('echo You are viewing case:', 
+              clist[case_number == c_number, case_name]),
         'echo DO NOT close this windows until you have finished with NETTER',
-        cmd1, cmd2, cmd3, cmd4,
-        'pause') # does not work
+        cmd1, 
+        'echo Copying edited data back to project and clearing. Please wait...',
+        cmd11, cmd12, cmd2, cmd3, cmd4,
+        'call cmd /c "echo Done."',
+        'PAUSE' # does not work
+        )
                            )
-    fwrite(cmd.file, file = paste(sobek.path, '\\', tmp_folder, '.cmd', sep = ''),
-           col.names = F, quote = F)
-    cmd <- paste('cmd.exe /c ',  sobek.path, '\\', tmp_folder, '.cmd', sep = '')
+    fwrite(cmd.file, file = cmd_f,
+           col.names = FALSE, quote = FALSE)
+    cmd <- paste('cmd.exe /c',  cmd_f)
     system(command = cmd, wait = FALSE, invisible = FALSE)
     print('If something went wrong with CMD, try the function again with option \'external = FALSE\'')
   }
@@ -351,7 +393,7 @@ sobek_view <- function(case.name = NULL,
 #' @param external If TRUE, R will use a CMD session to start NETTER,
 #' and the current R session is available to user immediately.
 #' @export
-sobek_view_result <- function(case.name = NULL,
+sobek_view <- function(case.name = NULL,
                        sobek.project = NULL,
                        sobek.path = NULL,
                        clear.temp = TRUE,
@@ -364,91 +406,86 @@ sobek_view_result <- function(case.name = NULL,
                  quote = "'",
                  col.names = c("case_number", "case_name")
   )
-  c_number <- .get_case_number(case.name, clist)
+  if(grepl("^\\d{1,}$", case.name)){
+    c_number <- case.name
+  } else{
+    c_number <- .get_case_number(case.name, clist)
+    stopifnot(!is.na(c_number))
+  }
   c_folder <- paste(sobek.project, c_number, sep = "\\")
   wkd <- getwd()
   on.exit(setwd(wkd))
   # copy relative file to working folder
   setwd(sobek.path)
   tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
+  # tmp_folder <- paste(sobek.path, tmp_folder, sep = "\\")
   dir.create(tmp_folder)
-  prj_files <- dir(sobek.project, full.names = TRUE)
-  prj_files <- prj_files[!grepl("[\\/][0-9]{1,}$", prj_files)]
-  prj_files <- prj_files[!grepl("/WORK", prj_files, ignore.case = T)]
-  prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = T)]
-  file.copy(from = prj_files,
-            to = tmp_folder,
-            overwrite = T,
-            recursive = TRUE)
+  cmt_folder <- paste(sobek.path, tmp_folder, 'CMTWORK', sep = "\\")
+  work_folder <- paste(sobek.path, tmp_folder, 'WORK', sep = "\\")
+  dir.create(cmt_folder)
+  dir.create(work_folder)
+  file.copy(paste(c_folder, 'settings.dat', sep = "\\"), work_folder,
+            overwrite = TRUE)
+  file.copy(paste(c_folder, 'casedesc.cmt', sep = "\\"), 
+            cmt_folder,
+            overwrite = TRUE)
   # copy case folder to work folder
-  c_folder_ohne_his <- dir(c_folder, full.names = TRUE)
-  c_folder_ohne_his <- c_folder_ohne_his[!grepl(pattern = '\\.his$',
-                                                x = c_folder_ohne_his,
-                                                ignore.case = TRUE
-                                                # fixed = TRUE
-  )
-  ]
-  c_folder_in_tmp <- paste(tmp_folder, c_number, sep = "\\")
-  if (!dir.exists(c_folder_in_tmp)) dir.create(c_folder_in_tmp)
-  file.copy(from = c_folder_ohne_his,
-            overwrite = T,
-            to = c_folder_in_tmp,
-            recursive = TRUE
-  )
   wk_folder_del <- paste(sobek.path, tmp_folder, sep = "\\")
-  cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "\\")
-  wk_folder <- paste(sobek.path, tmp_folder, "WORK", sep = "\\")
-  if (!dir.exists(wk_folder)) dir.create(wk_folder)
-  if (!dir.exists(cmt_folder)) dir.create(cmt_folder)
   cmt_files <- list.files(paste(system.file(package = 'sobekio'),
-                                'result_view', sep = '/'),
+                                'result_view/CMTWORK', sep = '/'),
                           full.names = TRUE,
-                          pattern = "\\.[:alnum:]*",
                           no.. = TRUE)
+  work_files <- list.files(paste(system.file(package = 'sobekio'),
+                                 'result_view/WORK', sep = '/'),
+                           full.names = TRUE,
+                           no.. = TRUE)
+  c_folder_short <- str_replace(c_folder, '^[:alpha:]{1,}:[\\\\/]*', '')
+  sobek.project_short <- str_replace(sobek.project, '^[:alpha:]{1,}:[\\\\/]*', '')
+  sobek.path_short <- str_replace(sobek.path, '^[:alpha:]{1,}:[\\\\/]*', '')
   for (i in cmt_files){
-    # print(i)
-
-    f1 <- fread(file = i, sep = "\n", quote = "", header = F)
-    f1[, V1 := gsub("_so_folder_", sobek.path, V1,
-                    fixed = TRUE)]
-    f1[, V1 := gsub("_so_project_", sobek.project, V1,
-                    fixed = TRUE)]
-    f1[, V1 := gsub("_work_folder_", "..\\WORK", V1,
-                    fixed = TRUE)]
-    f1[, V1 := gsub("_case_folder_", c_folder, V1,
-                    fixed = TRUE)]
+    f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
+    f1[, V1 := gsub("_CASE_DIR_SHORT_",  c_folder_short, V1, fixed = TRUE)]
+    f1[, V1 := gsub("_CASE_DIR_", c_folder, V1, fixed = TRUE)]
+    f1[, V1 := gsub("_PROGRAM_DIR_SHORT_",  sobek.path_short, V1, fixed = TRUE)]
+    f1[, V1 := gsub("_PROGRAM_DIR_", sobek.path,  V1, fixed = TRUE)]
+    f1[, V1 := gsub("_PROJECT_DIR_SHORT_", sobek.project_short, V1, fixed = TRUE)]
+    f1[, V1 := gsub("_PROJECT_DIR_", sobek.project, V1, fixed = TRUE)]
+    
+    # f1[, V1 := gsub(fixed_folder, "_PROGRAM_DIR_\\fixed",  V1, fixed = TRUE)]
     f2 <- paste(cmt_folder, basename(i), sep = "\\")
-    fwrite(x = f1, file = f2, quote = F, row.names = F, col.names = F)
+    fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE, 
+           col.names = FALSE)
   }
-  file.copy(from = paste(c_folder, "casedesc.cmt", sep = "\\"),
-            overwrite = T,
-            to = cmt_folder)
-  file.copy(from = paste(sobek.path, "programs\\simulate.ini", sep = "\\"),
-            overwrite = T,
-            to = wk_folder)
-  file.copy(from = dir(c_folder, full.names = TRUE,
-                       recursive = TRUE,
-                       all.files = TRUE,
-                       include.dirs = TRUE,
-                       no.. = TRUE
-  ),
-  overwrite = T,
-  to = wk_folder)
-  file.copy(from = paste(sobek.path, "programs\\simulate.ini", sep = "\\"),
-            overwrite = T,
-            to = wk_folder)
-  setwd(cmt_folder)
-  file.copy("ntrpluvr.ini", "ntrpluv.ini")
+  for (i in work_files){
+    f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
+    f1[, V1 := gsub("_CASE_DIR_SHORT_",  c_folder_short, V1, fixed = TRUE)]
+    f1[, V1 := gsub("_CASE_DIR_", c_folder, V1, fixed = TRUE)]
+    f1[, V1 := gsub("_PROGRAM_DIR_SHORT_",  sobek.path_short, V1, fixed = TRUE)]
+    f1[, V1 := gsub("_PROGRAM_DIR_", sobek.path,  V1, fixed = TRUE)]
+    f1[, V1 := gsub("_PROJECT_DIR_SHORT_", sobek.project_short, V1, fixed = TRUE)]
+    f1[, V1 := gsub("_PROJECT_DIR_", sobek.project, V1, fixed = TRUE)]
+    f2 <- paste(work_folder, basename(i), sep = "\\")
+    fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE,
+           col.names = FALSE)
+  }
   if (!external){
+    setwd(cmt_folder)
     cmd <- paste("cmd.exe /c ",
-                 sobek.path.c,
-                 "\\programs\\netter.exe ntrpluvr.ini ",
-                 '..\\WORK\\NETWORK.NTW',
+                 sobek.path,
+                 "\\programs\\netter.exe ",
+                 cmt_folder, '\\ntrpluvr.ini ',
+                 cmt_folder, '\\netter1.ntc ',
                  sep = "")
-    print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
-    print("If you need to do something else with R, please open another session")
-    # print(paste('Please using NETTER to open the network file in folder: ',
-    #       wk_folder, 'for Viewing'))
+    if (interactive()){
+      print("Waiting for NETTER. DO NOT terminate R or run any other commands...")
+      print("If you need to do something else with R, please open another session")
+    } else{
+      cat(
+        "You are viewing results of the case case:\n",
+        clist[case_number == c_number, case_name],
+        "\nPlease DO NOT CLOSE this windows manually."
+      )
+    }
     system(command = cmd, wait = TRUE)
     # removing temp. data
     setwd(wkd)
@@ -460,16 +497,15 @@ sobek_view_result <- function(case.name = NULL,
     cmd1 <- paste("call ",
                   sobek.path,
                   "\\programs\\netter.exe ",
-                  cmt_folder,
-                  '\\ntrpluv.ini ',
-                  wk_folder,
-                  '\\NETWORK.NTW',
+                  cmt_folder, '\\ntrpluvr.ini ',
+                  cmt_folder, '\\netter1.ntc ',
+                  # c_folder, '\\network.ntw',
                   sep = "")
     cmd2 <- paste('cd ', sobek.path)
     cmd3 <- 'echo the temporary folder was not deleted!'
     cmd4 <- paste('del ', sobek.path, '\\', tmp_folder, '.cmd', sep = '')
     # check the nchar(tmp_folder) to make sure not to delete anything incorrectly
-    if (nchar(tmp_folder) > 0 && clear.temp) {
+    if (nchar(tmp_folder) > 2 && clear.temp) {
       cmd3 <- paste('rmdir ', sobek.path, "\\", tmp_folder,
                     ' /s /q', sep = '')
     }
@@ -477,12 +513,16 @@ sobek_view_result <- function(case.name = NULL,
       V1=list(
         '@echo off',
         cmd0,
+        paste('echo You are viewing case:', 
+              clist[case_number == c_number, case_name]),
         'echo DO NOT close this windows until you have finished with NETTER',
-        cmd1, cmd2, cmd3, cmd4,
+        cmd1, 
+        'echo Clearing...Please wait.',
+        cmd2, cmd3, cmd4,
         'pause') # does not work
     )
     fwrite(cmd.file, file = paste(sobek.path, '\\', tmp_folder, '.cmd', sep = ''),
-           col.names = F, quote = F)
+           col.names = FALSE, quote = FALSE)
     cmd <- paste('cmd.exe /c ',  sobek.path, '\\', tmp_folder, '.cmd', sep = '')
     system(command = cmd, wait = FALSE, invisible = FALSE)
     print('If something went wrong with CMD, try the function again with option \'external = FALSE\'')
