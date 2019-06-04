@@ -54,7 +54,7 @@ get_id_tbl <- function(
                             )
     measure_type <- toupper(unique(str_mt[,2]))
     if (length(measure_type) > 1) {
-      warning('Type of the measure is not unique: ', measure_type)
+      # warning('Type of the measure is not unique: ', measure_type)
       if ('DRV' %in% measure_type) drv <- TRUE
     } else{
       drv <- ifelse(measure_type == 'DRV', TRUE, FALSE)
@@ -280,7 +280,9 @@ get_polder_data <- function(
   w.canal = TRUE,
   upstream = FALSE,
   master.tbl = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  q.in = TRUE,
+  q.out = TRUE
 ){
   # search for IDs
   id.tbl <- get_id_tbl(
@@ -379,31 +381,40 @@ get_polder_data <- function(
     }
     #----get data for Einlass/Auslass----
     id_ein <- id_tbl_tmp[grepl('.+_Einlass', besonderheit) &
-                           grepl('qID|mID', ID_TYPE)
+                           grepl('qID|sID', ID_TYPE)
                          ]
     if (nrow(id_ein) == 0){
       id_ein <- id_tbl_tmp[grepl('.+_Einlass', besonderheit) &
-                             grepl('sID', ID_TYPE)
+                             grepl('mID', ID_TYPE)
                            ]
     }
     id_aus <- id_tbl_tmp[grepl('.+_Auslass', besonderheit) &
-                           grepl('qID|mID', ID_TYPE)
+                           grepl('qID|sID', ID_TYPE)
                          ]
     if (nrow(id_aus) == 0){
       id_aus <- id_tbl_tmp[grepl('.+_Auslass', besonderheit) &
-                             grepl('sID', ID_TYPE)
+                             grepl('mID', ID_TYPE)
                            ]
     }
     # check if all Einlass, Auslass besonderheit are different
     stopifnot(unique(id_ein$besonderheit) == id_ein$besonderheit)
     stopifnot(unique(id_aus$besonderheit) == id_aus$besonderheit)
+    # id_ein_aus <- rbind(id_ein, id_aus)
+    # id_ein_aus <- unique(id_ein_aus)
     id_ein_aus_list <- c(id_ein$ID_F, id_aus$ID_F)
     id_ein_aus_type <- c(id_ein$ID_TYPE, id_aus$ID_TYPE)
     id_ein_aus_cols <- c(id_ein$col_name, id_aus$col_name)
+    # id_ein_aus_list <- id_ein_aus$ID_F
+    # id_ein_aus_type <- id_ein_aus$ID_TYPE
+    # id_ein_aus_cols <- id_ein_aus$col_name
     mID_list <- id_ein_aus_list[grepl('m', id_ein_aus_type)]
     # qID or sID can be only one
     qID_list <- id_ein_aus_list[grepl('q', id_ein_aus_type)]
     sID_list <- id_ein_aus_list[grepl('s', id_ein_aus_type)]
+    # id_data_tmp_qid <- NULL
+    id_data_tmp_sid <- NULL
+    id_data_tmp_mid <- NULL
+    id_data_tmp <- data.table()
     if (length(qID_list) > 0) {
       qID_list_args <- list(
         case.list = case.list[[i]],
@@ -413,55 +424,46 @@ get_polder_data <- function(
         verbose = FALSE
       )
       id_data_tmp <- do.call(his_from_case, args = qID_list_args)
-      if (length(mID_list) > 0) {
-        mID_list_args <- list(
-          case.list = case.list[[i]],
-          sobek.project = sobek.project,
-          mID = mID_list,
-          param = param,
-          verbose = FALSE
-        )
-        mID_list_ft <- do.call(his_from_case, args = mID_list_args)
-        mID_list_ft$case <- NULL
-        id_data_tmp <- merge(id_data_tmp, mID_list_ft, by = 'ts', sort = FALSE)
-      }
-    } else{
-      if (length(sID_list) > 0){
-        sID_list_args <- list(
-          case.list = case.list[[i]],
-          sobek.project = sobek.project,
-          sID = sID_list,
-          param = 'discharge',
-          verbose = FALSE
-        )
-        id_data_tmp <- do.call(his_from_case, args = sID_list_args)
-        if (length(mID_list) > 0) {
-          mID_list_args <- list(
-            case.list = case.list[[i]],
-            sobek.project = sobek.project,
-            mID = mID_list,
-            param = param,
-            verbose = FALSE
-          )
-          mID_list_ft <- do.call(his_from_case, args = mID_list_args)
-          mID_list_ft$case <- NULL
-          id_data_tmp <- merge(id_data_tmp, mID_list_ft, by = 'ts', sort = FALSE)
-        }
-      }
-      else{
-        mID_list_args <- list(
-          case.list = case.list[[i]],
-          sobek.project = sobek.project,
-          mID = mID_list,
-          param = param,
-          verbose = FALSE
-        )
-        id_data_tmp <- do.call(his_from_case, args = mID_list_args)
+    }
+    if (length(sID_list) > 0){
+      sID_list_args <- list(
+        case.list = case.list[[i]],
+        sobek.project = sobek.project,
+        sID = sID_list,
+        param = 'discharge',
+        verbose = FALSE
+      )
+      id_data_tmp_sid <- do.call(his_from_case, args = sID_list_args)
+      if (nrow(id_data_tmp) > 0){
+        id_data_tmp <- merge(id_data_tmp_sid, id_data_tmp, 
+                             by = c('ts', 'case'),
+                             sort = FALSE)
+      } else{
+        id_data_tmp <- id_data_tmp_sid
       }
     }
-
+    if (length(mID_list) > 0) {
+      mID_list_args <- list(
+        case.list = case.list[[i]],
+        sobek.project = sobek.project,
+        mID = mID_list,
+        param = param,
+        verbose = FALSE
+      )
+      mID_list_ft <- do.call(his_from_case, args = mID_list_args)
+      if (nrow(id_data_tmp) > 0){
+        id_data_tmp <- merge(id_data_tmp_mid, id_data_tmp, 
+                             by = c('ts', 'case'),
+                             sort = FALSE)
+      } else{
+        id_data_tmp <- id_data_tmp_mid
+      }
+    }
     setcolorder(id_data_tmp, c('ts', id_ein_aus_list, 'case'))
     colnames(id_data_tmp) <- c('ts', id_ein_aus_cols, 'case')
+    # id_data_tmp <- id_data_tmp[, .SD, 
+    #                            .SDcols = unique(colnames(id_data_tmp))
+    #                            ]
     id_data_tmp <- merge(id_data_tmp, id_vor_nach_data, by = 'ts', sort = FALSE)
     #---- get Waterlevel Innen----
     if (isTRUE(w.canal)){

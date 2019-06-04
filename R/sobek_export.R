@@ -32,6 +32,7 @@ sobek_export <- function(case.list,
                    full.names = TRUE, no.. = TRUE)
   file.copy(from = all_files, to = dest, recursive = TRUE)
   for (i in case.list) {
+    if (substr(i, 1, 3) == "---") next
     print(paste('copying case: ', i, "..."))
     from_folder <- dirname(get_file_path(
       case.name = i,

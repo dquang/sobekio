@@ -179,6 +179,10 @@ plot_polder_scenario <- function(
   if (isTRUE(verbose)) print('Preparing graphic...')
   einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
   auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
+  # for (j in c(einlass_cols, auslass_cols)) {
+  #   set(id_data, j = j, value = round(id_data[[j]], 0))
+  # }
+  # id_data[, eval(einlass_cols) := lapply(einlass_cols, round, 1) ]
   y2_axis <- isTRUE(q.in)|isTRUE(q.out)|(param == 'discharge' & isTRUE(w.canal))
   # in case there is a y2_axis
   #----processing y-axes limits----

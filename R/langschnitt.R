@@ -164,7 +164,7 @@ plot_drv <- function(
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   #----delta == TRUE----
   if (isTRUE(delta)){
-    data_tbl[, group := seq_len(.N), by = list(compare.by)]
+    data_tbl[, group := seq_len(.N), by = c(compare.by)]
     y2_name <- paste('Delta',
                      # str_to_sentence(compare.by),
                      ifelse(param == 'discharge', '(m³/s)', '(m)')
