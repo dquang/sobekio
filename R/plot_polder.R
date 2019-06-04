@@ -13,8 +13,9 @@
 #' @param h.lines List of (name = value) to be displayed as horizontal line
 #' @param peak.nday Should the plot limit to nday before and after the peak. Default is not (NULL). Otherwise please give a number of days
 #' @param peak.pegel If the plot should be limit to the peak area, should it be the peak of the referenced location (ref.mID). Default is not.
-#' @param compare.by Should the line be compare by 'case' or by 'location'
-#' @param facet.by Should the graphic be facetted. Default by 'zustand'
+#' @param lt.by Which of (zustand, hwe, vgf...) will be used to show different linetypes?
+#' Others make only sense when your scenarios has same 'zustand' prefix
+#' @param facet.by Should the graphic be facetted. Default by 'hwe'
 #' @param plot.title Title of the graphic
 #' @param lt.name Name of the linetype legend
 #' @param color.name Name of the color legend
@@ -44,7 +45,8 @@ plot_polder <- function(
   h.lines = NULL,
   peak.nday = NULL,
   peak.pegel = FALSE,
-  compare.by = 'zustand',
+  lt.by = 'zustand',
+  compare.by = NULL,
   facet.by =  'hwe',
   plot.title = NULL,
   lt.name = 'Linienart',
@@ -59,6 +61,10 @@ plot_polder <- function(
   polder.z = NULL,
   verbose = TRUE){
 
+  if (!is.null(compare.by)){
+    print("'compare.by' is depreciated, please use 'lt.by' instead ")
+    lt.by <- compare.by
+  }
   # check input
   param = tolower(param)
   stopifnot(param %in% c('discharge', 'waterlevel'))
@@ -142,6 +148,10 @@ plot_polder <- function(
                                     'peak_ts_min', 'peak_ts_max')
                        ]
   }
+  # #----adding delta line beneath the main graphic----
+  # if (isTRUE(delta.line)){
+  #   id_data[, delta := Nach - Vor]
+  # }
   #-----preparing plot-----
   if (isTRUE(verbose)) print('Preparing graphic...')
   y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
