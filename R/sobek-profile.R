@@ -42,11 +42,11 @@ switch_DRV <- function(case.name, sobek.project, drv.name = NULL,
 #' @export
 set_weir_info <- function(w.id, struct.def,
                           w.rt = NULL, w.cl = NULL, w.cw = NULL){
-
+  
   stopifnot(is.numeric(w.cl) & is.numeric(w.cw))
   st_def <- fread(file = struct.def,
-                       header = F,
-                       sep = "\n")
+                  header = F,
+                  sep = "\n")
   id_pattern = paste("STDS id '", w.id, "' ", sep = '')
   st_line <- grep(id_pattern, st_def$V1)
   f_changed <- FALSE
@@ -145,7 +145,7 @@ change_rl_rs <- function(crsn.id, pf.df, rl.new = 0, rs.new = rl.new + 10){
                 quote = FALSE,
                 row.names = FALSE,
                 col.names = FALSE
-                  )
+    )
   }
   return(cout)
 }
@@ -168,7 +168,7 @@ change_rl_rs <- function(crsn.id, pf.df, rl.new = 0, rs.new = rl.new + 10){
 #' @export
 set_nahe_on <- function(
   case.list = NULL,
-  sobek.project = so_prj,
+  sobek.project = NULL,
   w.in.rt = 0,
   w.in.cl = 87,
   w.in.cw = 50,
@@ -206,15 +206,22 @@ set_nahe_on <- function(
     )
     p_def <- get_profile_tbl(
       case,
-      so_prj,
+      sobek.project,
       def.tbl = TRUE
     )
     dat_tbl <- p_def$dat
     def_tbl <- p_def$def
     # changing PROFILE.DAT to open Bretzenheim
-    dat_tbl[grepl('bretz_\\d+', dat_id) ,
-            dat_file := str_replace(dat_file, " rl [^ ]* rs ", " rl 0 rs ")]
+    dat_tbl[dat_id == 'bretz_50',
+            dat_file := str_replace(dat_file, " rl [^ ]* rs [^ ]* ", " rl 0 rs 99.96 ")]
+    dat_tbl[dat_id == 'bretz_1450',
+            dat_file := str_replace(dat_file, " rl [^ ]* rs [^ ]* ", " rl 0 rs 94.11 ")]
+    dat_tbl[dat_id == 'sponsheim_cr_in'|dat_id == 'sponsheim_cr_out',
+            dat_file := str_replace(dat_file, "di '9476'", "di '9477'")]
     # change Z bottom of sponsheim_pr*
+    dat_tbl[grepl("sponsheim_.r", dat_id),
+            dat_file := str_replace(dat_file, ' rl [^ ]+ rs ', ' rl 86.17 rs ')
+            ]
     dat_tbl[grepl("sponsheim_.r", dat_id),
             dat_file := str_replace(dat_file, ' rl [^ ]+ rs ', ' rl 86.17 rs ')
             ]
@@ -225,7 +232,10 @@ set_nahe_on <- function(
                                     ' wm 546.6 rw 546.6 ')]
     def_tbl[def_id == 9477,
             def_file := str_replace(def_file, "([^ ]+) ([^ ]+) ([^ ]+) <",
-            "\\1 546.6 546.6 <")]
+                                    "\\1 546.6 546.6 <")]
+    def_tbl[def_id == 9477,
+            def_file := str_replace(def_file, "\\ *crds",
+                                    "\\ crds")]
     # write profile.dat and profile.def
     fwrite(dat_tbl[, .(dat_file)],
            file = p_dat_f, quote = FALSE, col.names = FALSE)
@@ -244,10 +254,10 @@ set_nahe_on <- function(
 #' @export
 get_profile_tbl <- function(
   case,
-  sobek.project = so_prj,
+  sobek.project = NULL,
   dat.tbl = TRUE,
   def.tbl = FALSE
-  ){
+){
   stopifnot(TRUE %in% c(dat.tbl, def.tbl))
   p_dat_f <- get_file_path(case.name = case,
                            sobek.project = sobek.project,
@@ -285,9 +295,9 @@ get_profile_tbl <- function(
   p_dat[, zb := zb + rl]
   p_dat[, c("def_file", "def_row_id") := list(NULL, NULL)]
   p_def[, def_id := def_id[1], .(cumsum(!is.na(def_id)))]
-
+  
   result <- list(dat = p_dat, def = p_def)[c(dat.tbl, def.tbl)]
   if (length(result) == 1) result <- result[[1]]
-
+  
   return(result)
 }
