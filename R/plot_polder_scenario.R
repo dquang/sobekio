@@ -50,7 +50,7 @@ plot_polder_scenario <- function(
   # sum.q.out = FALSE,
   w.canal = FALSE,
   ref.mID = NULL,
-  ref2 = NULL,
+  ref.mID2 = NULL,
   y2.scale = NULL,
   y2.tick1 = NULL,
   h.lines = NULL,
@@ -150,7 +150,60 @@ plot_polder_scenario <- function(
     if (abs(scheitel_ref_mID_delta) > 2) {
       scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta)
     }
+    # get second Bezugspegel
+    if (!is.null(ref.mID2)) {
+      if (isTRUE(verbose))
+        print('Reading data for ref.mID2...')
+      if (length(ref.mID2) > 1) {
+        ref.mID2_id <- ref.mID2[[1]]
+        if (hasName(ref.mID2, 'ID')) ref.mID2_id <- ref.mID2$ID
+        ref.mID2_name <- ref.mID2[[2]]
+        if (hasName(ref.mID2, 'name')) ref.mID2_name <- ref.mID2$name
+        # ref.mID2_color <- ref.mID2_name
+        ref.mID2_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
+                                ref.mID2_name)
+        ref.mID2_type <- ifelse(param == 'discharge', 'qID', 'wID')
+        if (hasName(ref.mID2, 'type'))
+          ref.mID2_type <- ref.mID2$type
+        ref_mID_args <- list(
+          case.list = case.list,
+          sobek.project = sobek.project,
+          id_type = ref.mID2_id,
+          param = param,
+          verbose = FALSE
+        )
+        names(ref_mID_args)[3] <- ref.mID2_type
+        ref_mID2 <- do.call(his_from_case, ref_mID_args)
+      } else{
+        ref_mID2 <- his_from_case(
+          case.list = case.list,
+          sobek.project = sobek.project,
+          mID = ref.mID2[[1]],
+          param = param,
+          verbose = FALSE
+        )
+        ref.mID2_name <-
+          ifelse(!is.null(names(ref.mID2)), names(ref.mID2),
+                 toupper(ref.mID2[[1]]))
+        ref.mID2_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
+                                ref.mID2_name)
+      }
+      colnames(ref_mID2) <- c('ts', 'Bezugspegel2', 'case')
+      id_data <- merge(id_data, ref_mID2, by = c('ts', 'case'))
+      # get peak difference at the ref_measurement
+      scheitel_max_c1 <- id_data[get(compare.by) == cmp_vars[[1]],
+                                 max(Bezugspegel2)]
+      scheitel_max_c2 <- id_data[get(compare.by) == cmp_vars[[2]],
+                                 max(Bezugspegel2)]
+      scheitel_ref_mID_delta2 <- scheitel_max_c1 - scheitel_max_c2
+      scheitel_ref_mID_delta2 <- round(scheitel_ref_mID_delta2, 2)
+      # rounding value for discharge
+      if (abs(scheitel_ref_mID_delta2) > 2) {
+        scheitel_ref_mID_delta2 <- round(scheitel_ref_mID_delta2)
+      }
+    }
   }
+
   # limit data to the peak value
   if (!is.null(peak.nday)){
     stopifnot(is.numeric(peak.nday))
@@ -186,9 +239,10 @@ plot_polder_scenario <- function(
   y2_axis <- isTRUE(q.in)|isTRUE(q.out)|(param == 'discharge' & isTRUE(w.canal))
   # in case there is a y2_axis
   #----processing y-axes limits----
+  y1_cols <- c('Nach')
+  if (!is.null(ref.mID)) y1_cols <- c('Nach', 'Bezugspegel')
+  if (!is.null(ref.mID2)) y1_cols <- c('Nach', 'Bezugspegel', 'Bezugspegel2')
   if (isTRUE(y2_axis)) {
-    y1_cols <- c('Nach')
-    if (!is.null(ref.mID)) y1_cols <- c('Nach', 'Bezugspegel')
     if (isTRUE(w.canal) & param == 'waterlevel') y1_cols <- c(y1_cols, 'W_innen')
     y2_cols <- c(einlass_cols,
                  auslass_cols)[c(rep(q.in, length(einlass_cols)),
@@ -236,12 +290,7 @@ plot_polder_scenario <- function(
     }
   } else{
     # in case there is no y2_axis
-    y1_cols <- c('Nach', 'Vor')
-    if (!is.null(ref.mID))
-      y1_cols <- c('Nach', 'Vor', 'Bezugspegel')
-    if (isTRUE(w.canal) &
-        param == 'waterlevel')
-      y1_cols <- c(y1_cols, 'W_innen')
+    if (isTRUE(w.canal) & param == 'waterlevel') y1_cols <- c(y1_cols, 'W_innen')
     y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
     y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
     y1_pretty <- pretty(y1_min:y1_max, 5, 5)
@@ -271,11 +320,13 @@ plot_polder_scenario <- function(
     g <- ggplot(data = id_data,
                 mapping = aes(x = ts, linetype = !!ensym(compare.by))
     ) +
-      geom_line(aes(
-        y = Bezugspegel,
-        color = ref.mID_color
-      ),
+      geom_line(aes(y = Bezugspegel, color = ref.mID_color),
       size = 1)
+    if (!is.null(ref.mID2)){
+      g <- g +
+        geom_line(aes(y = Bezugspegel2, color = ref.mID2_color),
+        size = 1)
+    }
   } else{
     g <- ggplot(data = id_data,
                 mapping = aes(x = ts, linetype = !!ensym(compare.by))
@@ -289,15 +340,6 @@ plot_polder_scenario <- function(
                 size = 1)
     if (isTRUE(w.canal)){
       q.in <- FALSE
-      # y2_min <- min(id_data$W_innen, na.rm = TRUE)
-      # if (y2_max - y2_min > 10) {
-      #   y2_min <- round(y2_min, -1)
-      # } else {
-      #   y2_min <- floor(y2_min)
-      # }
-      # if (y2_min*y2.scale != y1_min) {
-      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      # }
       # if parameter is discharge, move waterlevel to secondary axis
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
                              color = 'W in Maßnahme'),
@@ -306,18 +348,6 @@ plot_polder_scenario <- function(
     }
     if (isTRUE(q.in)){
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-      # y2_min <- id_data[, .SD,
-      #                   .SDcols = einlass_cols
-      #                   ] %>%
-      #   min(na.rm = TRUE)
-      # if (y2_max - y2_min > 10) {
-      #   y2_min <- round(y2_min, -1)
-      # } else {
-      #   y2_min <- floor(y2_min)
-      # }
-      # if (y2_min*y2.scale != y1_min) {
-      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      # }
       # adding Einlass lines
       if (length(einlass_cols) > 1){
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
@@ -337,18 +367,6 @@ plot_polder_scenario <- function(
       }
     }
     if (isTRUE(q.out)){
-      # y2_min <- id_data[, .SD,
-      #                   .SDcols = c(einlass_cols, auslass_cols)
-      #                   ] %>%
-      #   min(na.rm = TRUE)
-      # if (y2_max - y2_min > 10) {
-      #   y2_min <- round(y2_min, -1)
-      # } else {
-      #   y2_min <- floor(y2_min)
-      # }
-      # if (y2_min*y2.scale != y1_min) {
-      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      # }
       if (length(auslass_cols) > 1){
         id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
                                 variable.name = 'Auslass',
@@ -374,17 +392,6 @@ plot_polder_scenario <- function(
                 size = 1)
     if (isTRUE(w.canal)){
       y2_name <- 'Wasserstand (m+NHN)'
-      # if(is.null(ref.mID)){
-      #   y1_cols <- c('Nach', 'Vor', 'W_innen')
-      # } else{
-      #   y1_cols <- c('Nach', 'Vor', 'W_innen', 'Bezugspegel')
-      # }
-      # y1_max <- id_data[, max(.SD, na.rm = TRUE),
-      #                   .SDcols = y1_cols]
-      # y1_min <- id_data[, min(.SD, na.rm = TRUE),
-      #                   .SDcols = c('Nach', 'Vor', 'W_innen')]
-      # y2_max <- ceiling(y1_max/y2.scale)
-      # y1_pretty <-  pretty(y1_min:y1_max, 5, 5)
       g <- g + geom_line(aes(y = W_innen,
                              color = 'W in Maßnahme'),
                          size = 1)
@@ -392,18 +399,6 @@ plot_polder_scenario <- function(
     if (isTRUE(q.in)){
       einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-      # y2_min <- id_data[, .SD,
-      #                   .SDcols = einlass_cols
-      #                   ] %>%
-      #   min(na.rm = TRUE)
-      # if (y2_max - y2_min > 10) {
-      #   y2_min <- round(y2_min, -1)
-      # } else {
-      #   y2_min <- floor(y2_min)
-      # }
-      # if (y2_min*y2.scale != y1_min) {
-      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      # }
       # adding Einlass lines
       if (length(einlass_cols) > 1){
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
@@ -424,18 +419,6 @@ plot_polder_scenario <- function(
     }
     if (isTRUE(q.out)){
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-      # y2_min <- id_data[, .SD,
-      #                   .SDcols = c(einlass_cols, auslass_cols)
-      #                   ] %>%
-      #   min(na.rm = TRUE)
-      # if (y2_max - y2_min > 10) {
-      #   y2_min <- round(y2_min, -1)
-      # } else {
-      #   y2_min <- floor(y2_min)
-      # }
-      # if (y2_min*y2.scale != y1_min) {
-      #   y2_shift <- floor(y2_shift - y2_min*y2.scale)
-      # }
       if (length(auslass_cols) > 1){
         id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
                                 variable.name = 'Auslass',
@@ -527,6 +510,14 @@ plot_polder_scenario <- function(
       label,
       sep = ""
     )]
+    # adding delta ref.mID2
+    if (!is.null(ref.mID2)){
+      id_max[, label := paste(
+        'Delta am ', ref.mID2_name, ": ", scheitel_ref_mID_delta2, " ", delta_unit, " \n",
+        label,
+        sep = ""
+      )]
+    }
   }
   if (isTRUE(delta.measure)){
     id_max[, label := paste(
@@ -622,32 +613,30 @@ plot_polder_scenario <- function(
     ggtitle(plot.title)
   #----adding delta line beneath the main graphic----
   if (isTRUE(delta.line)){
+    delta_data <- dcast(id_data, ts ~ get(compare.by),
+                        value.var = 'Nach')
+    delta_data[, `Delta an der Maßnahme` := get(cmp_vars[1]) - get(cmp_vars[2])]
+    delta_data[, eval(cmp_vars[1]) := NULL]
+    delta_data[, eval(cmp_vars[2]) := NULL]
     if(!is.null(ref.mID)){
-      delta_data <- dcast(id_data, ts ~ get(compare.by),
-                         value.var = 'Bezugspegel')
-      delta_data[, eval(paste('Delta am ', ref.mID_name)) :=
-                         get(cmp_vars[1]) - get(cmp_vars[2])]
-      delta_data[, eval(cmp_vars[1]) := NULL]
-      delta_data[, eval(cmp_vars[2]) := NULL]
-      # if (param == 'waterlevel'){
-      delta_mea <- dcast(id_data, ts ~ get(compare.by),
-                         value.var = 'Nach')
-      # delta_data[, delta_pos := 'Delta an der Maßnahme']
-      delta_mea[, `Delta an der Maßnahme` := get(cmp_vars[1]) - get(cmp_vars[2])]
-      delta_mea[, eval(cmp_vars[1]) := NULL]
-      delta_mea[, eval(cmp_vars[2]) := NULL]
-      delta_data <- merge(delta_data, delta_mea, by = 'ts',
+      delta_p1 <- dcast(id_data, ts ~ get(compare.by),
+                        value.var = 'Bezugspegel')
+      delta_p1[, eval(paste('Delta am ', ref.mID_name)) :=
+                 get(cmp_vars[1]) - get(cmp_vars[2])]
+      delta_p1[, eval(cmp_vars[1]) := NULL]
+      delta_p1[, eval(cmp_vars[2]) := NULL]
+      delta_data <- merge(delta_data, delta_p1, by = 'ts',
                           sort = FALSE)
-      # }
-    } else{
-      delta_data <- dcast(id_data, ts ~ get(compare.by),
-                         value.var = 'Nach')
-      # delta_data[, delta_pos := 'Delta an der Maßnahme']
-      delta_data[, `Delta an der Maßnahme` := get(cmp_vars[1]) - get(cmp_vars[2])]
-      delta_data[, eval(cmp_vars[1]) := NULL]
-      delta_data[, eval(cmp_vars[2]) := NULL]
-      # delta_data <- merge(delta_data, delta_mea, by = 'ts',
-                          # sort = FALSE)
+      if(!is.null(ref.mID2)){
+        delta_p2 <- dcast(id_data, ts ~ get(compare.by),
+                            value.var = 'Bezugspegel2')
+        delta_p2[, eval(paste('Delta am ', ref.mID2_name)) :=
+                     get(cmp_vars[1]) - get(cmp_vars[2])]
+        delta_p2[, eval(cmp_vars[1]) := NULL]
+        delta_p2[, eval(cmp_vars[2]) := NULL]
+        delta_data <- merge(delta_data, delta_p2, by = 'ts',
+                            sort = FALSE)
+      }
     }
     delta_data <- melt(delta_data,
                        id.vars = 'ts', value.name = 'value',

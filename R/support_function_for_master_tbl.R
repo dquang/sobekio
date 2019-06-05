@@ -377,6 +377,7 @@ get_polder_data <- function(
       id_vor_nach_data <- do.call(his_from_case, id_vor_nach_args)
       id_vor_nach_data$case <- NULL
       colnames(id_vor_nach_data) <- c('ts', 'Nach')
+      # Reserve this column for the final data table, will be replace later
       id_vor_nach_data$Vor <- NA
     }
     #----get data for Einlass/Auslass----
@@ -388,6 +389,7 @@ get_polder_data <- function(
                              grepl('mID', ID_TYPE)
                            ]
     }
+    id_ein[, col_name := str_match(besonderheit, ".+_(Einlass[^;]*)")[, 2]]
     id_aus <- id_tbl_tmp[grepl('.+_Auslass', besonderheit) &
                            grepl('qID|sID', ID_TYPE)
                          ]
@@ -396,22 +398,20 @@ get_polder_data <- function(
                              grepl('mID', ID_TYPE)
                            ]
     }
+    id_aus[, col_name := str_match(besonderheit, ".+_(Auslass[^;]*)")[, 2]]
     # check if all Einlass, Auslass besonderheit are different
     stopifnot(unique(id_ein$besonderheit) == id_ein$besonderheit)
     stopifnot(unique(id_aus$besonderheit) == id_aus$besonderheit)
-    # id_ein_aus <- rbind(id_ein, id_aus)
-    # id_ein_aus <- unique(id_ein_aus)
     id_ein_aus_list <- c(id_ein$ID_F, id_aus$ID_F)
     id_ein_aus_type <- c(id_ein$ID_TYPE, id_aus$ID_TYPE)
     id_ein_aus_cols <- c(id_ein$col_name, id_aus$col_name)
-    # id_ein_aus_list <- id_ein_aus$ID_F
-    # id_ein_aus_type <- id_ein_aus$ID_TYPE
-    # id_ein_aus_cols <- id_ein_aus$col_name
+    # identify list and names of each type of IDs (m, q, s)
     mID_list <- id_ein_aus_list[grepl('m', id_ein_aus_type)]
-    # qID or sID can be only one
+    mID_list_name <- id_ein_aus_cols[grepl('m', id_ein_aus_type)]
     qID_list <- id_ein_aus_list[grepl('q', id_ein_aus_type)]
+    qID_list_name <- id_ein_aus_cols[grepl('q', id_ein_aus_type)]
     sID_list <- id_ein_aus_list[grepl('s', id_ein_aus_type)]
-    # id_data_tmp_qid <- NULL
+    sID_list_name <- id_ein_aus_cols[grepl('s', id_ein_aus_type)]
     id_data_tmp_sid <- NULL
     id_data_tmp_mid <- NULL
     id_data_tmp <- data.table()
@@ -424,6 +424,8 @@ get_polder_data <- function(
         verbose = FALSE
       )
       id_data_tmp <- do.call(his_from_case, args = qID_list_args)
+      # set colnames to avoid conflict of Einlass/Auslass at the same structure
+      colnames(id_data_tmp) <- c('ts', qID_list_name, 'case')
     }
     if (length(sID_list) > 0){
       sID_list_args <- list(
@@ -434,8 +436,10 @@ get_polder_data <- function(
         verbose = FALSE
       )
       id_data_tmp_sid <- do.call(his_from_case, args = sID_list_args)
+      # set colnames to avoid conflict of Einlass/Auslass at the same structure
+      colnames(id_data_tmp_sid) <- c('ts', sID_list_name, 'case')
       if (nrow(id_data_tmp) > 0){
-        id_data_tmp <- merge(id_data_tmp_sid, id_data_tmp, 
+        id_data_tmp <- merge(id_data_tmp_sid, id_data_tmp,
                              by = c('ts', 'case'),
                              sort = FALSE)
       } else{
@@ -450,21 +454,20 @@ get_polder_data <- function(
         param = param,
         verbose = FALSE
       )
-      mID_list_ft <- do.call(his_from_case, args = mID_list_args)
+      id_data_tmp_mid <- do.call(his_from_case, args = mID_list_args)
+      # set colnames to avoid conflict of Einlass/Auslass at the same structure
+      colnames(id_data_tmp_mid) <- c('ts', mID_list_name, 'case')
       if (nrow(id_data_tmp) > 0){
-        id_data_tmp <- merge(id_data_tmp_mid, id_data_tmp, 
+        id_data_tmp <- merge(id_data_tmp_mid, id_data_tmp,
                              by = c('ts', 'case'),
                              sort = FALSE)
       } else{
         id_data_tmp <- id_data_tmp_mid
       }
     }
-    setcolorder(id_data_tmp, c('ts', id_ein_aus_list, 'case'))
-    colnames(id_data_tmp) <- c('ts', id_ein_aus_cols, 'case')
-    # id_data_tmp <- id_data_tmp[, .SD, 
-    #                            .SDcols = unique(colnames(id_data_tmp))
-    #                            ]
-    id_data_tmp <- merge(id_data_tmp, id_vor_nach_data, by = 'ts', sort = FALSE)
+    setcolorder(id_data_tmp, c('ts', id_ein_aus_cols, 'case'))
+    id_data_tmp <- merge(id_data_tmp, id_vor_nach_data,
+                         by = 'ts', sort = FALSE)
     #---- get Waterlevel Innen----
     if (isTRUE(w.canal)){
       id_mitte <- id_tbl_tmp[col_name == 'Innen' &
