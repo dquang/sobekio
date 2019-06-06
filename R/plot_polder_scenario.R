@@ -99,7 +99,7 @@ plot_polder_scenario <- function(
   id_data <- merge(id_data, case_tbl, by = 'case', sort = FALSE)
   cmp_vars <- case_tbl[, get(compare.by)]
   if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
-  # read data for Bezugspegel
+  #----read data for Bezugspegel 1 & 2----
   if (!is.null(ref.mID)) {
     if (isTRUE(verbose))
       print('Reading data for ref.mID...')
@@ -203,7 +203,6 @@ plot_polder_scenario <- function(
       }
     }
   }
-
   # limit data to the peak value
   if (!is.null(peak.nday)){
     stopifnot(is.numeric(peak.nday))
@@ -216,7 +215,7 @@ plot_polder_scenario <- function(
     xlim_max <- ts_max + peak.nday * 24 * 3600
     id_data <- id_data[ts >= xlim_min & ts <= xlim_max]
   }
-  # finding scheitel delta at the measure
+  #----finding scheitel delta at the measure----
   if (isTRUE(delta.measure)){
     # calculate diff between two max value (different moment)
     scheitel_max_c1 <- id_data[get(compare.by) == cmp_vars[[1]], max(Nach)]
@@ -242,8 +241,13 @@ plot_polder_scenario <- function(
   y1_cols <- c('Nach')
   if (!is.null(ref.mID)) y1_cols <- c('Nach', 'Bezugspegel')
   if (!is.null(ref.mID2)) y1_cols <- c('Nach', 'Bezugspegel', 'Bezugspegel2')
+  if (isTRUE(w.canal) & param == 'waterlevel') y1_cols <- c(y1_cols, 'W_innen')
+  y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
+  y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
+  y1_length <- y1_max - y1_min
+  y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+  # in case there is y2_axis
   if (isTRUE(y2_axis)) {
-    if (isTRUE(w.canal) & param == 'waterlevel') y1_cols <- c(y1_cols, 'W_innen')
     y2_cols <- c(einlass_cols,
                  auslass_cols)[c(rep(q.in, length(einlass_cols)),
                                  rep(q.out, length(auslass_cols)))]
@@ -252,11 +256,8 @@ plot_polder_scenario <- function(
       q.out <- FALSE
       y2_cols <- 'W_innen'
     }
-    y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
-    y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
     y2_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y2_cols]
     y2_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y2_cols]
-    y1_length <- y1_max - y1_min
     y2_length <- y2_max - y2_min
     if (is.null(y2.scale)) {
       y1_length <- y1_max - y1_min
@@ -288,19 +289,13 @@ plot_polder_scenario <- function(
     if (0 %between% c(min(y2_pretty), max(y2_pretty))){
       y2_pretty <- unique(sort(c(y2_pretty, 0)))
     }
-  } else{
-    # in case there is no y2_axis
-    if (isTRUE(w.canal) & param == 'waterlevel') y1_cols <- c(y1_cols, 'W_innen')
-    y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
-    y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
-    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-  }
-  if (is.infinite(y2.scale)){
-    y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
-    y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
-    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-    y2.scale = 1
-    y2_shift = min(y1_pretty)
+    if (is.infinite(y2.scale)){
+      y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
+      y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
+      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+      y2.scale = 1
+      y2_shift = min(y1_pretty)
+    }
   }
   # make sure y1_max is in the range of y1_pretty
   y1_tick_diff <- abs(y1_pretty[2] - y1_pretty[1])

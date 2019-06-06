@@ -8,11 +8,12 @@ plot_polder(name = NULL, case.list = NULL, case.desc = case.list,
   sobek.project = NULL, master.tbl = NULL, param = "discharge",
   q.in = FALSE, q.out = FALSE, w.canal = FALSE, ref.mID = NULL,
   y2.scale = 25, h.lines = NULL, peak.nday = NULL,
-  peak.pegel = FALSE, compare.by = "zustand", facet.by = "hwe",
-  plot.title = NULL, lt.name = "Linienart", color.name = "Farbe",
-  text.pos.x = 0, text.pos.y = 1, date.break = "3 days",
-  date.label = "\%d.\%m.\%y", text.size = 12, text.x.angle = 0L,
-  polder.f = NULL, polder.z = NULL, verbose = TRUE)
+  peak.pegel = FALSE, lt.by = "zustand", compare.by = NULL,
+  facet.by = "hwe", plot.title = NULL, lt.name = "Linienart",
+  color.name = "Farbe", text.pos.x = 0, text.pos.y = 1,
+  date.break = "3 days", date.label = "\%d.\%m.\%y", text.size = 12,
+  text.x.angle = 0L, polder.f = NULL, polder.z = NULL,
+  verbose = TRUE)
 }
 \arguments{
 \item{name}{Name of the measure (with/without the measure)}
@@ -43,9 +44,10 @@ plot_polder(name = NULL, case.list = NULL, case.desc = case.list,
 
 \item{peak.pegel}{If the plot should be limit to the peak area, should it be the peak of the referenced location (ref.mID). Default is not.}
 
-\item{compare.by}{Should the line be compare by 'case' or by 'location'}
+\item{lt.by}{Which of (zustand, hwe, vgf...) will be used to show different linetypes?
+Others make only sense when your scenarios has same 'zustand' prefix}
 
-\item{facet.by}{Should the graphic be facetted. Default by 'zustand'}
+\item{facet.by}{Should the graphic be facetted. Default by 'hwe'}
 
 \item{plot.title}{Title of the graphic}
 

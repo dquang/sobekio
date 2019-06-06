@@ -83,10 +83,8 @@ sobek_sim <- function(case.name = NULL,
          row.names = FALSE, quote = FALSE)
   cmd <- paste("cmd.exe /c ", sobek.path, "/programs/simulate.exe simulate.ini", sep = "")
   if (interactive()){
-    print("Waiting for Sobek Simulation.exe.
-          DO NOT terminate R or run any other commands...")
-    print("If you need to do something else with R,
-          please open another session")
+    print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
+    print("If you need to do something else with R, please open another session")
   } else{
     cat(
       "Running simulation for case:\n",
@@ -105,8 +103,18 @@ sobek_sim <- function(case.name = NULL,
                           sep = "\n", header = FALSE)
       # cleaning before return
       setwd(wkd)
+      parsen_tmp <- paste(tempdir(),"\\parsen.msg", sep = "")
+      file.copy(from = paste(wk_folder, "parsen.msg", sep = "\\"),
+                to = parsen_tmp, overwrite = TRUE)
       unlink(wk_folder_del, recursive = TRUE)
-      if (!interactive()) print(parsen_msg)
+      if (!interactive()) {
+        print(parsen_msg[grepl('Error', V1, ignore.case = TRUE)])
+        system(
+          paste("notepad.exe", parsen_tmp),
+          wait = FALSE,
+          invisible = FALSE
+        )
+      }
       return(parsen_msg)
     } else{
       setwd(wkd)
@@ -211,6 +219,7 @@ sobek_sim <- function(case.name = NULL,
           files_list <- list.files("../restart",
                                    recursive = TRUE,
                                    all.files = TRUE,
+                                   full.names = TRUE,
                                    no.. = TRUE)
           file.copy(from = files_list,
                     to = paste(sobek.project, 'restart', sep ="/") ,
