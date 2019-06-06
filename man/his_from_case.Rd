@@ -4,47 +4,29 @@
 \alias{his_from_case}
 \title{Export data for nodes/reaches for multiple SOBEK Cases}
 \usage{
-his_from_case(case.list = "", sobek.project = "", param = 1,
-  qID = NULL, wID = NULL, lID = NULL, sID = NULL, mID = NULL,
-  f.sep = "\\t", f.header = FALSE, f.comment = "#",
-  copy.his = FALSE, out.folder = ".", verbose = TRUE,
-  get.max = FALSE)
+his_from_case(case.list = NULL, sobek.project = NULL, param = 1,
+  verbose = TRUE, get.max = FALSE, do.par = NULL, ...)
 }
 \arguments{
 \item{case.list}{Path to the file containing SOBEK Cases to work with}
 
 \item{sobek.project}{Path to Sobek Project folder}
 
-\item{param}{Index of the Paramter to get the data, default = 1}
+\item{param}{The parameter in the .HIS file (waterlevel, discharge...)}
 
-\item{qID}{Path to file containing list of reach IDs for struct.his}
+\item{verbose}{Default TRUE, to display some messages}
 
-\item{wID}{Path to file containing list of node IDs for calcpnt.his}
+\item{get.max}{Default FALSE. If TRUE, the max values will return}
 
-\item{lID}{Path to file containing list of node IDs for lateral.his}
+\item{...}{This accept only one parameter in synctax of ID_TYPE = ID_LIST.
+ID_TYPE is one of wID, qID, mID, lID (latID), sID
+ID_LIST is a character vector.
+For example mID = c('p_koeln', 'p_mainz')}
 
-\item{sID}{Path to file containing list of node IDs for struct.his}
-
-\item{mID}{Path to file containing list of node IDs for measstat.his
-IDs list shoulde have the first column with IDs(col.name = "sobek_id")
-Second column (col.name = "name") is for Names correspond to the IDs}
-
-\item{f.sep}{Seperator of the id.file, default = 'TAB'}
-
-\item{f.header}{Logical. Has id.file header?}
-
-\item{f.comment}{Comment character of the files. Default "#"}
-
-\item{copy.his}{Should .HIS files copied to the output folders?}
-
-\item{out.folder}{Parent folder for the output.}
-
-\item{verbose}{Should message be displayed?}
-
-\item{get.max}{If TRUE, and there is only one type of ID, the max values will return}
+\item{id_name}{Default NULL. To set names for the IDs}
 }
 \value{
-A list of data.table
+a data.table
 }
 \description{
 For all .HIS files subfolders.
