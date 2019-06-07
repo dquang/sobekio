@@ -689,7 +689,7 @@ plot_drv(
     # 'Planzustand_ZPK_HW2003_Selten_Eich_Wor_Zeit_Orsoy_CL2469_Lohrwardt'
   ),
   param = 'waterlevel',
-  sobek.project = 'c:/rhein.lit',
+  sobek.project = 'd:/so21302/rhein29a.lit',
   compare.by = 'zustand',
   cmp.sort = TRUE,
   delta = TRUE,
@@ -743,7 +743,7 @@ rhein_w <- plot_longprofile(
   delta = TRUE,
   y2.scale = 250,
   y2.tick1 = -0.3,
-  facet.by = NULL,
+  # facet.by = NULL,
   plot.title = 'Längschnitt Wasserstand entlang Rhein von KM 443,50 bis KM 866,00. HW 1988 Selten. Zielpegel Köln',
   # group.by = 'hwe',
   overlap = c('Selz','Wied' ,'Langel', 'RUHR', 'Lippe', 'REES'),

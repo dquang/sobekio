@@ -3,140 +3,6 @@
 #' For all .HIS files subfolders.
 #' @param case.list Path to the file containing SOBEK Cases to work with
 #' @param sobek.project Path to Sobek Project folder
-#' @param param The parameter in the .HIS file (waterlevel, discharge...)
-#' @param verbose Default TRUE, to display some messages
-#' @param get.max Default FALSE. If TRUE, the max values will return
-#' @param id_name Default NULL. To set names for the IDs
-#' @param ... This accept only one parameter in synctax of ID_TYPE = ID_LIST.
-#' ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID
-#' ID_LIST is a character vector.
-#' For example mID = c('p_koeln', 'p_mainz')
-#' @return a data.table
-#' @export
-his_from_case <- function(
-  case.list = NULL, # path to list of cases to work with
-  sobek.project = NULL, # path to Sobek Project folder
-  param = 1, # index of the paramter to get data from .HIS file
-  verbose = TRUE,
-  get.max = FALSE, # instead of get the time series, get the max values only
-  do.par = NULL,
-  ...
-  ) {
-  f_args <- as.list(match.call(expand.dots = FALSE))
-  id_args <- list(...)
-  # h_args <- as.list(match.call(expand.dots = TRUE))
-  stopifnot(length(f_args$...) == 1 & !is.null(case.list))
-  id_types <- c('MID', 'WID', 'QID', 'LID', 'LATID', 'SID', 'PID', 'TID')
-  id_type <- names(f_args$...)
-  stopifnot(toupper(id_type) %in% id_types)
-  id_list <- id_args[[id_type]]
-  n_case = length(case.list)
-  # n_id = length(id_list)
-  # check SOBEK project
-  sobek_cmt <- paste(sobek.project, "caselist.cmt", sep = "/")
-  if (!file.exists(sobek_cmt)) {
-    stop("Sobek Caselist.cmt does not exist! Check sobek.project Folder")
-  }
-  clist <- data.table(
-    case_name = case.list
-  )
-  # reading SOBEK caselist.cmt
-  sobek_clist <- data.table::fread(file = sobek_cmt,
-                                  header = FALSE,
-                                  sep = " ",
-                                  quote = "'",
-                                  stringsAsFactors = FALSE,
-                                  blank.lines.skip = TRUE,
-                                  colClasses = c('character', 'character'),
-                                  col.names = c("case_number", "case_name")
-                                  )
-  clist <- merge(clist, sobek_clist, by = 'case_name', sort = FALSE,
-                 all.x = TRUE)
-  clist[tolower(case_name) == 'work', case_number := 'work']
-  if (nrow(clist) == 0) stop('There is no matching case!')
-  clist[is.na(case_number), not_found := .I]
-  for (j in seq_along(clist[is.na(case_number), case_number])) {
-    warning(paste("case: '", clist[not_found == j, case_name],
-                "' is not in caselist.cmt'", sep = ''))
-  }
-  clist <- clist[!is.na(case_number), .SD, .SDcols = -c("not_found")]
-  n_case <- nrow(clist)
-  # check if clist contain a column for destination
-  his_fname <- switch(
-    toupper(id_type),
-    MID = 'measstat.his',
-    WID = 'calcpnt.his',
-    QID = 'reachseg.his',
-    SID = 'struc.his',
-    LID = 'qlat.his',
-    LATID = 'qlat.his',
-    PID = 'pump.his',
-    TID = 'triggers.his'
-    # RDIM = 'reachdim.his',
-    # SDIM = 'strucdim.his',
-    # FID = 'flowanal.his',
-    # QWB = 'qwb.his'
-  )
-  clist[, his_file := paste(sobek.project,
-                            case_number, his_fname, sep = "\\")
-        ]
-  his_from_list_case <- function(his.file,
-                                 id.list,
-                                 param,
-                                 case.name) {
-    tmp <- his_from_list(his.file = his.file,
-                         id.list = id.list,
-                         param = param)
-    tmp[, case := case.name]
-    return(tmp)
-  }
-  # if(do.par & )
-  if (isTRUE(do.par)) {
-    # parallel computing here
-    require(doParallel)
-    require(foreach)
-    registerDoParallel(detectCores() - 1)
-    result <- foreach(i = 1:n_case) %dopar% {
-      this_case_name <- clist$case_name[[i]]
-      this_case_hfile <- clist$his_file[[i]]
-      his_data <- his_from_list(
-        his.file = this_case_hfile, id.list = id_list, param = param
-      )
-      his_data$case <- this_case_name
-      his_data
-    }
-    stopImplicitCluster()
-  } else{
-    # if case.name found in the caselist.cmt
-    result_list <- list(rep(NA, n_case))
-    for (i in 1:n_case){
-      this_case_name <- clist$case_name[[i]]
-      this_case_hfile <- clist$his_file[[i]]
-      his_data <- his_from_list(
-        his.file = this_case_hfile, id.list = id_list, param = param
-      )
-      his_data$case <- this_case_name
-      result_list[[i]] <- his_data
-      rm(his_data)
-    }
-    result <- rbindlist(result_list)
-    rm(result_list)
-  }
-  # get the max values if get.max == TRUE, only for one type of ID
-  if (isTRUE(get.max)){
-      result <- result[, lapply(.SD, max, na.rm = TRUE),
-                       .SDcols = -c('ts'),
-                       by = case]
-  }
-  return(result)
-}
-
-
-#' Export data for nodes/reaches for multiple SOBEK Cases
-#'
-#' For all .HIS files subfolders.
-#' @param case.list Path to the file containing SOBEK Cases to work with
-#' @param sobek.project Path to Sobek Project folder
 #' @param param Index of the Paramter to get the data, default = 1
 #' @param qID Path to file containing list of reach IDs for struct.his
 #' @param wID Path to file containing list of node IDs for calcpnt.his
@@ -154,7 +20,58 @@ his_from_case <- function(
 #' @param get.max If TRUE, and there is only one type of ID, the max values will return
 #' @return A list of data.table
 #' @export
-his_from_case_old <- function(
+his_from_case <- function(
+  case.list = "", # list of cases to work with
+  sobek.project = "", # path to Sobek Project folder
+  param = 1, # index of the paramter to get data from .HIS file
+  verbose = TRUE,
+  get.max = FALSE, # instead of get the time series, get the max values only
+  ...
+  ) {
+  f_args <- match.call(expand.dots = FALSE)
+  
+  id_types <- c('wID', 'qID', 'lID', 'sID', 'mID', 'latID')
+  id_type <- id_types[sapply(
+    id_types,
+    function(name, x) hasName(x = x, name = name), # for reversing hasName function
+    f_args$...)
+    ]
+  his_fname <- switch(
+    id_type,
+    wID = 'calcpnt.his',
+    qID = 'reachseg.his',
+    lID = 'qlat.his',
+    latID = 'qlat.his',
+    sID = 'struc.his',
+    mID = 'measstat.his'
+  )
+  
+  if (length(eval(f_args$...[[id_type]])) * length(case.list) > 100){
+    print('Load his_from_case_parallel')
+    result <- his_from_case_parallel(
+      case.list = case.list,
+      sobek.project = sobek.project,
+      param = param,
+      verbose = verbose,
+      get.max = get.max,
+      ...
+    )
+  } else{
+    print('Load his_from_case_serial')
+    result <- his_from_case_serial(
+      case.list = case.list,
+      sobek.project = sobek.project,
+      param = param,
+      verbose = verbose,
+      get.max = get.max,
+      ...
+    )
+  }
+}
+
+
+
+his_from_case_serial <- function(
   case.list = "", # path to list of cases to work with
   sobek.project = "", # path to Sobek Project folder
   param = 1, # index of the paramter to get data from .HIS file
@@ -340,7 +257,7 @@ his_from_case_old <- function(
           }
         }
       }
-
+      
       # get data for Discharge
       if (!is.null(qID)) {
         if(length(qID)==1 && file.exists(qID)){
@@ -363,7 +280,7 @@ his_from_case_old <- function(
           }
         }
       } # end of if (!is.na(i))
-
+      
       # get data for Laterals
       if (!is.null(lID)) {
         if(length(lID)==1 && file.exists(lID)){
@@ -386,7 +303,7 @@ his_from_case_old <- function(
           }
         }
       }
-
+      
       # get data for Structure
       if (!is.null(sID)) {
         if(length(sID)==1 && file.exists(sID)){
@@ -409,7 +326,7 @@ his_from_case_old <- function(
           }
         }
       }
-
+      
       # get data for Measstation
       if (!is.null(mID)) {
         if(length(mID)==1 && file.exists(mID)){
@@ -435,7 +352,7 @@ his_from_case_old <- function(
     }
   }
   # rm(tmp)
-
+  
   if (length(wID_res) > 0) {
     result$waterlevel <- data.table::rbindlist(wID_res)
     # colnames(result$waterlevel) <-
@@ -470,4 +387,100 @@ his_from_case_old <- function(
 }
 
 
-
+his_from_case_parallel <- function(
+  case.list = "", # list of cases to work with
+  sobek.project = "", # path to Sobek Project folder
+  param = 1, # index of the paramter to get data from .HIS file
+  verbose = TRUE,
+  get.max = FALSE, # instead of get the time series, get the max values only
+  ...
+) {
+  on.exit(stopImplicitCluster())
+  f_args <- as.list(match.call(expand.dots = FALSE))
+  check_args <- TRUE %in% grepl('mID|qID|sID|wID|lID|latID', 
+                                  names(f_args$...))
+  if (length(f_args$...) > 2) stop("there are too many extra parameters")
+  if (check_args == FALSE){
+    stop('One of mID|qID|sID|wID|lID|latID parameter has to be given')
+  } else{
+    if (length(f_args$...) == 2) {
+      if (!hasName(f_args$..., 'id_name')) cat(
+        'Too many parameters. It should be, i.e:
+      \nmID = c("p_koeln", "p_mainz"),\nid_name = c("Köln", "Mainz")'
+      )
+      # check if id and id_name has same length
+      stopifnot(length(eval(f_args$...[[1]])) == 
+                  length(eval(f_args$...[[2]]))
+      )
+    }
+  }
+  # check SOBEK project
+  sobek_cmt <- paste(sobek.project, "caselist.cmt", sep = "/")
+  if (!file.exists(sobek_cmt)) {
+    stop("Sobek Caselist.cmt does not exist! Check sobek.project Folder")
+  }
+  case.list <- unlist(case.list)
+  ncase <- length(case.list)
+  clist <- data.table(case_name = rep("", ncase), 
+                      # case_number = rep(_NA_Character, ncase),
+                      his_file = rep("", ncase)
+                      )
+  clist$case_name <- unlist(case.list)
+  # first column in the clist is case_name
+  # reading SOBEK caselist.cmt
+  sobek_clist <- data.table::fread(file = sobek_cmt,
+                                   header = FALSE,
+                                   sep = " ",
+                                   quote = "'",
+                                   stringsAsFactors = FALSE,
+                                   blank.lines.skip = TRUE,
+                                   colClasses = c('character', 'character'),
+                                   col.names = c("case_number", "case_name")
+  )
+  # sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
+  clist <- merge(clist, sobek_clist, by = 'case_name', all.x = TRUE, 
+                 sort = FALSE)
+  clist[tolower(case_name) == 'work', case_number := 'work']
+  id_types <- c('wID', 'qID', 'lID', 'sID', 'mID', 'latID')
+  id_type <- id_types[sapply(
+    id_types,
+    function(name, x) hasName(x = x, name = name), # for reversing hasName function
+    f_args$...)
+    ]
+  his_fname <- switch(
+    id_type,
+    wID = 'calcpnt.his',
+    qID = 'reachseg.his',
+    lID = 'qlat.his',
+    latID = 'qlat.his',
+    sID = 'struc.his',
+    mID = 'measstat.his'
+  )
+  clist[, his_file := paste(sobek.project, case_number, his_fname, sep = "\\")]
+  id_list <- eval(f_args$...[[id_type]])
+  registerDoParallel(detectCores() - 1)
+  result <- foreach(i_case = 1:ncase, .combine = rbind) %dopar% {
+    # print(eval(f_args$...[[id_type]]))
+    i <- clist$case_number[i_case]
+    # id_list <- eval(f_args$...[[id_type]])
+    his_file <- clist$his_file[i_case]
+    # if case.name found in the caselist.cmt
+    if (!is.na(i)) {
+      tmp <- his_from_list(
+            id.list = id_list,
+            his.file = his_file,
+            param = param
+        )
+      tmp$case <- clist$case_name[i_case]
+    }
+    tmp # return result to the foreach
+  }
+  if (hasName(f_args$..., "id_name")) {
+    colnames(result) <- c('ts', eval(f_args$...$id_name), 'case')
+  }
+  # get the max values if get.max == TRUE, only for one type of ID
+  if (isTRUE(get.max)){
+    result <- result[, lapply(.SD, max, na.rm = TRUE), by = case]
+  }
+  return(result)
+}

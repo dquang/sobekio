@@ -4,7 +4,7 @@
 #' @param main.prj Main Project folder
 #' @param rhein.prj Rhein Project folder
 #' @param print.plot Should a plot be printed. Default = FALSE
-#' @param check.dat Checking the input from boundary.dat or if TRUE, and checking model result if FASLE.
+#' @param check.dat Checking the input from boundary.dat  if TRUE, or checking model result if FASLE.
 #' @param fra.main.id ID for Frankfurt Osthafen Pegel in Main Model. Default: p_frankfurt_ost
 #' @param fra.rhein.id ID for Frankfurt Osthafen Pegel in Rhein Model. Default: p_frankfurt_ost
 #' @export
@@ -38,7 +38,7 @@ check_fra <- function(
       ),
       s.id = '66'
     )
-    q_fra_rhein[, `66`:=as.numeric(`66`)]
+    q_fra_rhein[, `66`:= as.numeric(`66`)]
   } else{
     q_fra_rhein <- his_from_case(
       case.list = rhein.case,
@@ -57,13 +57,14 @@ check_fra <- function(
     g <- ggplot(qt, aes(x = ts, y = value,
                         color = variable,
                         linetype = variable)
-    )+
+    ) +
       scale_x_datetime() + geom_line(size = 1) +
       theme(legend.position = 'bottom')+
       ggtitle(paste('Comparing Frankfurt-Ost: \n', main.case, 'vs', rhein.case))
     print(g)
   }
   testthat::expect_equivalent(q_fra_main$`FRA vom Main`, q_fra_rhein$`FRA im Rhein`)
+  invisible(list(q_fra_rhein, q_fra_main))
 }
 
 #' Checking Worms Input
@@ -76,12 +77,12 @@ check_fra <- function(
 check_worms <- function(
   case.name = NULL,
   zustand = NULL,
-  sobek.project = 'd:/so21302/rhein29a.lit',
-  worms.tbl = lubw_ms,
+  sobek.project = NULL,
+  worms.tbl = NULL,
   worms.id = '17'
 ){
 
-  stopifnot(length(case.name) ==1 & is.character(case.name))
+  stopifnot(length(case.name) == 1 & is.character(case.name))
   stopifnot(!c(is.null(case.name), is.null(zustand), is.null(sobek.project),
                is.null(worms.tbl))
             )
@@ -96,10 +97,21 @@ check_worms <- function(
     pz27_zpk_mittel = 'LUBW_05_pz27_zpk_m',
     pz27_zpk_selten = 'LUBW_05_pz27_zpk_s',
     pz27_zpw_mittel = 'LUBW_05_pz27_zpw_m',
-    pz27_zpw_selten = 'LUBW_05_pz27_zpw_s'
+    pz27_zpw_selten = 'LUBW_05_pz27_zpw_s',
+    nurrhein_zpk_mittel = 'zpk_nurRhein_m',
+    nurrhein_zpk_selten = 'zpk_nurRhein_s',
+    nurrhein_zpw_mittel = 'zpw_nurRhein_m',
+    nurrhein_zpw_selten = 'zpw_nurRhein_s',
+    nurrhein_vgf1 = 'nurRhein_vgf1',
+    nurnf_zpk_mittel = 'zpk_nurNF_m',
+    nurnf_zpk_selten = 'zpk_nurNF_s',
+    nurnf_zpw_mittel = 'zpw_nurNF_m',
+    nurnf_zpw_selten = 'zpw_nurNF_s',
+    nurnf_vgf1 = 'nurNF_vgf1'
     )
+  print(zustand_col)
   stopifnot(!is.null(zustand_col))
-  qt_mod <- lubw_ms[, .SD, .SDcols = c('ts', zustand_col)]
+  qt_mod <- worms.tbl[, .SD, .SDcols = c('ts', zustand_col)]
   colnames(qt_mod) <- c('ts', 'Worms')
   # reading from boundary.dat
   qt_dat <- get_data_from_id(
@@ -113,4 +125,5 @@ check_worms <- function(
   colnames(qt_dat) <- c('ts', 'Worms')
   qt_dat[, Worms := as.numeric(Worms)]
   testthat::expect_equal(qt_mod, qt_dat)
+  invisible(list(qt_mod, qt_dat))
 }
