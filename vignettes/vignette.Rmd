@@ -1,10 +1,10 @@
 ---
-title: "Basic Information and Testing for sobekio package - Draft"
+title: "Introduction to sobekio - Draft"
 author: "D. Quang Duong"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Introduction to sobekio}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -124,14 +124,4 @@ system.time(his_case <- his_from_case(case.list = case_list,
 head(his_case)
 ```
 
-```{r}
-his_results <- his_from_case(case.list = case_list,
-                          sobek.project = so_prj,
-                          qID = qid_list,
-                          wID = wid_file)
-head(his_results$waterlevel)
-head(his_results$discharge)
-```
-
-Notice the \$discharge at the end? Replace it with \$waterlevel, \$structure, \$measstation, or \$lateral respectively to get the data.table directly
 

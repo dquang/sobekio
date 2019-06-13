@@ -103,7 +103,19 @@ get_delta_table <- function(
 
 
 #' Get max value table
-#' @param name Name of the "Maßnahme"
+#' 
+#' This function create a table of maximum values for a list of locations,
+#' which is given by, i.e mID = c(...) for three group of cases
+#' \describe{
+#' \item{bezug}{This is the first group of cases, it will be the subtrahend in the Delta columns}
+#' \item{plan.ohne}{This is the second group of cases, referred to the scenario without the measure}
+#' \item{plan.mit}{like plan.ohne but with the measure }
+#' }
+#' The variable name of each group will be taken for naming the group in the table.
+#' Keep in mind that it does not matter which cases you put in the groups.
+#' It is only about the group names, the delta (plan.ohne - bezug), (plan.mit- bezug) and (plan.mit - plan.ohne) 
+#' 
+#' @param title Title of the table
 #' @param bezug List of "Bezugszustand" cases
 #' @param plan.ohne List of "Planzustand ohne Maßnahme" cases
 #' @param plan.mit List of "Planzustand mit Maßnahme" cases
@@ -116,7 +128,7 @@ get_delta_table <- function(
 #' @export
 #' @return a data.table
 get_summary_tbl <- function(
-  name = '',
+  title = '',
   bezug = NULL,
   plan.ohne = NULL,
   plan.mit = NULL,
@@ -154,13 +166,13 @@ get_summary_tbl <- function(
   }
   
   # transforming and merging data
-  bezug_tbl <- bezug_tbl %>% select(-ts) %>%
+  bezug_tbl <- bezug_tbl %>%
     melt(id.vars = 'case', variable.name = 'Pegel') %>%
     dcast(Pegel ~ case)
-  plan_ohne_tbl <- plan_ohne_tbl %>% select(-ts) %>%
+  plan_ohne_tbl <- plan_ohne_tbl %>%
     melt(id.vars = 'case', variable.name = 'Pegel') %>%
     dcast(Pegel ~ case)
-  plan_mit_tbl <- plan_mit_tbl %>% select(-ts) %>%
+  plan_mit_tbl <- plan_mit_tbl %>%
     melt(id.vars = 'case', variable.name = 'Pegel') %>%
     dcast(Pegel ~ case)
   data_tbl <- merge(bezug_tbl, plan_ohne_tbl, by = 'Pegel', sort = FALSE) %>%
@@ -205,7 +217,7 @@ get_summary_tbl <- function(
       vars(-Pegel), ~format(., decimal.mark = out.dec)
     ) %>%
       htmlTable::htmlTable(
-        caption = paste('Modellergebnis Tabelle für Maßnahme', name),
+        caption = title,
         align = 'lr',
         cgroup = c('',
                    paste(f_args$bezug, '(1)'),
@@ -224,7 +236,7 @@ get_summary_tbl <- function(
 
 
 #' Get max value table
-#' @param name Name of the "Maßnahme"
+#' @param title Title of the Table
 #' @param zustand1 List of cases for the reference scenario (substrahend)
 #' @param zustand2 List of cases for the comparing scenario (minuend)
 #' @param hwe.list List of names for cases (must unique)
@@ -236,7 +248,7 @@ get_summary_tbl <- function(
 #' @export
 #' @return a data.table/ a html.table
 get_delta_tbl <- function(
-  name = '',
+  title = '',
   zustand1 = NULL,
   zustand2 = NULL,
   hwe.list = NULL,
@@ -266,10 +278,10 @@ get_delta_tbl <- function(
   }
   
   # transforming and merging data
-  zustand1_tbl <- zustand1_tbl %>% select(-ts) %>%
+  zustand1_tbl <- zustand1_tbl %>%
     melt(id.vars = 'case', variable.name = 'Pegel') %>%
     dcast(Pegel ~ case)
-  zustand2_tbl <- zustand2_tbl %>% select(-ts) %>%
+  zustand2_tbl <- zustand2_tbl %>%
     melt(id.vars = 'case', variable.name = 'Pegel') %>%
     dcast(Pegel ~ case)
   data_tbl <- merge(zustand1_tbl, zustand2_tbl, by = 'Pegel', sort = FALSE)
@@ -305,7 +317,7 @@ get_delta_tbl <- function(
       vars(-Pegel), ~format(., decimal.mark = out.dec)
     ) %>%
       htmlTable::htmlTable(
-        caption = paste('Modellergebnis Tabelle für Maßnahme', name),
+        caption = title,
         align = 'lr',
         cgroup = c('',
                    paste(f_args$zustand1, '(1)'),

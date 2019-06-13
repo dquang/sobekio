@@ -109,7 +109,7 @@ check_worms <- function(
     nurnf_zpw_selten = 'zpw_nurNF_s',
     nurnf_vgf1 = 'nurNF_vgf1'
     )
-  print(zustand_col)
+  # print(zustand_col)
   stopifnot(!is.null(zustand_col))
   qt_mod <- worms.tbl[, .SD, .SDcols = c('ts', zustand_col)]
   colnames(qt_mod) <- c('ts', 'Worms')

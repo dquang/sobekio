@@ -28,6 +28,9 @@ get_column_by_name <- function(column = NULL, df = NULL, suffix = "",
 
 
 #' Plot hydrographs at different locations
+#' 
+#' This function plots hydrographs for several IDs and cases
+#' 
 #' @param case.list List of cases
 #' @param case.desc Case naming according to NHWSP Standard
 #' @param id.names Names to assign for the IDs
@@ -57,8 +60,8 @@ plot_multi_lines <- function(
   sobek.project = NULL,
   param = 'discharge',
   compare.by = 'zustand',
+  # group.by = 'vgf',
   facet.by = 'hwe',
-  color.name = 'Farbe',
   lt.name = 'Linienart',
   peak.nday = NULL,
   peak.col = NULL,
@@ -81,9 +84,12 @@ plot_multi_lines <- function(
                    'crest level' = 'Crest level (m+NHN)'
                    )
   }
-  qt <- his_from_case(case.list = case.list, sobek.project = sobek.project,
-                      # mID = c('p_koeln','p_duesseldorf'),
-                      param = param,...)
+  qt <- his_from_case(case.list = case.list, 
+                      sobek.project = sobek.project,
+                      ...,
+                      # mID = c('p_worms','p_duesseldorf'),
+                      param = param
+                      )
   if (!is.null(id.names)){
     if (length(id.names) == ncol(qt) - 2){
       colnames(qt) <- c('ts', id.names, 'case')

@@ -10,3 +10,5 @@ man/*.*
 NAMESPACE
 .Rproj.user
 inst/doc
+doc
+Meta
