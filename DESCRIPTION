@@ -21,6 +21,7 @@ Imports:
 	stringr,
 	grid,
 	htmlTable,
+	kableExtra,
 	cowplot
 Suggests:
     testthat,

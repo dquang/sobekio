@@ -25,10 +25,16 @@ his_from_case <- function(
   f_args <- as.list(match.call(expand.dots = FALSE))
   id_args <- list(...)
   # h_args <- as.list(match.call(expand.dots = TRUE))
-  stopifnot(length(f_args$...) == 1 & !is.null(case.list))
+  stopifnot(!is.null(case.list) & !is.null(sobek.project))
   id_types <- c('MID', 'WID', 'QID', 'LID', 'LATID', 'SID', 'PID', 'TID')
   id_type <- names(f_args$...)
-  stopifnot(toupper(id_type) %in% id_types)
+  if (length(id_args) != 1 | !toupper(id_type) %in% id_types) {
+    print('You may have typos in parameter names! Check following parameters:')
+    print(names(f_args$...))
+    stop("List of IDs must be given and ID_TYPE is one of: ",
+         "c('mID', 'wID', 'qID', 'lID', 'latID', 'sID', 'pID', 'tID')"
+    )
+  }
   id_list <- id_args[[id_type]]
   n_case = length(case.list)
   # n_id = length(id_list)

@@ -1,108 +1,4 @@
 #' Get max value table
-#' @param case.w list of cases with the measure
-#' @param case.w.desc Description of case.w
-#' @param case.wo list of cases without the measure
-#' @param case.wo.desc Description of case.wo
-#' @param id.name Names assign to the IDs
-#' @param html.out Output to html tables
-#' @param out.dec Output decimal
-#' @param param Discharge, waterlevel,...
-#' @param ... parameters to pass to function his_from_case
-#' @export
-#' @return a data.table
-get_delta_table <- function(
-  name = '',
-  case.w = NULL,
-  case.w.desc = NULL,
-  case.wo = NULL,
-  case.wo.desc = NULL,
-  id.names = NULL,
-  html.out = TRUE,
-  out.dec = ",",
-  param = 'discharge',
-  ...
-){
-  f_args <- as.list(match.call())
-  # OutDec <- getOption('OutDec')
-  # on.exit(options(OutDec = OutDec))
-  # options(OutDec = out.dec)
-  stopifnot(length(case.w) == length(case.wo))
-  stopifnot((is.null(case.w.desc) & is.null(case.wo.desc)) |
-              (!is.null(case.w.desc) & !is.null(case.wo.desc)))
-  if (!is.null(case.w.desc)){
-    stopifnot(length(unique(c(case.w.desc, case.wo.desc))) ==
-                length(c(case.w.desc, case.wo.desc))
-    )
-    stopifnot(str_replace_all(case.w.desc, 'mit', '') ==
-                str_replace_all(case.wo.desc, 'ohne', ''))
-    delta_cols <- str_replace_all(case.w.desc, 'mit', 'delta')
-    col_order <- c('Pegel', case.wo.desc, case.w.desc, delta_cols)
-  }
-  # reading data from sobek
-  value_max_with <- his_from_case(case.list = case.w, get.max = TRUE,
-                                  param = param, ...)
-  value_max_wo <- his_from_case(case.list = case.wo, get.max = TRUE,
-                                param = param, ...)
-  # changing case names to their description
-  if (!is.null(case.w.desc)){
-    for (i in seq_along(case.w)) {
-      value_max_with[case == case.w[i], case := case.w.desc[i]]
-      value_max_wo[case == case.wo[i], case := case.wo.desc[i]]
-    }
-  }
-  # transforming and merging data
-  value_max_with <- value_max_with %>% select(-ts) %>%
-    melt(id.vars = 'case', variable.name = 'Pegel') %>%
-    dcast(Pegel ~ case)
-  value_max_wo <- value_max_wo %>% select(-ts) %>%
-    melt(id.vars = 'case', variable.name = 'Pegel') %>%
-    dcast(Pegel ~ case)
-  data_tbl <- merge(value_max_wo, value_max_with, by = 'Pegel', sort = FALSE)
-  # calculate delta
-  case_cols <- str_replace_all(case.w.desc, 'mit', '')
-  for (i in case_cols){
-    col_1 <- paste('mit', i, sep = "")
-    col_2 <- paste('ohne', i, sep = "")
-    delta <- paste('delta', i, sep = "")
-    data_tbl[, eval(delta) := get(col_1) - get(col_2)]
-  }
-  if (!is.null(case.w.desc)){
-    setcolorder(data_tbl, c('Pegel', case.wo.desc, case.w.desc, delta_cols))
-  }
-  # rounding data
-  cols <- colnames(data_tbl)[-1]
-  if (param == 'waterlevel'){
-    data_tbl[, (cols) := round(.SD, 2), .SDcols = cols]
-  } else{
-    data_tbl[, (cols) := round(.SD), .SDcols = cols]
-  }
-  
-  if (length(id.names) == length(data_tbl$Pegel)){
-    data_tbl$Pegel <- id.names
-  }
-  # exporting to html table
-  if (isTRUE(html.out)){
-    # formatting decimal mark, make it easy to copy to Excel
-    # data_tbl[, (cols) := format(.SD, decimal.mark = out.dec), .SDcols = cols]
-    ngroup <- length(case.wo)
-    data_tbl <- data_tbl %>% mutate_at(
-      vars(-Pegel), ~format(., decimal.mark = out.dec)
-    ) %>%
-      htmlTable::htmlTable(
-        caption = paste('Modellergebnis Tabelle für Maßnahme', name),
-        align = 'lr',
-        cgroup = c('',
-                   paste(f_args$case.wo, '(1)'),
-                   paste(f_args$case.w, '(2)'),
-                   'Delta (2) - (1)'),
-        n.cgroup = c(1, ngroup, ngroup, ngroup)
-      )
-  }
-  return(data_tbl)
-}
-
-
-#' Get max value table
 #' 
 #' This function create a table of maximum values for a list of locations,
 #' which is given by, i.e mID = c(...) for three group of cases
@@ -115,7 +11,6 @@ get_delta_table <- function(
 #' Keep in mind that it does not matter which cases you put in the groups.
 #' It is only about the group names, the delta (plan.ohne - bezug), (plan.mit- bezug) and (plan.mit - plan.ohne) 
 #' 
-#' @param title Title of the table
 #' @param bezug List of "Bezugszustand" cases
 #' @param plan.ohne List of "Planzustand ohne Maßnahme" cases
 #' @param plan.mit List of "Planzustand mit Maßnahme" cases
@@ -124,11 +19,13 @@ get_delta_table <- function(
 #' @param html.out Output to html tables
 #' @param out.dec Output decimal
 #' @param param Discharge, waterlevel,...
-#' @param ... parameters to pass to function his_from_case (ID, sobek.project)
+#' @param p.layout Layout of the page for output table.
+#' Give 'p' for portrait, everything else will be regconized as landscape. This works only for html.out = TRUE
+#' @param sobek.project Path to sobek project
+#' @param ... ID Type and List in form of ID_TYPE = ID_LIST, e.x. mID = c('p_koeln)
 #' @export
 #' @return a data.table
 get_summary_tbl <- function(
-  title = '',
   bezug = NULL,
   plan.ohne = NULL,
   plan.mit = NULL,
@@ -137,23 +34,42 @@ get_summary_tbl <- function(
   html.out = TRUE,
   out.dec = ",",
   param = 'discharge',
+  sobek.project = NULL,
+  p.layout = 'l',
   ...
 ){
   f_args <- as.list(match.call())
-  ncase <- length(hwe.list)
-  stopifnot(!is.null(id.names) & !is.null(bezug))
-  stopifnot(length(bezug) == length(plan.ohne))
-  stopifnot(length(plan.mit) == length(hwe.list))
-  stopifnot(length(plan.mit) == length(plan.ohne))
-  stopifnot(ncase == length(unique(hwe.list)))
+  id_args <- list(...)
+  id_types <- c('MID', 'WID', 'QID', 'LID', 'LATID', 'SID', 'PID', 'TID')
+  id_type <- names(id_args)
+  if (length(id_args) != 1 | !toupper(id_type) %in% id_types) {
+    wrong_param <- as.list(match.call(expand.dots = FALSE))
+    print('You may have typos in parameter names! Check following parameters:')
+    print(names(wrong_param$...))
+    stop("List of IDs must be given and ID_TYPE is one of: ",
+         "c('mID', 'wID', 'qID', 'lID', 'latID', 'sID', 'pID', 'tID')"
+    )
+  }
+  n_ids <- length(id_args[[id_type]])
+  n_case <-  length(hwe.list)
+  stopifnot(!is.null(bezug) & !is.null(plan.ohne))
+  stopifnot(length(plan.ohne) == length(plan.mit))
+  # stopifnot(n_case == length(plan.ohne))
+  stopifnot(n_case == length(unique(plan.ohne)))
   
   # reading data from sobek
   bezug_tbl <- his_from_case(case.list = bezug, get.max = TRUE,
-                             param = param, ...)
+                             sobek.project = sobek.project,
+                             ...,
+                             param = param)
   plan_ohne_tbl <- his_from_case(case.list = plan.ohne, get.max = TRUE,
-                                 param = param, ...)
+                                 sobek.project = sobek.project,
+                                 ...,
+                                 param = param)
   plan_mit_tbl <- his_from_case(case.list = plan.mit, get.max = TRUE,
-                                param = param, ...)
+                                sobek.project = sobek.project,
+                                ...,
+                                param = param)
   # changing case names to their description
   
   for (i in seq_along(hwe.list)) {
@@ -215,28 +131,64 @@ get_summary_tbl <- function(
     # data_tbl[, (cols) := format(.SD, decimal.mark = out.dec), .SDcols = cols]
     data_tbl <- data_tbl %>% mutate_at(
       vars(-Pegel), ~format(., decimal.mark = out.dec)
-    ) %>%
-      htmlTable::htmlTable(
-        caption = title,
-        align = 'lr',
-        cgroup = c('',
-                   paste(f_args$bezug, '(1)'),
-                   paste(f_args$plan.ohne, '(2)'),
-                   'Delta (2) - (1)',
-                   paste(f_args$plan.mit, '(3)'),
-                   'Delta (3) - (1)',
-                   'Delta (3) - (2)'
-        ),
-        
-        n.cgroup = c(1, rep(ncase, 6))
+    )
+    if (p.layout == 'p') {
+      data_tbl <-
+        rbind(
+          setNames(select(data_tbl, 'Pegel', starts_with('bezug_')), 
+                   c('Pegel', hwe.list)
+          ),
+          setNames(select(data_tbl, 'Pegel', starts_with('ohne_')), 
+                   c('Pegel', hwe.list)
+          ),
+          setNames(select(data_tbl, 'Pegel', starts_with('mit_')), 
+                   c('Pegel', hwe.list)),
+          setNames(select(data_tbl, 'Pegel', starts_with('d_ob_')), 
+                   c('Pegel', hwe.list)),
+          setNames(select(data_tbl, 'Pegel', starts_with('d_mb_')), 
+                   c('Pegel', hwe.list)),
+          setNames(select(data_tbl, 'Pegel', starts_with('d_mo_')), 
+                   c('Pegel', hwe.list))
+        ) %>% 
+        kable() %>%
+        kable_styling(c("striped", "bordered")) %>%
+        pack_rows(paste(f_args$bezug, '(1)'), 1, n_ids) %>%
+        pack_rows(paste(f_args$plan.ohne, '(2)'), n_ids + 1, 2 * n_ids) %>%
+        pack_rows(paste(f_args$plan.mit, '(3)'), 2 * n_ids + 1, 3 * n_ids) %>%
+        pack_rows('Delta (2) - (1)', 3 * n_ids + 1, 4 * n_ids) %>%
+        pack_rows('Delta (3) - (1)', 4 * n_ids + 1, 5 * n_ids) %>%
+        pack_rows('Delta (3) - (2)', 5 * n_ids + 1, 6 * n_ids)
+      
+    } else{
+      # landscape layout
+      tbl_header <- c('', 
+                      bezug = n_case,
+                      plan.one = n_case,
+                      plan.mit = n_case,
+                      delta21 = n_case,
+                      delta31 = n_case,
+                      delta32 = n_case
       )
+      names(tbl_header) <- c('', 
+                             paste(f_args$bezug, '(1)'),
+                             paste(f_args$plan.ohne, '(2)'),
+                             paste(f_args$plan.mit, '(3)'),
+                             'Delta (2) - (1)',
+                             'Delta (3) - (1)',
+                             'Delta (3) - (2)'
+      )
+      data_tbl <- data_tbl %>% 
+        kable() %>% 
+        kable_styling(c("striped", "bordered")) %>%
+        add_header_above(header = tbl_header)
+    }
   }
   return(data_tbl)
 }
 
 
 #' Get max value table
-#' @param title Title of the Table
+#'
 #' @param zustand1 List of cases for the reference scenario (substrahend)
 #' @param zustand2 List of cases for the comparing scenario (minuend)
 #' @param hwe.list List of names for cases (must unique)
@@ -244,11 +196,13 @@ get_summary_tbl <- function(
 #' @param html.out Output to html tables
 #' @param out.dec Output decimal
 #' @param param Discharge, waterlevel,...
-#' @param ... parameters to pass to function his_from_case (ID, sobek.project)
+#' @param p.layout Layout of the page for output table.
+#' Give 'p' for portrait, everything else will be regconized as landscape. This works only for html.out = TRUE
+#' @param sobek.project Path to sobek project
+#' @param ID Type and List in form of ID_TYPE = ID_LIST, e.x. mID = c('p_koeln)
 #' @export
 #' @return a data.table/ a html.table
-get_delta_tbl <- function(
-  title = '',
+get_delta_table <- function(
   zustand1 = NULL,
   zustand2 = NULL,
   hwe.list = NULL,
@@ -256,18 +210,40 @@ get_delta_tbl <- function(
   html.out = TRUE,
   out.dec = ",",
   param = 'discharge',
+  p.layout = 'l',
+  sobek.project = NULL,
   ...
 ){
   f_args <- as.list(match.call())
-  ncase = length(hwe.list)
-  stopifnot(!is.null(id.names) & !is.null(zustand1))
+  id_args <- list(...)
+  id_types <- c('MID', 'WID', 'QID', 'LID', 'LATID', 'SID', 'PID', 'TID')
+  id_type <- names(id_args)
+  if (length(id_args) != 1 | !toupper(id_type) %in% id_types) {
+    wrong_param <- as.list(match.call(expand.dots = FALSE))
+    print('You may have typos in parameter names! Check following parameters:')
+    print(names(wrong_param$...))
+    stop("List of IDs must be given and ID_TYPE is one of: ",
+         "c('mID', 'wID', 'qID', 'lID', 'latID', 'sID', 'pID', 'tID')"
+         )
+  }
+  n_ids <- length(id_args[[id_type]])
+  n_case <-  length(hwe.list)
+  stopifnot(!is.null(zustand2) & !is.null(zustand1))
   stopifnot(length(zustand1) == length(zustand2))
-  stopifnot(ncase == length(unique(hwe.list)))
+  stopifnot(n_case == length(zustand2))
+  stopifnot(n_case == length(unique(hwe.list)))
   # reading data from sobek
   zustand1_tbl <- his_from_case(case.list = zustand1, get.max = TRUE,
-                                param = param, ...)
+                                ...,
+                                # mID = pegel_ID, 
+                                sobek.project = sobek.project,
+                                param = param
+                                )
   zustand2_tbl <- his_from_case(case.list = zustand2, get.max = TRUE,
-                                param = param, ...)
+                                ...,
+                                # mID = pegel_ID, 
+                                sobek.project = sobek.project,
+                                param = param)
   # changing case names to their description
   
   for (i in seq_along(hwe.list)) {
@@ -276,7 +252,6 @@ get_delta_tbl <- function(
     zustand2_tbl[case == zustand2[[i]],
                  case := paste('Z2', hwe.list[[i]], sep = "_")]
   }
-  
   # transforming and merging data
   zustand1_tbl <- zustand1_tbl %>%
     melt(id.vars = 'case', variable.name = 'Pegel') %>%
@@ -315,18 +290,41 @@ get_delta_tbl <- function(
     # data_tbl[, (cols) := format(.SD, decimal.mark = out.dec), .SDcols = cols]
     data_tbl <- data_tbl %>% mutate_at(
       vars(-Pegel), ~format(., decimal.mark = out.dec)
-    ) %>%
-      htmlTable::htmlTable(
-        caption = title,
-        align = 'lr',
-        cgroup = c('',
-                   paste(f_args$zustand1, '(1)'),
-                   paste(f_args$zustand2, '(2)'),
-                   'Delta (2) - (1)'
-        ),
-        
-        n.cgroup = c(1, rep(ncase, 3))
+    ) 
+    if (p.layout == 'p') {
+      data_tbl <-
+        rbind(
+          setNames(select(data_tbl, 'Pegel', starts_with('Z1_')), 
+                   c('Pegel', hwe.list)
+                   ),
+          setNames(select(data_tbl, 'Pegel', starts_with('Z2_')), 
+                   c('Pegel', hwe.list)
+                   ),
+          setNames(select(data_tbl, 'Pegel', starts_with('delta_')), 
+                   c('Pegel', hwe.list))
+        )
+      data_tbl <- data_tbl %>% kable() %>%
+        kable_styling(c("striped", "bordered")) %>%
+        pack_rows(paste(f_args$zustand1, '(1)'), 1, n_ids) %>%
+        pack_rows(paste(f_args$zustand2, '(2)'), n_ids + 1, 2 * n_ids) %>%
+        pack_rows('Delta (2) - (1)', 2 * n_ids + 1, 3 * n_ids)
+      
+    } else{
+      # landscape layout
+      tbl_header <- c('', 
+                      zustand1 = n_case,
+                      zustand2 = n_case,
+                      delta = n_case
       )
+      names(tbl_header) <- c('', 
+                             paste(f_args$zustand1, '(1)'),
+                             paste(f_args$zustand2, '(2)'),
+                             'Delta (2) - (1)'
+      )
+      data_tbl <- data_tbl %>% kable() %>% 
+        kable_styling(c("striped", "bordered")) %>%
+        add_header_above(header = tbl_header)
+    }
   }
   return(data_tbl)
 }
