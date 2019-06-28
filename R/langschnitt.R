@@ -41,7 +41,7 @@ plot_drv <- function(
   lt.by = 'zustand',
   color.by = 'vgf',
   facet.by = NULL,
-  compare.by = 'zustand',
+  compare.by = NULL,
   cmp.sort = FALSE,
   group.by = compare.by,
   color.name = 'Farbe',
@@ -70,7 +70,7 @@ plot_drv <- function(
   stopifnot(is.numeric(to.upstream) & is.numeric(to.downstream))
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   if (!is.null(compare.by)){
-    if(!compare.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')){
+    if (!compare.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')){
       stop("compare.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')")
     }
     cmp_vars <- unique(case_tbl[, get(compare.by)])
@@ -460,6 +460,7 @@ plot_drv <- function(
 #' @param talweg If TRUE, and param = waterlevel then the talweg line will be added
 #' @param master.tbl Master table
 #' @param verbose Print some messages if TRUE
+#' @param do.par If TRUE, parallel computing will be executed
 #' @return a ggplot2 graphic
 #' @export
 plot_longprofile <- function(
@@ -474,7 +475,7 @@ plot_longprofile <- function(
   color.by = 'vgf',
   # facet.by = NULL,
   # facet.scale = 'fixed',
-  compare.by = 'zustand',
+  compare.by = NULL,
   cmp.sort = FALSE,
   group.by = compare.by,
   color.name = 'Farbe',
@@ -499,7 +500,8 @@ plot_longprofile <- function(
   overlap = NULL,
   talweg = FALSE,
   master.tbl = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  do.par = FALSE
 ){
   stopifnot(length(unique(case.list)) == length(case.list))
   stopifnot(is.numeric(from.km) & is.numeric(to.km))
@@ -522,17 +524,28 @@ plot_longprofile <- function(
            str_flatten(cmp_vars, collapse = ", " ))
     }
   }
-  if (!is.null(group.by)){
-    grp_vars <- unique(case_tbl[, get(group.by)])
-    if (!group.by %in% c('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')){
-      stop("group.by must be one of ('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')")
+  if (!is.null(group.by)) {
+    if (length(group.by) == 1) {
+      # grp_vars <- unique(case_tbl[, get(group.by)])
+      if (!group.by %in% c('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')){
+        stop("group.by must be one of ('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')")
+      }
+    } else {
+      case_tbl[, group_by :=  paste(get(group.by[1]), 
+                                    get(group.by[2]),
+                                    sep = "_"
+                                    )
+                                    ]
+      group.by <- "group_by"
+      # grp_vars <- unique(case_tbl[, get(group.by)])
     }
+    grp_vars <- unique(case_tbl[, get(group.by)])
   }
   if (isTRUE(delta)){
-    if (is.null(compare.by) | is.null(group.by)){
+    if (is.null(compare.by) | is.null(group.by)) {
       stop('For caculating delta, compare.by and group.by must be specified!')
     }
-    if(compare.by != group.by){
+    if(compare.by != group.by) {
       total_case <- unique(as.vector(outer(cmp_vars, grp_vars, paste, sep="_")))
       if (length(total_case) != length(case.list)){
         print("Combination of compare.by and group.by does not have the same length as case.list")
@@ -561,7 +574,8 @@ plot_longprofile <- function(
     get.max = TRUE,
     sobek.project = sobek.project,
     master.tbl = master.tbl,
-    verbose = verbose
+    verbose = verbose,
+    do.par = do.par
   )
   from.km <- max(min(data_tbl$km, na.rm = TRUE), from.km)
   to.km <- min(max(data_tbl$km, na.rm = TRUE), to.km)
@@ -601,7 +615,7 @@ plot_longprofile <- function(
   y1_max <- data_tbl[, max(scheitel, na.rm = TRUE)]
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   #----delta == TRUE----
-  if (isTRUE(delta)){
+  if (isTRUE(delta)) {
     data_tbl[, group := seq_len(.N), by = c(compare.by)]
     y2_name <- paste('Delta',
                      # str_to_sentence(compare.by),
@@ -726,9 +740,12 @@ plot_longprofile <- function(
   }
   #----add graphic----
   if (verbose) print('Preparing graphic...')
-  data_tbl[[compare.by]] <- factor(data_tbl[[compare.by]], 
-                                   levels = c(cmp_vars)
-                                   )
+  if (!is.null(compare.by)){
+    data_tbl[[compare.by]] <- factor(data_tbl[[compare.by]], 
+                                     levels = c(cmp_vars)
+    )
+  }
+
   g <- ggplot(data = data_tbl,
               aes(x = km,
                   linetype = !!ensym(lt.by),

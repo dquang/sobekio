@@ -1,32 +1,34 @@
 #' Search for a polder TMV
+#' 
+#' @param volume Volume of the Polder
 #' @param indt The discharge data.table. Only the first two columns will be used. It should have the format 'ts|value'
 #' @param n.days Maximum number of days under the flood peak should the topping value being searched
 #' @param value.step The discharge will be searched from the minimum to maximum by this value.step
 #' @param tolerance The acceptable tolerance of calculated Volume and given Volume
-#' @param volume Volume of the Polder
 #' @param clipboard Should the output table write to clipboard, ready for pasting in Sobek? Default TRUE
 #' @param print.plot Should a plot be showed? Default FALSE
 #' @param ... If indt is NULL these parameters will be passed to his_from_case function for reading the discharge
 #' @export
 polder_tmv <- function(
+  volume = NULL,
   indt = NULL,
   n.days = 2,
   value.step = 0.1,
   tolerance = 0.01,
-  volume = NULL,
   clipboard = TRUE,
   print.plot = FALSE,
   ...
 ){
   if (is.null(indt)){
-    print(substitute(his_from_case(...)))
+    # print(substitute(his_from_case(...)))
     qt <- his_from_case(...)
     qt <- qt[, c(1, 2)]
   } else{
     qt <- indt[, c(1, 2)]
   }
   colnames(qt) <- c('ts', 'value')
-  qt[, dt:=shift(ts, 1)]
+  # qt_peak <- max(qt$value, na.rm = TRUE)
+  qt[, dt := shift(ts, 1)]
   qt <- qt[!is.na(dt)]
   qt[, t_step := difftime(ts, dt, units = 'secs')]
   qt[, t_step := as.numeric(t_step)]
@@ -49,12 +51,12 @@ polder_tmv <- function(
   while (cont){
     # print(i_cur)
     q0 <- q0_seq[i_cur]
-    tmp <- qt2[value >= q0]
-    tmp <- tmp[, qin := value - q0]
-    # tmp[value <= selected.value, qin := 0]
-    tmp[, vt := qin*t_step]
-    tmp$cs <- cumsum(tmp$vt)
-    v_max <- tmp[.N, cs]/10^6
+    ret <- qt2[value >= q0]
+    ret <- ret[, qin := value - q0]
+    # ret[value <= selected.value, qin := 0]
+    ret[, vt := qin*t_step]
+    ret$cs <- cumsum(ret$vt)
+    v_max <- ret[.N, cs]/10^6
     # print(v_max)
     if (!near(v_max, volume, tolerance)){
       if (v_max > volume){
@@ -67,17 +69,17 @@ polder_tmv <- function(
         i_cur <- (i_max - i_min + 1) %/% 2
       }
     } else{
-      print(paste('Found!, q0 = ', round(q0, 1), ". V_in = ", round(v_max, 2),
+      print(paste('Found!, q0 = ', round(q0, 1), ". V_in = ", round(v_max, 3),
                   sep = ""))
       cont = FALSE
     }
   }
-  tmp[, date := strftime(ts, format = '%d.%m.%Y', tz = 'GMT')]
-  tmp[, time := strftime(ts, format = '%H:%M:%S', tz = 'GMT')]
-  tmp <- tmp[, .SD, .SDcols = c('date', 'time', 'qin')]
+  ret[, date := strftime(ts, format = '%d.%m.%Y', tz = 'GMT')]
+  ret[, time := strftime(ts, format = '%H:%M:%S', tz = 'GMT')]
+  ret <- ret[, .SD, .SDcols = c('date', 'time', 'qin')]
   if (isTRUE(clipboard)){
     write.table(
-      tmp,
+      ret,
       'clipboard-4096',
       quote = FALSE,
       sep = "\t",
@@ -94,13 +96,14 @@ polder_tmv <- function(
     qt[value > q0, value_gekappt := q0]
     qt[value <= q0, value_gekappt := value]
     qt <- melt(qt, id.vars = 'ts', variable.name = 'Ganglinien')
-    g <- ggplot(qt, aes(x = ts, y = value, color = Ganglinien))+
-      scale_x_datetime()+
-      theme(legend.position = 'bottom')+
-      geom_line(size = 1)+
-      geom_hline(yintercept = q0)+
+    g <- ggplot(qt, aes(x = ts, y = value, color = Ganglinien)) +
+      scale_x_datetime() +
+      theme(legend.position = 'bottom') +
+      geom_line(size = 1) +
+      geom_hline(yintercept = q0) +
       geom_text(aes(min(qt$ts), q0, label = round(q0, 1), vjust = 1))
     print(g)
   }
-  return(tmp)
+  print(paste('max reduction =', round(max(ret$qin, na.rm = TRUE), 1)))
+  return(ret)
 }

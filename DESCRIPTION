@@ -1,7 +1,7 @@
 Type: Package
 Package: sobekio
 Title: Pre- and Post-Processing support tool for SOBEK V2
-Version: 0.1.9
+Version: 0.1.9.1
 Authors@R: person("D. Quang", "Duong", , "duong@bafg.de", c("aut", "cre"))
 Description: This package provides functions to work with SOBEK V2 
   read the .HIS files, create .DAT files, plot graphics from the output, and more.
@@ -15,8 +15,6 @@ Imports:
 	data.table (>= 1.12.0),
 	XML,
 	ggplot2 (>= 3.0.0),
-	doParallel,
-	foreach,
 	dplyr,
 	stringr,
 	grid,
@@ -25,6 +23,8 @@ Imports:
 	cowplot
 Suggests:
     testthat,
+    doParallel,
+	  foreach,
     knitr,
     rmarkdown
 VignetteBuilder: knitr

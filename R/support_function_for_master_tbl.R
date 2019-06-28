@@ -181,8 +181,9 @@ get_segment_id_tbl <- function(
 #' @param to.downstream Distance to downstream (km) to get data
 #' @param get.max Should max value or whole time series return? Default only max value
 #' @param master.tbl Master table
-#' @param verbose Should some message be displayed?
 #' @param get.max Should maximal value return or whole time series? Default only max value.
+#' @param verbose Should some message be displayed?
+#' @param do.par If TRUE, parallel computing will be executed
 #' @return a data.table
 #' @export
 get_segment_data <- function(
@@ -195,7 +196,8 @@ get_segment_data <- function(
   sobek.project = NULL,
   get.max = TRUE,
   master.tbl = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  do.par = FALSE
 ){
   id_tbl <- get_segment_id_tbl(
     river = river,
@@ -206,36 +208,75 @@ get_segment_data <- function(
     master.tbl = master.tbl
   )
   segment_data_list <- list(rep(NA, length(case.list)))
-  if (isTRUE(verbose)){
-    print(paste('Getting data for',
-                round(nrow(id_tbl)/length(case.list)),
-                'ID(s) in', length(case.list), 'case(s)'))
-    print('Please be patient....')
-  }
-  if(param == 'discharge'){
-    for (i in seq_along(case.list)){
-      segment_data_list[[i]] <- his_from_case(
-        case.list = case.list[[i]],
-        sobek.project = sobek.project,
-        param = param,
-        qID = id_tbl[case == case.list[[i]] &
-                       ID_TYPE == 'qID', ID_F],
-        verbose = FALSE
-      )
+
+  if (isTRUE(do.par)) {
+    if (isTRUE(verbose)) {
+      print(paste('Getting data for',
+                  round(nrow(id_tbl)/length(case.list)),
+                  'ID(s) in', length(case.list), 'case(s)'))
+      print('Your computer will be overloaded for a short time. Please be patient...')
     }
+    # require("doParallel", quietly = TRUE)
+    # require("foreach", quietly = TRUE)
+    doParallel::registerDoParallel(parallel::detectCores() - 1)
+    `%dopar%` <- foreach::`%dopar%`
+    segment_data <- 
+      foreach::foreach(i = 1:length(case.list), .combine = rbind) %dopar% {
+      if (param == 'discharge') {
+          tmp <- his_from_case(
+            case.list = case.list[[i]],
+            sobek.project = sobek.project,
+            param = param,
+            qID = id_tbl[case == case.list[[i]] &
+                           ID_TYPE == 'qID', ID_F],
+            verbose = FALSE
+          )
+      } else{
+          tmp <- his_from_case(
+            case.list = case.list[[i]],
+            sobek.project = sobek.project,
+            param = param,
+            wID = id_tbl[case == case.list[[i]] &
+                           ID_TYPE == 'wID', ID_F],
+            verbose = FALSE
+          )
+      }
+      tmp
+    }
+    doParallel::stopImplicitCluster()
   } else{
-    for (i in seq_along(case.list)){
-      segment_data_list[[i]] <- his_from_case(
-        case.list = case.list[[i]],
-        sobek.project = sobek.project,
-        param = param,
-        wID = id_tbl[case == case.list[[i]] &
-                       ID_TYPE == 'wID', ID_F],
-        verbose = FALSE
-      )
+    if (isTRUE(verbose)) {
+      print(paste('Getting data for',
+                  round(nrow(id_tbl)/length(case.list)),
+                  'ID(s) in', length(case.list), 'case(s)'))
+      print('Try it will do.par = TRUE if you have more than 2 cases and so many IDs')
+      print('Please be patient...')
     }
+    if (param == 'discharge') {
+      for (i in seq_along(case.list)) {
+        segment_data_list[[i]] <- his_from_case(
+          case.list = case.list[[i]],
+          sobek.project = sobek.project,
+          param = param,
+          qID = id_tbl[case == case.list[[i]] &
+                         ID_TYPE == 'qID', ID_F],
+          verbose = FALSE
+        )
+      }
+    } else{
+      for (i in seq_along(case.list)){
+        segment_data_list[[i]] <- his_from_case(
+          case.list = case.list[[i]],
+          sobek.project = sobek.project,
+          param = param,
+          wID = id_tbl[case == case.list[[i]] &
+                         ID_TYPE == 'wID', ID_F],
+          verbose = FALSE
+        )
+      }
+    }
+    segment_data <- rbindlist(segment_data_list, use.names = FALSE)
   }
-  segment_data <- rbindlist(segment_data_list, use.names = FALSE)
   if (isTRUE(get.max)){
     if (isTRUE(get.max)) print('Calculating max values....')
     segment_data <- segment_data[, lapply(.SD, max, na.rm = TRUE),

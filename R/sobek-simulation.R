@@ -272,10 +272,12 @@ sobek_edit <- function(case.name = NULL,
   tmp_folder <- paste(sobek.path, tmp_folder, sep = "\\")
   wk_folder_del <- tmp_folder
   dir.create(tmp_folder)
-  prj_files <- dir(sobek.project, full.names = TRUE)
-  prj_files <- prj_files[!grepl("[\\/][0-9]{1,}$|\\.his$", prj_files)]
+  prj_files <- dir(sobek.project, full.names = TRUE, recursive = TRUE)
+  prj_files <- prj_files[!grepl("[\\/][0-9]{1,}", prj_files,
+                                ignore.case = TRUE)]
   # for editing, the folder NEWSTART and RESTART are not needed
-  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|NEWSTART|RESTART", prj_files, ignore.case = TRUE)]
+  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|NEWSTART|RESTART", 
+                                prj_files, ignore.case = TRUE)]
   file.copy(from = prj_files,
             to = tmp_folder,
             overwrite = TRUE,
@@ -350,14 +352,14 @@ sobek_edit <- function(case.name = NULL,
                  '\\NETWORK.NTW',
                  sep = "")
     # copy work folder back to the case folder, only newer files will be copied
-    cmd11 <- paste("call xcopy /D /Q /C /Y /E /H /R",
+    cmd11 <- paste("call xcopy /Q /C /Y /E /H /R",
                   wk_folder,
                   # '\\*.* ',
                   c_folder,
                   # '\\',
                   sep = " ")
     # copy fixed folder back to the fixed folder, only newer files will be copied
-    cmd12 <- paste("call xcopy /D /Q /C /Y /E /H /R ",
+    cmd12 <- paste("call xcopy /Q /C /Y /E /H /R ",
                    tmp_folder,
                    '\\FIXED ',
                    sobek.project,

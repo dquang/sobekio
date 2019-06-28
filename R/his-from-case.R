@@ -6,6 +6,8 @@
 #' @param param The parameter in the .HIS file (waterlevel, discharge...)
 #' @param verbose Default TRUE, to display some messages
 #' @param get.max Default FALSE. If TRUE, the max values will return
+#' @param get.abs.max Default FALSE. If TRUE, the values that have absolute max will return.
+#' If get.abs.max and get.max both are TRUE, the absolute max will return
 #' @param id_name Default NULL. To set names for the IDs
 #' @param ... This accept only one parameter in synctax of ID_TYPE = ID_LIST.
 #' ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID
@@ -19,9 +21,11 @@ his_from_case <- function(
   param = 1, # index of the paramter to get data from .HIS file
   verbose = TRUE,
   get.max = FALSE, # instead of get the time series, get the max values only
-  do.par = NULL,
+  get.abs.max = FALSE,
+  do.par = FALSE,
   ...
   ) {
+  if (isTRUE(get.abs.max)) get.max <- FALSE
   f_args <- as.list(match.call(expand.dots = FALSE))
   id_args <- list(...)
   # h_args <- as.list(match.call(expand.dots = TRUE))
@@ -99,10 +103,11 @@ his_from_case <- function(
   # if(do.par & )
   if (isTRUE(do.par)) {
     # parallel computing here
-    require(doParallel)
-    require(foreach)
-    registerDoParallel(detectCores() - 1)
-    result <- foreach(i = 1:n_case) %dopar% {
+    # requireNamespace("doParallel", quietly = TRUE)
+    # requireNamespace("foreach", quietly = TRUE)
+    doParallel::registerDoParallel(parallel::detectCores() - 1)
+    `%dopar%` <- foreach::`%dopar%`
+    result <- foreach::foreach(i = 1:n_case, .combine = rbind) %dopar% {
       this_case_name <- clist$case_name[[i]]
       this_case_hfile <- clist$his_file[[i]]
       his_data <- his_from_list(
@@ -111,7 +116,7 @@ his_from_case <- function(
       his_data$case <- this_case_name
       his_data
     }
-    stopImplicitCluster()
+    doParallel::stopImplicitCluster()
   } else{
     # if case.name found in the caselist.cmt
     result_list <- list(rep(NA, n_case))
@@ -130,9 +135,27 @@ his_from_case <- function(
   }
   # get the max values if get.max == TRUE, only for one type of ID
   if (isTRUE(get.max)){
-      result <- result[, lapply(.SD, max, na.rm = TRUE),
-                       .SDcols = -c('ts'),
-                       by = case]
+      result <- result[, lapply(.SD, max,
+      na.rm = TRUE),
+      .SDcols = -c('ts'),
+      by = case]
+  }
+  if (isTRUE(get.abs.max)) {
+    result <- result[, 
+                     lapply(.SD, function(x) {
+                       x_abs <- abs(x)
+                       i_max <- which.max(x_abs)
+                       if (length(i_max) == 1){
+                         ret <- x[i_max]
+                       } else{
+                         warning('Could not found value that has absolute max. -Inf returned.')
+                         ret <- -Inf
+                       }
+                       return(ret)
+                       }
+                       ),
+                     .SDcols = -c('ts'),
+                     by = case]
   }
   return(result)
 }

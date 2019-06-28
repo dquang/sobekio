@@ -62,6 +62,7 @@ plot_multi_lines <- function(
   compare.by = 'zustand',
   # group.by = 'vgf',
   facet.by = 'hwe',
+  color.name = 'Farbe',
   lt.name = 'Linienart',
   peak.nday = NULL,
   peak.col = NULL,

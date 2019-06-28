@@ -5,7 +5,7 @@
 #' @importFrom dplyr %>% select starts_with near
 #' @import data.table
 #' @import grid
-#' @importFrom kableExtra kable kable_styling pack_rows
+#' @importFrom kableExtra kable kable_styling pack_rows add_header_above
 #' @importFrom utils write.table
 #' @export
 exl_std <- c(

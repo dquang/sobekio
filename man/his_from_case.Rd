@@ -5,7 +5,8 @@
 \title{Export data for nodes/reaches for multiple SOBEK Cases}
 \usage{
 his_from_case(case.list = NULL, sobek.project = NULL, param = 1,
-  verbose = TRUE, get.max = FALSE, do.par = NULL, ...)
+  verbose = TRUE, get.max = FALSE, get.abs.max = FALSE,
+  do.par = FALSE, ...)
 }
 \arguments{
 \item{case.list}{Path to the file containing SOBEK Cases to work with}
@@ -17,6 +18,9 @@ his_from_case(case.list = NULL, sobek.project = NULL, param = 1,
 \item{verbose}{Default TRUE, to display some messages}
 
 \item{get.max}{Default FALSE. If TRUE, the max values will return}
+
+\item{get.abs.max}{Default FALSE. If TRUE, the values that have absolute max will return.
+If get.abs.max and get.max both are TRUE, the absolute max will return}
 
 \item{...}{This accept only one parameter in synctax of ID_TYPE = ID_LIST.
 ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID

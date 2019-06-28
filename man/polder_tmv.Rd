@@ -4,11 +4,13 @@
 \alias{polder_tmv}
 \title{Search for a polder TMV}
 \usage{
-polder_tmv(indt = NULL, n.days = 2, value.step = 0.1,
-  tolerance = 0.01, volume = NULL, clipboard = TRUE,
+polder_tmv(volume = NULL, indt = NULL, n.days = 2,
+  value.step = 0.1, tolerance = 0.01, clipboard = TRUE,
   print.plot = FALSE, ...)
 }
 \arguments{
+\item{volume}{Volume of the Polder}
+
 \item{indt}{The discharge data.table. Only the first two columns will be used. It should have the format 'ts|value'}
 
 \item{n.days}{Maximum number of days under the flood peak should the topping value being searched}
@@ -16,8 +18,6 @@ polder_tmv(indt = NULL, n.days = 2, value.step = 0.1,
 \item{value.step}{The discharge will be searched from the minimum to maximum by this value.step}
 
 \item{tolerance}{The acceptable tolerance of calculated Volume and given Volume}
-
-\item{volume}{Volume of the Polder}
 
 \item{clipboard}{Should the output table write to clipboard, ready for pasting in Sobek? Default TRUE}
 

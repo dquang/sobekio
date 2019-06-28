@@ -11,12 +11,12 @@ volume_center <- function(
   indt = qt,
   peak.percent = 0.05,
   peak.min = NULL,
-  column = 'P_Mainz',
+  column = NULL,
   nups = 3,
   ndowns = nups
 ){
   # stopifnot(column %in% colnames(indt)
-  indt <- indt[, c('ts', column)]
+  indt <- indt[, .SD, .SDcols = c('ts', column)]
   colnames(indt) <- c('ts', 'value')
   indt[, orig_row := .I]
   if (is.null(peak.min)){
@@ -43,7 +43,7 @@ volume_center <- function(
     g <- g + geom_vline(xintercept = indt_peak[f_peaks[i,2], orig_row],
                color = 'blue')
   }
-  print(g)
+  # print(g)
   return(list(plot = g, peaks = f_peaks,
               m_center = indt_peak[m_center, orig_row]))
 }

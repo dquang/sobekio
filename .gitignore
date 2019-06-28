@@ -1,4 +1,5 @@
 *.Rproj.user
+write-test-*
 *.Rhistory
 *.RData
 !*data.RData
