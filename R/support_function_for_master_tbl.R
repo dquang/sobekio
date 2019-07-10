@@ -596,7 +596,7 @@ get_polder_volume <- function(
 #' @param get.max Should max value or whole time series return? Default only max value
 #' @param master.tbl Master table
 #' @param verbose Should some message be displayed?
-#' @param get.max Should maximal value return or whole time series? Default only max value.
+#' @param do.par If TRUE, parallel computing will be executed
 #' @return a data.table
 #' @export
 get_drv_data <- function(
@@ -609,7 +609,8 @@ get_drv_data <- function(
   to.downstream = 0,
   get.max = TRUE,
   master.tbl = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  do.par = FALSE
 ){
   stopifnot(is.numeric(to.upstream) & is.numeric(to.downstream))
   id_tbl <- get_id_tbl(
@@ -621,31 +622,73 @@ get_drv_data <- function(
     case.desc = case.desc,
     master.tbl = master.tbl
   )
-  drv_data_list <- list()
-  if(param == 'discharge'){
-    for (i in seq_along(case.list)){
-      drv_data_list[[i]] <- his_from_case(
-        case.list = case.list[[i]],
-        sobek.project = sobek.project,
-        param = param,
-        qID = id_tbl[case == case.list[[i]] &
-                       ID_TYPE == 'qID', ID_F],
-        verbose = FALSE
-      )
+  if (isTRUE(do.par)) {
+    if (isTRUE(verbose)) {
+      print(paste('Getting data for',
+                  round(nrow(id_tbl)/length(case.list)),
+                  'ID(s) in', length(case.list), 'case(s)'))
+      print('Your computer will be overloaded for a short time. Please be patient...')
     }
-  } else{
-    for (i in seq_along(case.list)){
-      drv_data_list[[i]] <- his_from_case(
-        case.list = case.list[[i]],
-        sobek.project = sobek.project,
-        param = param,
-        wID = id_tbl[case == case.list[[i]] &
-                       ID_TYPE == 'wID', ID_F],
-        verbose = FALSE
-      )
+    # require("doParallel", quietly = TRUE)
+    # require("foreach", quietly = TRUE)
+    doParallel::registerDoParallel(parallel::detectCores() - 1)
+    `%dopar%` <- foreach::`%dopar%`
+    drv_data <- 
+      foreach::foreach(i = 1:length(case.list), .combine = rbind) %dopar% {
+        if (param == 'discharge') {
+          tmp <- his_from_case(
+            case.list = case.list[[i]],
+            sobek.project = sobek.project,
+            param = param,
+            qID = id_tbl[case == case.list[[i]] &
+                           ID_TYPE == 'qID', ID_F],
+            verbose = FALSE
+          )
+        } else{
+          tmp <- his_from_case(
+            case.list = case.list[[i]],
+            sobek.project = sobek.project,
+            param = param,
+            wID = id_tbl[case == case.list[[i]] &
+                           ID_TYPE == 'wID', ID_F],
+            verbose = FALSE
+          )
+        }
+        tmp
+      }
+    doParallel::stopImplicitCluster()
+  } else {
+    print(paste('Getting data for',
+                round(nrow(id_tbl)/length(case.list)),
+                'ID(s) in', length(case.list), 'case(s)'))
+    drv_data_list <- list()
+    if (param == 'discharge') {
+      for (i in seq_along(case.list)){
+        drv_data_list[[i]] <- his_from_case(
+          case.list = case.list[[i]],
+          sobek.project = sobek.project,
+          param = param,
+          qID = id_tbl[case == case.list[[i]] &
+                         ID_TYPE == 'qID', ID_F],
+          verbose = FALSE
+        )
+      }
+    } else{
+      for (i in seq_along(case.list)){
+        drv_data_list[[i]] <- his_from_case(
+          case.list = case.list[[i]],
+          sobek.project = sobek.project,
+          param = param,
+          wID = id_tbl[case == case.list[[i]] &
+                         ID_TYPE == 'wID', ID_F],
+          verbose = FALSE
+        )
+      }
     }
+    drv_data <- rbindlist(drv_data_list, use.names = FALSE)
   }
-  drv_data <- rbindlist(drv_data_list, use.names = FALSE)
+  
+  
   if (isTRUE(get.max)){
     drv_data <- drv_data[, lapply(.SD, max, na.rm = TRUE),
                              .SDcols = -c("ts"), by = case] %>%

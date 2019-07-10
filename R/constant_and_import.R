@@ -21,6 +21,10 @@ exl_std <- c(
   "#7030A0"
 )
 
+# Nice set of 6 colors
+#' @export
+six_colors <- exl_std[c(6, 2, 3, 8, 9, 10)]
+
 # Excel 1st Column colors
 #' @export
 exl_set1 <- c(

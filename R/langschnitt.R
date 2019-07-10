@@ -12,8 +12,8 @@
 #' @param group.by Groupping for delta calculation
 #' @param color.name Name of color in the legend
 #' @param lt.name Name of linetype in the legend
-#' @param delta Should delta also plotted?
-#' @param reserve.x Logical. If TRUE the x-axis will be reserved
+#' @param delta Should delta line also be plotted?
+#' @param reverse.x Logical. If TRUE the x-axis will be reversed
 #' @param x.lab x-axis label
 #' @param y.lab y-axis label
 #' @param to.upstream distance (km) to upstream of the DRV to be included in the graphic
@@ -30,6 +30,7 @@
 #' @param overlap List of overlap labels should be avoid
 #' @param master.tbl Master table
 #' @param verbose Print some messages if TRUE
+#' @param do.par If TRUE, parallel computing will be executed
 #' @return a ggplot2 graphic
 #' @export
 plot_drv <- function(
@@ -47,7 +48,7 @@ plot_drv <- function(
   color.name = 'Farbe',
   lt.name = 'Linienart',
   delta = TRUE,
-  reserve.x = FALSE,
+  reverse.x = FALSE,
   x.lab = 'Lage (KM)',
   y.lab = ifelse(param == 'discharge',
                  'Abfluss (m³/s)', 'Wasserstand (m+NHN)'),
@@ -65,7 +66,8 @@ plot_drv <- function(
   a.alpha = 0.1,
   overlap = NULL,
   master.tbl = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  do.par = FALSE
 ){
   stopifnot(is.numeric(to.upstream) & is.numeric(to.downstream))
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
@@ -80,9 +82,18 @@ plot_drv <- function(
            str_flatten(cmp_vars, collapse = ", " ))
     }
   }
-  if (!is.null(group.by)){
-    if (!group.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')){
-      stop("group.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')")
+  if (!is.null(group.by)) {
+    if (length(group.by) == 1) {
+      if (!group.by %in% c('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')){
+        stop("group.by must be one of ('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')")
+      }
+    } else {
+      case_tbl[, group__by :=  paste(get(group.by[1]), 
+                                    get(group.by[2]),
+                                    sep = "_"
+      )
+      ]
+      group.by <- "group__by"
     }
     grp_vars <- unique(case_tbl[, get(group.by)])
   }
@@ -122,6 +133,7 @@ plot_drv <- function(
                            to.upstream = to.upstream,
                            to.downstream = to.downstream,
                            get.max = TRUE,
+                           do.par = do.par,
                            verbose = verbose)
   data_tbl <- merge(data_tbl, case_tbl, by = 'case', sort = FALSE)
   # data_tbl[, besonderheit := gsub('DRV_', '', besonderheit)]
@@ -163,29 +175,23 @@ plot_drv <- function(
   y1_max <- data_tbl[, max(scheitel, na.rm = TRUE)]
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   #----delta == TRUE----
-  if (isTRUE(delta)){
+  if (isTRUE(delta)) {
     data_tbl[, group := seq_len(.N), by = c(compare.by)]
     y2_name <- paste('Delta',
-                     # str_to_sentence(compare.by),
                      ifelse(param == 'discharge', '(m³/s)', '(m)')
     )
 
-    if (compare.by != group.by){
-      y2_name <- paste('Delta',
-                       # str_to_sentence(compare.by),
-                       'nach', str_to_sentence(group.by), 'gruppiert',
-                       ifelse(param == 'discharge', '(m³/s)', '(m)')
-      )
+    if (compare.by != group.by) {
       lt.by <- compare.by
       color.by <- group.by
       data_tbl_delta <-
         dcast(data_tbl, group  ~ get(compare.by) + get(group.by)  ,
               value.var = 'scheitel')
-      for (i in grp_vars){
+      for (i in grp_vars) {
         col_i <- paste('Delta', i, sep = '_')
         col_1 <- paste(cmp_vars[1], i, sep = '_')
         col_2 <- paste(cmp_vars[2], i, sep = '_')
-        data_tbl_delta[, eval(col_i) := get(col_1) - get(col_2)]
+        data_tbl_delta[, eval(col_i) := get(col_2) - get(col_1)]
         data_tbl_delta[, eval(col_1) := NULL]
         data_tbl_delta[, eval(col_2) := NULL]
       }
@@ -289,8 +295,8 @@ plot_drv <- function(
   #----add graphic----
   if (verbose) print('Preparing graphic...')
   # preparing data for highlighting DRV
-  # km_order = ifelse(isTRUE(reserve.x), -1, 1)
-  setorderv(b_tick, cols = 'km', order = ifelse(isTRUE(reserve.x), -1, 1))
+  # km_order = ifelse(isTRUE(reverse.x), -1, 1)
+  setorderv(b_tick, cols = 'km', order = ifelse(isTRUE(reverse.x), -1, 1))
   b_tick[grepl('DRV_([^,;]*)_Begin', besonderheit), drv_start := km]
   b_tick[grepl('DRV_([^,;]*)_End', besonderheit), drv_end := km]
   b_tick[grepl('DRV_([^,;]*)_Begin', besonderheit), drv_nr := .I]
@@ -324,7 +330,7 @@ plot_drv <- function(
     ) +
     labs(title = plot.title) +
     ylab(y.lab)
-  if (isTRUE(reserve.x)){
+  if (isTRUE(reverse.x)){
     g <- g +
       scale_x_reverse(
         name = x.lab,
@@ -395,13 +401,13 @@ plot_drv <- function(
     # print(x_max)
     if (length(x_min) == 0 | length(x_max) == 0) next
     # if (length(x_min) == 0){
-    #   x_min <- ifelse(isTRUE(reserve.x),
+    #   x_min <- ifelse(isTRUE(reverse.x),
     #                   no = x_pretty[1],
     #                   yes = x_pretty[length(x_pretty)]
     #                   )
     # }
     # if (length(x_max) == 0){
-    #   x_max <- ifelse(isTRUE(reserve.x),
+    #   x_max <- ifelse(isTRUE(reverse.x),
     #                   yes = x_pretty[1],
     #                   no = x_pretty[length(x_pretty)]
     #                   )
@@ -420,7 +426,7 @@ plot_drv <- function(
   if (!is.null(facet.by)){
     g <- g + facet_grid(rows = ensym(facet.by))
   }
-
+  if (verbose) print("done.")
   return(g)
 }
 
@@ -441,7 +447,7 @@ plot_drv <- function(
 #' @param color.name Name of color in the legend
 #' @param lt.name Name of linetype in the legend
 #' @param delta Should delta also plotted?
-#' @param reserve.x Logical. If TRUE the x-axis will be reserved
+#' @param reverse.x Logical. If TRUE the x-axis will be reversed
 #' @param x.lab x-axis label
 #' @param y.lab y-axis label
 #' @param to.upstream distance (km) to upstream of the DRV to be included in the graphic
@@ -459,6 +465,7 @@ plot_drv <- function(
 #' @param overlap List of overlap labels should be avoid
 #' @param talweg If TRUE, and param = waterlevel then the talweg line will be added
 #' @param master.tbl Master table
+#' @param man.colors Color palette for scale_color_manual
 #' @param verbose Print some messages if TRUE
 #' @param do.par If TRUE, parallel computing will be executed
 #' @return a ggplot2 graphic
@@ -481,7 +488,8 @@ plot_longprofile <- function(
   color.name = 'Farbe',
   lt.name = 'Linienart',
   delta = FALSE,
-  reserve.x = FALSE,
+  dband = TRUE,
+  reverse.x = FALSE,
   x.lab = 'Lage (KM)',
   y.lab = ifelse(param == 'discharge',
                  'Abfluss (m³/s)', 'Wasserstand (m+NHN)'),
@@ -500,21 +508,22 @@ plot_longprofile <- function(
   overlap = NULL,
   talweg = FALSE,
   master.tbl = NULL,
+  man.colors = six_colors,
   verbose = TRUE,
   do.par = FALSE
 ){
   stopifnot(length(unique(case.list)) == length(case.list))
   stopifnot(is.numeric(from.km) & is.numeric(to.km))
   stopifnot(to.km > from.km)
-  if (!is.null(highlight)){
-    stopifnot(is.numeric(highlight) & length(highlight) >1)
-    if(!is.null(highlight.text)){
-      stopifnot(length(highlight.text) >1)
+  if (!is.null(highlight)) {
+    stopifnot(is.numeric(highlight) & length(highlight) > 1)
+    if (!is.null(highlight.text)) {
+      stopifnot(length(highlight.text) > 1)
     }
   }
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
-  if (!is.null(compare.by)){
-    if(!compare.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel')){
+  if (!is.null(compare.by)) {
+    if (!compare.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel')) {
       stop("compare.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel')")
     }
     cmp_vars <- unique(case_tbl[, get(compare.by)])
@@ -531,27 +540,27 @@ plot_longprofile <- function(
         stop("group.by must be one of ('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')")
       }
     } else {
-      case_tbl[, group_by :=  paste(get(group.by[1]), 
+      case_tbl[, group__by :=  paste(get(group.by[1]), 
                                     get(group.by[2]),
                                     sep = "_"
                                     )
                                     ]
-      group.by <- "group_by"
+      group.by <- "group__by"
       # grp_vars <- unique(case_tbl[, get(group.by)])
     }
     grp_vars <- unique(case_tbl[, get(group.by)])
   }
-  if (isTRUE(delta)){
+  if (isTRUE(delta)) {
     if (is.null(compare.by) | is.null(group.by)) {
       stop('For caculating delta, compare.by and group.by must be specified!')
     }
-    if(compare.by != group.by) {
-      total_case <- unique(as.vector(outer(cmp_vars, grp_vars, paste, sep="_")))
-      if (length(total_case) != length(case.list)){
+    if (compare.by != group.by) {
+      total_case <- unique(as.vector(outer(cmp_vars, grp_vars, paste, sep = "_")))
+      if (length(total_case) != length(case.list)) {
         print("Combination of compare.by and group.by does not have the same length as case.list")
-        print('notiz can be modified and used as a groupping parameter')
-        stop('groupping by ', group.by,
-             'is not unique for calculating delta between ', compare.by)
+        print('Hint: notiz can be modified and used as a groupping parameter')
+        stop('Groupping by ', group.by,
+             ' is not unique for calculating delta between ', compare.by)
       }
     }
   }
@@ -596,8 +605,8 @@ plot_longprofile <- function(
                        c("km", "besonderheit")
                      ]
   # processing overlap labels
-  if (!is.null(overlap)){
-    for (i in seq_along(overlap)){
+  if (!is.null(overlap)) {
+    for (i in seq_along(overlap)) {
       # overlap_i <- b_tick[grepl(overlap[[i]], besonderheit), besonderheit][[1]]
       overlap_i_pos <- b_tick[grepl(overlap[[i]], besonderheit), which = TRUE]
       if (isTRUE(overlap_i_pos > 1)){
@@ -618,26 +627,19 @@ plot_longprofile <- function(
   if (isTRUE(delta)) {
     data_tbl[, group := seq_len(.N), by = c(compare.by)]
     y2_name <- paste('Delta',
-                     # str_to_sentence(compare.by),
                      ifelse(param == 'discharge', '(m³/s)', '(m)')
                      )
-
-    if (compare.by != group.by){
-      y2_name <- paste('Delta',
-                       # str_to_sentence(compare.by),
-                       'nach', str_to_sentence(group.by), 'gruppiert',
-                       ifelse(param == 'discharge', '(m³/s)', '(m)')
-                       )
+    if (compare.by != group.by) {
       lt.by <- compare.by
       color.by <- group.by
       data_tbl_delta <-
-        dcast(data_tbl, group  ~ get(compare.by) + get(group.by)  ,
+        dcast(data_tbl, group  ~ get(compare.by) + get(group.by),
               value.var = 'scheitel')
-      for (i in grp_vars){
+      for (i in grp_vars) {
         col_i <- paste('Delta', i, sep = '_')
         col_1 <- paste(cmp_vars[1], i, sep = '_')
         col_2 <- paste(cmp_vars[2], i, sep = '_')
-        data_tbl_delta[, eval(col_i) := get(col_1) - get(col_2)]
+        data_tbl_delta[, eval(col_i) := get(col_2) - get(col_1)]
         data_tbl_delta[, eval(col_1) := NULL]
         data_tbl_delta[, eval(col_2) := NULL]
       }
@@ -740,7 +742,7 @@ plot_longprofile <- function(
   }
   #----add graphic----
   if (verbose) print('Preparing graphic...')
-  if (!is.null(compare.by)){
+  if (!is.null(compare.by)) {
     data_tbl[[compare.by]] <- factor(data_tbl[[compare.by]], 
                                      levels = c(cmp_vars)
     )
@@ -766,7 +768,7 @@ plot_longprofile <- function(
     ) +
     labs(title = plot.title) +
     ylab(y.lab)
-  if (isTRUE(reserve.x)){
+  if (isTRUE(reverse.x)){
     g <- g +
       scale_x_reverse(
         name = x.lab,
@@ -790,9 +792,25 @@ plot_longprofile <- function(
       )
   }
   g <- g + geom_line(size = 1)
+  if (!is.null(man.colors)) {
+    g <- g + scale_color_manual(values = c(man.colors, man.colors))
+  }
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
-  if (isTRUE(delta)){
+  if (isTRUE(delta)) {
+    if (isTRUE(dband)) {
+      round_nr <- ifelse(param == 'discharge', 0, 2)
+      d_min <- round(min(data_tbl$delta, na.rm = TRUE), round_nr)
+      d_max <- round(max(data_tbl$delta, na.rm = TRUE), round_nr)
+      
+      g <- g + annotate("rect",
+                    xmin = -Inf, xmax = Inf,
+                    ymin = y2.scale * d_min + y2_shift,
+                    ymax = y2.scale * d_max + y2_shift,
+                    alpha = 0.2, fill = "grey20"
+      )
+    }
+    y2_pretty <- sort(c(d_min, d_max, y2_pretty))
     g <- g + geom_line(
       data = data_tbl,
       aes(
@@ -802,14 +820,14 @@ plot_longprofile <- function(
         linetype = 'Delta'
       ),
       size = 1
-    ) +
+    ) + 
       scale_y_continuous(
         breaks = y1_pretty,
         sec.axis =
           sec_axis(
             trans = ~ (. - y2_shift) / y2.scale,
             breaks = y2_pretty,
-            labels = round(y2_pretty, 3),
+            labels = round(y2_pretty, 2),
             name = y2_name
           )
       )
@@ -827,7 +845,7 @@ plot_longprofile <- function(
                       fill =  a.fill,
                       alpha = a.alpha
     )
-    if(!is.null(highlight.text)){
+    if (!is.null(highlight.text)) {
       g <- g + annotate(
         'text',
         x = highlight[[1]],
@@ -858,5 +876,7 @@ plot_longprofile <- function(
                   size = 1
                   )
   }
+  
+  if (verbose) print("done.")
   return(g)
 }

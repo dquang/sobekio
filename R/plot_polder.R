@@ -177,13 +177,13 @@ plot_polder <- function(
   if (!is.null(ref.mID)) {
     g <- ggplot(data = id_data,
                 mapping = aes(x = ts,
-                              linetype = !!ensym(compare.by))) +
+                              linetype = !!ensym(lt.by))) +
       geom_line(aes(y = Bezugspegel,
                     color = eval(ref.mID_color)),
                 size = 1)
   } else{
     g <- ggplot(data = id_data,
-                mapping = aes(x = ts, linetype = !!ensym(compare.by)))
+                mapping = aes(x = ts, linetype = !!ensym(lt.by)))
   }
   if (isTRUE(verbose)) print('Adding hydrographs...')
   # if parameter is discharge, move waterlevel to secondary axis
@@ -472,7 +472,7 @@ plot_polder <- function(
       check_overlap = TRUE
     )
   }
-  if ((param == 'discharge' & isTRUE(w.canal))|isTRUE(q.in)){
+  if ((param == 'discharge' & isTRUE(w.canal))|isTRUE(q.in)) {
     y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <-  g +
       scale_y_continuous(
@@ -495,15 +495,15 @@ plot_polder <- function(
       legend.position = 'bottom',
       text = element_text(size = text.size),
       axis.text.x = element_text(angle = text.x.angle)
-      )+
+      ) +
     scale_x_datetime(
       date_breaks = date.break,
       date_labels = date.label
-      )+
-    ylab(y1_label) + xlab('Zeit')+
+      ) +
+    ylab(y1_label) + xlab('Zeit') +
     ggtitle(plot.title)
-  if(!is.null(facet.by)){
-    g <- g + facet_grid(rows = ensym(facet.by), scales = 'free_x')
+  if(!is.null(facet.by)) {
+    g <- g + facet_wrap(ensym(facet.by), scales = 'free_x')
   }
 
   return(g)

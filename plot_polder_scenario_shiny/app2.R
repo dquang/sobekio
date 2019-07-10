@@ -7,6 +7,7 @@ library(data.table)
 library(miniUI)
 library(leaflet)
 library(rstudioapi)
+library(shinyFiles)
 # test data
 
 polders <- rhein_tbl[grepl('Polder_', besonderheit), besonderheit] %>%
@@ -28,12 +29,18 @@ ui <- miniPage(
                 textInput("sobek_cmt", 'Path to sobek project: ',
                           "d:\\so21302\\rhein29a.lit", width = '100%')
                 ,
+                shinyDirButton('so_prj',
+                               label = 'Select Sobek Project',
+                               title = 'Please select a folder'
+                               # multiple = FALSE
+                ), 
                 multiInput(
                     inputId = "case_list",
                     label = "Select cases: ",
                     choices = "Please select caselist.cmt first",
                     width = "100%"
                 ),
+                
                 textAreaInput('case_desc', 'Case formatting: ', width = '100%'),
                 selectInput('polder_name', 'Choose Polder Name',
                             choices = polders, width = '100%'),
@@ -79,9 +86,20 @@ ui <- miniPage(
 )
 
 server <- function(input, output, session){
+   # roots <- c(Rhein = 'd:/so21302',
+   #            D = 'D:/', E = 'e:/', V = 'V:/',
+   #            L = 'l:/', O = 'o:/', G = 'g:/',
+   #            Z = 'z:/'
+   # )
+    roots <- getVolumes()
+    shinyDirChoose(input,
+                    'so_prj',
+                    root = roots 
+                    # filetypes = c('', 'cmt')
+                    )
     #---- create reactive version of the parameters----
     # volumes  <-  getVolumes()
-    sobek_cmt <- reactive(input$sobek_cmt)
+    # input$so_prj
     plot_option <- reactive(input$plot_option)
     # sobek_cmt_path <- reactive(input$sobek_cmt)
     case_desc <- reactive(input$case_desc)
@@ -94,11 +112,11 @@ server <- function(input, output, session){
     #
     #
     # })
-    observeEvent(input$sobek_cmt, {
+    observeEvent(input$so_prj, {
 
-        # shinyDirChoose(input, 'sobek_cmt', roots = c(home = '~'))
-        cmt_path <- paste(sobek_cmt(), '/caselist.cmt', sep = '')
-        if (file.exists(cmt_path)){
+        cmt_path <- paste(parseDirPath(roots = roots, input$so_prj)[1], 
+                          '/caselist.cmt', sep = '')
+        if (file.exists(cmt_path)) {
             cmt_case_list <- read.table(
                 cmt_path,
                 sep = ' ',
@@ -167,12 +185,13 @@ server <- function(input, output, session){
                              )
     #----observeEvent----
     observeEvent(input$read_data,{
-        cmt_path <- paste(sobek_cmt(), '/caselist.cmt', sep = '')
+        cmt_path <- paste(parseDirPath(roots = roots, input$so_prj)[1], 
+                          '/caselist.cmt', sep = '')
         g_data$df <- get_polder_data(
             name = polder_name(),
             case.list = case_list(),
             param = parameter(),
-            sobek.project =   sobek_cmt(),
+            sobek.project = dirname(cmt_path),
             master.tbl = rhein_tbl
         )
         # g_data$case_tbl <- parse_case(case.desc = case_list(),
@@ -180,6 +199,8 @@ server <- function(input, output, session){
         # g_data$df <- merge(g_data$df, g_data$case_tbl, by = 'case')
     })
     observeEvent(input$make_plot,{
+        cmt_path <- paste(parseDirPath(roots = roots, input$so_prj)[1], 
+                          '/caselist.cmt', sep = '')
         if (!is.null(g_data$df)){
             p_options <- paste(plot_option(), collapse = ",")
             q_in <- grepl('q_in', p_options)
@@ -206,7 +227,7 @@ server <- function(input, output, session){
                         id_data = g_data$df,
                         case.list = case_list(),
                         param = parameter(),
-                        sobek.project = sobek_cmt(),
+                        sobek.project = dirname(cmt_path),
                         q.in = q_in,
                         q.out = q_out,
                         delta.line = delta_line,
@@ -237,7 +258,7 @@ server <- function(input, output, session){
 
     })
     output$plot_option <- renderText({
-        paste(sobek_cmt(), collapse = ",")
+        parseDirPath(roots = roots, input$so_prj)[1]
         }
         )
 }
