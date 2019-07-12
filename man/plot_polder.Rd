@@ -12,8 +12,8 @@ plot_polder(name = NULL, case.list = NULL, case.desc = case.list,
   facet.by = "hwe", plot.title = NULL, lt.name = "Linienart",
   color.name = "Farbe", text.pos.x = 0, text.pos.y = 1,
   date.break = "3 days", date.label = "\%d.\%m.\%y", text.size = 12,
-  text.x.angle = 0L, polder.f = NULL, polder.z = NULL,
-  verbose = TRUE)
+  text.x.angle = 0L, text.box = TRUE, polder.f = NULL,
+  polder.z = NULL, verbose = TRUE)
 }
 \arguments{
 \item{name}{Name of the measure (with/without the measure)}
@@ -66,6 +66,8 @@ Others make only sense when your scenarios has same 'zustand' prefix}
 \item{text.size}{Text size for the whole graphic. Default 12}
 
 \item{text.x.angle}{Angle of x-axis text. Default 0}
+
+\item{text.box}{Set it to FALSE to hide the summary text box. However, if you want to compare two cases, better to use "facet.by".}
 
 \item{polder.f}{Area of the measure, for calculating Volume}
 

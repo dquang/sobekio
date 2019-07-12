@@ -9,6 +9,10 @@
 #' @param get.abs.max Default FALSE. If TRUE, the values that have absolute max will return.
 #' If get.abs.max and get.max both are TRUE, the absolute max will return
 #' @param id_name Default NULL. To set names for the IDs
+#' @param f.sep Seperator of the id.file, default = 'TAB'
+#' @param f.header Logical. Has id.file header?
+#' @param f.comment Comment character of the files. Default "#"
+#' @param id.names Character vector for naming the IDs. Default NULL
 #' @param ... This accept only one parameter in synctax of ID_TYPE = ID_LIST.
 #' ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID
 #' ID_LIST is a character vector.
@@ -23,6 +27,10 @@ his_from_case <- function(
   get.max = FALSE, # instead of get the time series, get the max values only
   get.abs.max = FALSE,
   do.par = FALSE,
+  f.comment = "#",
+  f.header = FALSE,
+  id.names = NULL,
+  f.sep = "\t",
   ...
   ) {
   if (isTRUE(get.abs.max)) get.max <- FALSE
@@ -39,7 +47,43 @@ his_from_case <- function(
          "c('mID', 'wID', 'qID', 'lID', 'latID', 'sID', 'pID', 'tID')"
     )
   }
+  # processing case.list
+  if (is.character(case.list) && length(case.list) == 1 && file.exists(case.list)) {
+    # reading case.list
+    clist <- read.table(
+      file = case.list,
+      header = f.header,
+      sep = f.sep,
+      quote = "",
+      comment.char = f.comment,
+      stringsAsFactors = FALSE,
+      blank.lines.skip = TRUE
+    )
+    clist <- data.table(clist)
+    # first column in the clist is case_name
+    colnames(clist)[1] <- "case_name"
+  } else {
+    if (is.vector(case.list)) {
+      clist <- data.table(case_name = case.list,
+                          stringAsFactors = FALSE)
+    } else {
+        stop("case.list must be a path to file or a character vector")
+      }
+    }
   id_list <- id_args[[id_type]]
+  if (length(id_list) == 1 && file.exists(id_list)) {
+    id_tbl <- read.table(
+      file = id_list,
+      header = f.header,
+      sep = f.sep,
+      quote = "",
+      comment.char = f.comment,
+      stringsAsFactors = FALSE,
+      blank.lines.skip = TRUE
+    )
+    id_list <- id_tbl[, 1]
+    if (ncol(id_tbl) > 1) id.names <- id_tbl[, 2]
+  }
   n_case = length(case.list)
   # n_id = length(id_list)
   # check SOBEK project
@@ -47,9 +91,6 @@ his_from_case <- function(
   if (!file.exists(sobek_cmt)) {
     stop("Sobek Caselist.cmt does not exist! Check sobek.project Folder")
   }
-  clist <- data.table(
-    case_name = case.list
-  )
   # reading SOBEK caselist.cmt
   sobek_clist <- data.table::fread(file = sobek_cmt,
                                   header = FALSE,
@@ -90,16 +131,16 @@ his_from_case <- function(
   clist[, his_file := paste(sobek.project,
                             case_number, his_fname, sep = "\\")
         ]
-  his_from_list_case <- function(his.file,
-                                 id.list,
-                                 param,
-                                 case.name) {
-    tmp <- his_from_list(his.file = his.file,
-                         id.list = id.list,
-                         param = param)
-    tmp[, case := case.name]
-    return(tmp)
-  }
+  # his_from_list_case <- function(his.file,
+  #                                id.list,
+  #                                param,
+  #                                case.name) {
+  #   tmp <- his_from_list(his.file = his.file,
+  #                        id.list = id.list,
+  #                        param = param)
+  #   tmp[, case := case.name]
+  #   return(tmp)
+  # }
   # if(do.par & )
   if (isTRUE(do.par)) {
     # parallel computing here
@@ -157,6 +198,12 @@ his_from_case <- function(
                      .SDcols = -c('ts'),
                      by = case]
   }
+  if (length(id.names) == length(id_list)) {
+    colnames(result) <- c('ts', id.names, 'case')
+  } else {
+    if (!is.null(id.names)) warning('id.names is not same length as list of IDs, names were not set')
+  }
+    
   return(result)
 }
 

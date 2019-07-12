@@ -29,6 +29,7 @@
 #' @param a.alpha Transparent ratio (alpha blending) of the highlight area
 #' @param overlap List of overlap labels should be avoid
 #' @param master.tbl Master table
+#' @param man.colors Using for scale_color_manual. Default is NULL (auto coloring)
 #' @param verbose Print some messages if TRUE
 #' @param do.par If TRUE, parallel computing will be executed
 #' @return a ggplot2 graphic
@@ -66,6 +67,7 @@ plot_drv <- function(
   a.alpha = 0.1,
   overlap = NULL,
   master.tbl = NULL,
+  man.colors = NULL,
   verbose = TRUE,
   do.par = FALSE
 ){
@@ -354,6 +356,9 @@ plot_drv <- function(
       )
   }
   g <- g + geom_line(size = 1)
+  if (!is.null(man.colors)) {
+    g <- g + scale_color_manual(values = c(man.colors, man.colors))
+  }
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
   if (isTRUE(delta)){
@@ -447,6 +452,7 @@ plot_drv <- function(
 #' @param color.name Name of color in the legend
 #' @param lt.name Name of linetype in the legend
 #' @param delta Should delta also plotted?
+#' @param delta.lt Linetype discretization for Delta lines (vgf, zustand, hwe...)
 #' @param reverse.x Logical. If TRUE the x-axis will be reversed
 #' @param x.lab x-axis label
 #' @param y.lab y-axis label
@@ -454,6 +460,7 @@ plot_drv <- function(
 #' @param to.downstream distance (km) to downstream of the DRV to be included in the graphic
 #' @param y2.scale scale of y2-axis. Default value will be automatic calculated
 #' @param y2.tick1 The value of the first tick on the y2-axis. Using this and y2.scale to make y2-axis looks nice.
+#' @param y2.round Decimal place for y2.scale
 #' @param plot.title Title of the graphic
 #' @param text.size Size of text
 #' @param text.x.top.angle Angle of text at top
@@ -465,7 +472,7 @@ plot_drv <- function(
 #' @param overlap List of overlap labels should be avoid
 #' @param talweg If TRUE, and param = waterlevel then the talweg line will be added
 #' @param master.tbl Master table
-#' @param man.colors Color palette for scale_color_manual
+#' @param man.colors Using for scale_color_manual. Default is NULL (auto coloring)
 #' @param verbose Print some messages if TRUE
 #' @param do.par If TRUE, parallel computing will be executed
 #' @return a ggplot2 graphic
@@ -480,14 +487,13 @@ plot_longprofile <- function(
   param = 'discharge',
   lt.by = 'zustand',
   color.by = 'vgf',
-  # facet.by = NULL,
-  # facet.scale = 'fixed',
   compare.by = NULL,
   cmp.sort = FALSE,
   group.by = compare.by,
   color.name = 'Farbe',
   lt.name = 'Linienart',
   delta = FALSE,
+  delta.lt = 'vgf',
   dband = TRUE,
   reverse.x = FALSE,
   x.lab = 'Lage (KM)',
@@ -495,8 +501,9 @@ plot_longprofile <- function(
                  'Abfluss (m³/s)', 'Wasserstand (m+NHN)'),
   y2.scale = NULL,
   y2.tick1 = NULL,
+  y2.round = 2L,
   plot.title = NULL,
-  text.size = 12,
+  text.size = 12L,
   text.x.top.angle = 90L,
   text.x.top.size = 8L,
   text.x.bottom.angle = 0L,
@@ -508,7 +515,7 @@ plot_longprofile <- function(
   overlap = NULL,
   talweg = FALSE,
   master.tbl = NULL,
-  man.colors = six_colors,
+  man.colors = NULL,
   verbose = TRUE,
   do.par = FALSE
 ){
@@ -565,7 +572,7 @@ plot_longprofile <- function(
     }
   }
   river_ids <- master.tbl[, .N, by = river]
-  if (is.null(river)){
+  if (is.null(river)) {
     setorder(river_ids, -N)
     river <- river_ids$river[[1]]
   } else{
@@ -588,7 +595,7 @@ plot_longprofile <- function(
   )
   from.km <- max(min(data_tbl$km, na.rm = TRUE), from.km)
   to.km <- min(max(data_tbl$km, na.rm = TRUE), to.km)
-  if (is.null(plot.title)){
+  if (is.null(plot.title)) {
     plot.title <- paste('Längsschnitt ',
                         str_extract(y.lab, 'Abfluss|Wasserstand'),
                         ' entlang ', river, ' von KM ',
@@ -666,6 +673,7 @@ plot_longprofile <- function(
         merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
     }
     data_tbl[, delta := round(delta, 3)]
+    data_tbl[, Linienart := paste('Delta', get(delta.lt))]
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
     y2_max <- max(data_tbl$delta, na.rm = TRUE)
     y2_length <- y2_max - y2_min
@@ -799,7 +807,7 @@ plot_longprofile <- function(
   g$labels$linetype <- lt.name
   if (isTRUE(delta)) {
     if (isTRUE(dband)) {
-      round_nr <- ifelse(param == 'discharge', 0, 2)
+      round_nr <- ifelse(param == 'discharge', 0, y2.round)
       d_min <- round(min(data_tbl$delta, na.rm = TRUE), round_nr)
       d_max <- round(max(data_tbl$delta, na.rm = TRUE), round_nr)
       
@@ -817,7 +825,7 @@ plot_longprofile <- function(
         y = delta * y2.scale + y2_shift,
         # shape = !!ensym(compare.by),
         color = delta_color,
-        linetype = 'Delta'
+        linetype = Linienart
       ),
       size = 1
     ) + 
@@ -827,15 +835,13 @@ plot_longprofile <- function(
           sec_axis(
             trans = ~ (. - y2_shift) / y2.scale,
             breaks = y2_pretty,
-            labels = round(y2_pretty, 2),
+            labels = round(y2_pretty, round_nr),
             name = y2_name
           )
       )
   }
-  #----adding highlight area and facet----
-  # if (!is.null(facet.by)){
-  #   g <- g + facet_wrap(~ get(facet.by), scales = facet.scale)
-  # }
+  #----adding highlight area----
+  # Consider to remove this
   if (!is.null(highlight)){
     # hl_count <- length(highlight)
     g <- g + annotate('rect',
@@ -863,7 +869,7 @@ plot_longprofile <- function(
     }
   }
   if (isTRUE(talweg) & param == 'waterlevel'){
-    if(isTRUE(verbose)) print('Reading profile...')
+    if (isTRUE(verbose)) print('Reading profile...')
     pf_tbl <- get_profile_tbl(
       case = case.list[[1]],
       # all.line = FALSE,

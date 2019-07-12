@@ -9,7 +9,7 @@
 #' @param print.plot Should a plot be showed? Default FALSE
 #' @param ... If indt is NULL these parameters will be passed to his_from_case function for reading the discharge
 #' @export
-polder_tmv <- function(
+polder_tmw <- function(
   volume = NULL,
   indt = NULL,
   n.days = 2,

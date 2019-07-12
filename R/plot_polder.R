@@ -25,6 +25,7 @@
 #' @param date.label Label format for x-axis. Default dd.mm.yy
 #' @param text.size Text size for the whole graphic. Default 12
 #' @param text.x.angle Angle of x-axis text. Default 0
+#' @param text.box Set it to FALSE to hide the summary text box. However, if you want to compare two cases, better to use "facet.by".
 #' @param polder.f Area of the measure, for calculating Volume
 #' @param polder.z Bottom level of the measure for calculating Volume. Give 'auto' for getting the minimum waterlevel in canal value. In this case, make sure the canal is completely dry at T0
 #' @param versbose Boring? Should some message be displayed?
@@ -57,6 +58,7 @@ plot_polder <- function(
   date.label = '%d.%m.%y',
   text.size = 12,
   text.x.angle = 0L,
+  text.box = TRUE,
   polder.f = NULL,
   polder.z = NULL,
   verbose = TRUE){
@@ -385,68 +387,70 @@ plot_polder <- function(
     id_data <- merge(id_data, id_vol_data, by = 'case', sort = FALSE)
   }
   #----annotating max value----
-  if (isTRUE(verbose)) print('Adding text box...')
-  # print(einlass_cols)
-  for (i in einlass_cols){
-    einlass_max_col <- paste(i, 'Max', sep = '_')
-    id_data[, eval(einlass_max_col) := max(get(i), na.rm = TRUE), by = case]
-  }
-  id_data[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
-  # finding the locations on x-axis for the annotated text
-  # get length of x_axis, then get text.pos of it
-  id_data[, N := .N, by = case]
-  id_data[, ts_min := shift(ts,
-                            n = floor(text.pos.x * N),
-                            fill = NA,
-                            type = 'lead'),
-          by = case]
-  if(!is.null(h.lines)){
-    id_hlines <- id_data[, min(ts), by = case]
-  }
-  id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
-  colnames(id_data_nrow) <- c('case', 'ts')
-  id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'), sort = FALSE)
-  # id_max[, Q_in_max := round(Q_in_max)]
-  id_max[, W_in_max := round(W_in_max, 2)]
-  id_max[, label := '']
-  # case_has_max <- id_max[W_in_max == max(W_in_max, na.rm = TRUE), case]
-  id_max[,
-         label := paste(
-           'Volume Max: ', Volume_max, ' Mio. m³\n',
-           'W_in Max:   ', W_in_max, ' m + NHN\n',
-           label,
-           sep = "")
-         ]
-  for (i in einlass_cols){
-    einlass_max_col <- paste(i, 'Max', sep = '_')
-    id_max[, eval(einlass_max_col) := round(as.numeric(get(einlass_max_col)), 1),
-           .SDcols = einlass_max_col, by = case]
+  if (isTRUE(text.box)) {
+    if (isTRUE(verbose)) print('Adding text box...')
+    # print(einlass_cols)
+    for (i in einlass_cols){
+      einlass_max_col <- paste(i, 'Max', sep = '_')
+      id_data[, eval(einlass_max_col) := max(get(i), na.rm = TRUE), by = case]
+    }
+    id_data[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
+    # finding the locations on x-axis for the annotated text
+    # get length of x_axis, then get text.pos of it
+    id_data[, N := .N, by = case]
+    id_data[, ts_min := shift(ts,
+                              n = floor(text.pos.x * N),
+                              fill = NA,
+                              type = 'lead'),
+            by = case]
+    if(!is.null(h.lines)){
+      id_hlines <- id_data[, min(ts), by = case]
+    }
+    id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
+    colnames(id_data_nrow) <- c('case', 'ts')
+    id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'), sort = FALSE)
+    # id_max[, Q_in_max := round(Q_in_max)]
+    id_max[, W_in_max := round(W_in_max, 2)]
+    id_max[, label := '']
+    # case_has_max <- id_max[W_in_max == max(W_in_max, na.rm = TRUE), case]
     id_max[,
            label := paste(
+             'Volume Max: ', Volume_max, ' Mio. m³\n',
+             'W_in Max:   ', W_in_max, ' m + NHN\n',
              label,
-             'Q_max durch ', i, ': ', get(einlass_max_col), ' m³/s\n',
              sep = "")
            ]
+    for (i in einlass_cols){
+      einlass_max_col <- paste(i, 'Max', sep = '_')
+      id_max[, eval(einlass_max_col) := round(as.numeric(get(einlass_max_col)), 1),
+             .SDcols = einlass_max_col, by = case]
+      id_max[,
+             label := paste(
+               label,
+               'Q_max durch ', i, ': ', get(einlass_max_col), ' m³/s\n',
+               sep = "")
+             ]
+    }
+    # removing 'Inf' in id_max
+    id_max[, label := str_replace_all(label, "-*Inf.*\n", "k.A.\n")]
+    # id_max[Volume_max == 'k.A.', label := '']
+    # y position of the text block
+    y1_pos_txt <- y1_pretty[(length(y1_pretty)-1)]
+    if (!is.null(text.pos.y)){
+      y1_pos_txt <- text.pos.y
+      if (abs(text.pos.y) < 1.2) y1_pos_txt <- text.pos.y * (y1_max - y1_min) + y1_min
+    }
+    g <- g +
+      geom_text(
+        data    = id_max,
+        mapping = aes(x = ts_min,
+                      y = y1_pos_txt,
+                      label = label),
+        hjust = 0,
+        vjust = 1
+      )
   }
-  # removing 'Inf' in id_max
-  id_max[, label := str_replace_all(label, "-*Inf.*\n", "k.A.\n")]
-  # id_max[Volume_max == 'k.A.', label := '']
-  # y position of the text block
-  y1_pos_txt <- y1_pretty[(length(y1_pretty)-1)]
-  if (!is.null(text.pos.y)){
-    y1_pos_txt <- text.pos.y
-    if (abs(text.pos.y) < 1.2) y1_pos_txt <- text.pos.y * (y1_max - y1_min) + y1_min
-  }
-  g <- g +
-    geom_text(
-      data    = id_max,
-      mapping = aes(x = ts_min,
-                    y = y1_pos_txt,
-                    label = label),
-      hjust = 0,
-      vjust = 1
-    )
-
+  
   if (!is.null(h.lines)){
     # id_hlines with 2 cols: V1, case
     for (i in seq_along(h.lines)){
@@ -472,7 +476,7 @@ plot_polder <- function(
       check_overlap = TRUE
     )
   }
-  if ((param == 'discharge' & isTRUE(w.canal))|isTRUE(q.in)) {
+  if ((param == 'discharge' & isTRUE(w.canal)) | isTRUE(q.in)) {
     y2_pretty <- (y1_pretty - y2_shift)/y2.scale
     g <-  g +
       scale_y_continuous(
@@ -502,7 +506,7 @@ plot_polder <- function(
       ) +
     ylab(y1_label) + xlab('Zeit') +
     ggtitle(plot.title)
-  if(!is.null(facet.by)) {
+  if (!is.null(facet.by)) {
     g <- g + facet_wrap(ensym(facet.by), scales = 'free_x')
   }
 
