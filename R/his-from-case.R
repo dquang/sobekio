@@ -13,7 +13,7 @@
 #' @param f.header Logical. Has id.file header?
 #' @param f.comment Comment character of the files. Default "#"
 #' @param id.names Character vector for naming the IDs. Default NULL
-#' @param ... This accept only one parameter in synctax of ID_TYPE = ID_LIST.
+#' @param ... This accept only one parameter in syntax of ID_TYPE = ID_LIST.
 #' ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID
 #' ID_LIST is a character vector.
 #' For example mID = c('p_koeln', 'p_mainz')
@@ -115,33 +115,18 @@ his_from_case <- function(
   # check if clist contain a column for destination
   his_fname <- switch(
     toupper(id_type),
-    MID = 'measstat.his',
-    WID = 'calcpnt.his',
-    QID = 'reachseg.his',
-    SID = 'struc.his',
-    LID = 'qlat.his',
-    LATID = 'qlat.his',
-    PID = 'pump.his',
-    TID = 'triggers.his'
-    # RDIM = 'reachdim.his',
-    # SDIM = 'strucdim.his',
-    # FID = 'flowanal.his',
-    # QWB = 'qwb.his'
+    MID = 'MEASSTAT.HIS',
+    WID = 'CALCPNT.HIS',
+    QID = 'REACHSEG.HIS',
+    SID = 'STRUC.HIS',
+    LID = 'QLAT.HIS',
+    LATID = 'QLAT.HIS',
+    PID = 'PUMP.HIS',
+    TID = 'TRIGGERS.HIS'
   )
   clist[, his_file := paste(sobek.project,
-                            case_number, his_fname, sep = "\\")
+                            case_number, his_fname, sep = "/")
         ]
-  # his_from_list_case <- function(his.file,
-  #                                id.list,
-  #                                param,
-  #                                case.name) {
-  #   tmp <- his_from_list(his.file = his.file,
-  #                        id.list = id.list,
-  #                        param = param)
-  #   tmp[, case := case.name]
-  #   return(tmp)
-  # }
-  # if(do.par & )
   if (isTRUE(do.par)) {
     # parallel computing here
     # requireNamespace("doParallel", quietly = TRUE)
@@ -344,31 +329,31 @@ his_from_case_old <- function(
         )
         if (!is.null(wID)) {
           file.copy(
-            from = paste(src_folder, "calcpnt.his", sep = "/"),
+            from = paste(src_folder, "CALCPNT.HIS", sep = "/"),
             to = dest_folder
           )
         }
         if (!is.null(qID)) {
           file.copy(
-            from = paste(src_folder, "reachseg.his", sep = "/"),
+            from = paste(src_folder, "REACHSEG.HIS", sep = "/"),
             to = dest_folder
           )
         }
         if (!is.null(lID)) {
           file.copy(
-            from = paste(src_folder, "lateral.his", sep = "/"),
+            from = paste(src_folder, "QLAT.HIS", sep = "/"),
             to = dest_folder
           )
         }
         if (!is.null(sID)) {
           file.copy(
-            from = paste(src_folder, "struc.his", sep = "/"),
+            from = paste(src_folder, "STRUC.HIS", sep = "/"),
             to = dest_folder
           )
         }
         if (!is.null(mID)) {
           file.copy(
-            from = paste(src_folder, "measstat.his", sep = "/"),
+            from = paste(src_folder, "MEASSTAT.HIS", sep = "/"),
             to = dest_folder
           )
         }
@@ -398,7 +383,7 @@ his_from_case_old <- function(
       if (!is.null(wID)) {
         if(length(wID)==1 && file.exists(wID)){
           tmp <- his_from_file(
-            his.file = paste(his_folder, "calcpnt.his", sep = "/"),
+            his.file = paste(his_folder, "CALCPNT.HIS", sep = "/"),
             id.file = wID[[1]],
             param = param
           )
@@ -407,7 +392,7 @@ his_from_case_old <- function(
         } else {
           if (is.vector(wID)){
             tmp <- his_from_list(
-              his.file = paste(his_folder, "calcpnt.his", sep = "/"),
+              his.file = paste(his_folder, "CALCPNT.HIS", sep = "/"),
               id.list = unlist(wID),
               param = param
             )
@@ -421,7 +406,7 @@ his_from_case_old <- function(
       if (!is.null(qID)) {
         if(length(qID)==1 && file.exists(qID)){
           tmp <- his_from_file(
-            his.file = paste(his_folder, "reachseg.his", sep = "/"),
+            his.file = paste(his_folder, "REACHSEG.HIS", sep = "/"),
             id.file = qID[[1]],
             param = param
           )
@@ -430,7 +415,7 @@ his_from_case_old <- function(
         } else {
           if (is.vector(qID)){
             tmp <- his_from_list(
-              his.file = paste(his_folder, "reachseg.his", sep = "/"),
+              his.file = paste(his_folder, "REACHSEG.HIS", sep = "/"),
               id.list = unlist(qID),
               param = param
             )
@@ -444,7 +429,7 @@ his_from_case_old <- function(
       if (!is.null(lID)) {
         if(length(lID)==1 && file.exists(lID)){
           tmp <- his_from_file(
-            his.file = paste(his_folder, "qlat.his", sep = "/"),
+            his.file = paste(his_folder, "QLAT.HIS", sep = "/"),
             id.file = lID[[1]],
             param = param
           )
@@ -453,7 +438,7 @@ his_from_case_old <- function(
         } else {
           if (is.vector(lID)){
             tmp <- his_from_list(
-              his.file = paste(his_folder, "qlat.his", sep = "/"),
+              his.file = paste(his_folder, "QLAT.HIS", sep = "/"),
               id.list = unlist(lID),
               param = param
             )
@@ -467,7 +452,7 @@ his_from_case_old <- function(
       if (!is.null(sID)) {
         if(length(sID)==1 && file.exists(sID)){
           tmp <- his_from_file(
-            his.file = paste(his_folder, "struc.his", sep = "/"),
+            his.file = paste(his_folder, "STRUC.HIS", sep = "/"),
             id.file = sID[[1]],
             param = param
           )
@@ -476,7 +461,7 @@ his_from_case_old <- function(
         } else {
           if (is.vector(sID)){
             tmp <- his_from_list(
-              his.file = paste(his_folder, "struc.his", sep = "/"),
+              his.file = paste(his_folder, "STRUC.HIS", sep = "/"),
               id.list = unlist(sID),
               param = param
             )
@@ -490,7 +475,7 @@ his_from_case_old <- function(
       if (!is.null(mID)) {
         if(length(mID)==1 && file.exists(mID)){
           tmp <- his_from_file(
-            his.file = paste(his_folder, "measstat.his", sep = "/"),
+            his.file = paste(his_folder, "MEASSTAT.HIS", sep = "/"),
             id.file = mID[[1]],
             param = param
           )
@@ -499,7 +484,7 @@ his_from_case_old <- function(
         } else {
           if (is.vector(mID)){
             tmp <- his_from_list(
-              his.file = paste(his_folder, "measstat.his", sep = "/"),
+              his.file = paste(his_folder, "MEASSTAT.HIS", sep = "/"),
               id.list = unlist(mID),
               param = param
             )

@@ -18,8 +18,8 @@ his_location <- function(his.file = "") {
   # check .HIS file simple way
   his_title <- vector(mode = "character", length = 4)
   txt_title <- readBin(con, "character", size = 160, endian = "little")
-  for (i in 1:4) his_title[i] <- substr(txt_title,
-                                        start = 40*(i - 1) + 1, stop = 40*i)
+  for (i in 1:4) his_title[i] <- str_sub(txt_title,
+                                        start = 40*(i - 1) + 1, end = 40*i)
   # move file reading cursor to byte 160, where title ends
   # just to make sure correct reading
   seek(con, where = 160, origin = "start")
@@ -37,21 +37,25 @@ his_location <- function(his.file = "") {
   for (i in 1:total_loc){
     loc_id[i] <- as.integer(i)
     seek(con, 4, "current")
-    loc_name[i] <- substr(readBin(con,
-    															what = "character", size = 20,
-    															endian = "little"
-    															),
-    											start = 1,
-    											stop = 20 # SOBEK output max. 20 chars names
-    											)
+    loc_name[i] <- rawToChar(readBin(con, what = "raw", n = 20))
+    # loc_name[i] <- rawToChar(tmp)
+    # loc_name[i] <- str_sub(readBin(con,
+    # 															what = "character", size = 20,
+    # 															endian = "little"
+    # 															),
+    # 											start = 1,
+    # 											end = 20 # SOBEK output max. 20 chars names
+    # 											)
     seek(con, where = 168 + 20 * param_nr + 24 * i, origin = "start")
   }
   close(con)
-  his.locs <- data.table(cbind(as.integer(loc_id), trimws(loc_name)))
+  his.locs <- data.table(cbind(as.integer(loc_id), 
+                               sobek.id = trimws(loc_name, whitespace = "[ \t\r\n\\h\\v]")
+                         ))
   colnames(his.locs) <- c("location", "sobek.id")
   # try to read .hia
-  hia_file <- paste(substr(his.file, start = 1, stop = nchar(his.file) - 4),
-                    ".hia", sep = "")
+  hia_file <- paste(str_sub(his.file, start = 1, end = nchar(his.file) - 4),
+                    ".HIA", sep = "")
   if (file.exists(hia_file)){
     hia_dt <- data.table::fread(file = hia_file,
                                 sep = "\n",
@@ -75,7 +79,7 @@ his_location <- function(his.file = "") {
     # check if Long Locations is an empty section in between
     if (hia_check){
       # get the first character of the next line after the "[Long Locations]
-      first_char <- substr(hia_dt$V1[long_loc_pos + 1], 1, 1)
+      first_char <- str_sub(hia_dt$V1[long_loc_pos + 1], 1, 1)
       if (first_char == "[") hia_check <- FALSE
     }
     # finally get Long Locations if till here hia_check is TRUE
@@ -128,8 +132,8 @@ his_info <- function(his.file = "") {
   # check .HIS file simple way
   his_title <- vector(mode = "character", length = 4)
   txt_title <- readBin(con, "character", size = 160, endian = "little")
-  for (i in 1:4) his_title[i] <- substr(txt_title,
-                                        start = 40*(i - 1) + 1, stop = 40*i)
+  for (i in 1:4) his_title[i] <- str_sub(txt_title,
+                                        start = 40*(i - 1) + 1, end = 40*i)
   # bytes 160-167 are for 2 int
   seek(con, where = 160, origin = "start")
   param_nr <- readBin(con, what = "int", size = 4, endian = "little")
@@ -141,9 +145,9 @@ his_info <- function(his.file = "") {
   # each parameter name is stored in a fixed string having length = 20
   param_names <- vector(mode = "character", length = param_nr)
   # removing padding strings at the end
-  for (i in 1:param_nr) param_names[i] <- substr(params_str,
+  for (i in 1:param_nr) param_names[i] <- str_sub(params_str,
                                                  start = 20*(i - 1) + 1,
-                                                 stop = 20*i)
+                                                 end = 20*i)
   close(con)
   # The rest is for numerical data with the following structure
   data_bytes <- file.size(his.file) -
@@ -154,7 +158,7 @@ his_info <- function(his.file = "") {
   # int(4) for time, double(4) for data
   total_tstep <- data_bytes / (4 + 4 * param_nr * total_loc)
   # searching the case name
-  case_name <- substr(his_title[3], start = 8, stop = nchar(his_title[3]))
+  case_name <- str_sub(his_title[3], start = 8, end = nchar(his_title[3]))
   # searching the start time (t0) and time step (dt) in title
   t0_pattern <- "[0-9]{4}.[0-9]{2}.[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}"
   dt_pattern <- "scu=[[:space:]]{1,}([0-9]{1,})s"

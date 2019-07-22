@@ -185,21 +185,21 @@
   # get parameter table
   for (i in 1:param_nr){
     param_id[i] <- i
-    param_name[i] <- substr(readBin(con,
+    param_name[i] <- str_sub(readBin(con,
                                   what = "character", size = 20,
-                                  endian = "little"
+                                  endian = "little",
     ),
     start = 1,
-    stop = 20 # SOBEK output max. 20 chars names
+    end = 20 # SOBEK output max. 20 chars names
     )
     seek(con, where = 168 + 20 * i, origin = "start")
   }
   close(con)
-  his.params <- data.table(cbind(param_id, trimws(param_name)))
+  his.params <- data.table(cbind(param_id, str_trim(param_name)))
   colnames(his.params) <- c("param_id", "param_short")
   # try to read .hia
   hia_file <- paste(substr(his.file, start = 1, stop = nchar(his.file) - 4),
-                    ".hia", sep = "")
+                    ".HIA", sep = "")
   if (file.exists(hia_file)){
     hia_dt <- data.table::fread(file = hia_file,
                                 sep = "\n",

@@ -31,7 +31,7 @@ If get.abs.max and get.max both are TRUE, the absolute max will return}
 
 \item{f.sep}{Seperator of the id.file, default = 'TAB'}
 
-\item{...}{This accept only one parameter in synctax of ID_TYPE = ID_LIST.
+\item{...}{This accept only one parameter in syntax of ID_TYPE = ID_LIST.
 ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID
 ID_LIST is a character vector.
 For example mID = c('p_koeln', 'p_mainz')}
