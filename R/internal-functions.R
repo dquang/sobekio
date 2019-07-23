@@ -1,10 +1,10 @@
 #' Convert Sobek ID to location index
-#' @param sobek.id Node/Reach ID
+#' @param id Node/Reach ID
 #' @param his.locs Location table
 .id2loc <- function(id, his.locs) {
   # using exact matching to prevent potential problem caused by special characters
   location <- his.locs[sobek.id == id, location]
-  if (length(location) == 0){
+  if (length(location) == 0) {
     location <- his.locs[long.id == id, location]
   }
   if (length(location) == 0){
@@ -32,7 +32,8 @@
     if (length(param_long_check) == 1){
       rel <- param_long_check[[1]]
       } else{
-        warning('parameter with name: ', param.name, ' is ambiguous or not found')
+        warning('parameter with name: ', param.name, 
+                ' is ambiguous or not found')
         rel <- NA_integer_
         }
     }
@@ -42,8 +43,8 @@
 
 # Get column index of parameter (param) at the location (loc)
 # in the data matrix
-.loc2col <- function(loc, param, n_param){
-  colnr <- param + n_param*(loc - 1)
+.loc2col <- function(loc, param, n_param) {
+  colnr <- param + n_param * (loc - 1)
   return(colnr)
 }
 
@@ -76,8 +77,8 @@
   con <- file(his.file, open = "rb", encoding = "native.enc")
   # his_fsize <- file.size(his.file)
   seek(con, 160)
-  param_nr <- readBin(con, "int", size = 4, endian = "little")
-  total_loc <- readBin(con, "int", size = 4, endian = "little")
+  param_nr <- readBin(con, "int", size = 4)
+  total_loc <- readBin(con, "int", size = 4)
   data_bytes <- file.size(his.file) -
     (160 + # for the .HIS information ("title")
        2 * 4 + # for total parameters & total locations
@@ -90,13 +91,9 @@
   seek(con, where = 168 + 20 * param_nr + 24 * total_loc)
   # this reading can be done with chunk = max 1000.
   for (i in 1:total_tstep) {
-    # his_lines[i, 1] <- readBin(con, what = "int", size = 4,
-    #                            n = 1L,
-    #                            endian = "little")
     seek(con, where = 4, origin = "current")
     his_lines[i, ] <- readBin(con, what = "double", size = 4,
-                                               n = param_nr * total_loc,
-                                               endian = "little"
+                                               n = param_nr * total_loc
                                                )
   }
   close(con)
@@ -115,18 +112,14 @@
   }
 
   con <- file(his.file, open = "rb", encoding = "native.enc")
-  his_title <- vector(mode = "character", length = 4)
-  txt_title <- readBin(con, "character", size = 160, endian = "little")
-  for (i in 1:4) his_title[i] <- substr(txt_title,
-                                        start = 40*(i - 1) + 1, stop = 40*i)
-
+  txt_title <- stri_conv(readBin(con, 'raw', n = 160), from = 'windows-1252')
+  his_title <- str_extract_all(txt_title, ".{40}", simplify = TRUE)
   # get the total bytes of the his file
   his_fsize <- file.size(his.file)
-
   # get number of parameters and number of locations
   seek(con, 160)
-  param_nr <- readBin(con, "int", size = 4, endian = "little")
-  total_loc <- readBin(con, "int", size = 4, endian = "little")
+  param_nr <- readBin(con, "int", size = 4)
+  total_loc <- readBin(con, "int", size = 4)
   # get the number of time steps
   data_bytes <- file.size(his.file) -
     (160 + # for the .HIS information ("title")
@@ -152,7 +145,7 @@
   his_time <- matrix(nrow = total_tstep, ncol = 1)
   seek(con, where = 168 + 20 * param_nr + 24 * total_loc)
   for (i in 1:total_tstep) {
-    his_time[i, 1] <- readBin(con, "integer", size = 4, endian = "little") * his_dt
+    his_time[i, 1] <- readBin(con, "integer", size = 4) * his_dt
     seek(con, where = 4 * param_nr * total_loc, origin = "current")
   }
   close(con)
@@ -170,28 +163,24 @@
   str_as_factor <- default.stringsAsFactors()
   options("stringsAsFactors" = FALSE)
   con <- file(his.file, open = "rb", encoding = "native.enc")
-  his_title <- vector(mode = "character", length = 4)
-  txt_title <- readBin(con, "character", size = 160, endian = "little")
-  for (i in 1:4) his_title[i] <- substr(txt_title,
-                                        start = 40*(i - 1) + 1, stop = 40*i)
+  txt_title <- stri_conv(readBin(con, 'raw', n = 160), from = 'windows-1252')
+  his_title <- str_extract_all(txt_title, ".{40}", simplify = TRUE)
   # move file reading cursor to byte 160, where title ends
   # just to make sure correct reading
   seek(con, where = 160, origin = "start")
   # read total number of parameters
-  param_nr <- readBin(con, what = "int", n = 1, size = 4, endian = "little")
+  param_nr <- readBin(con, what = "int", n = 1, size = 4)
   param_id <- vector(mode = "integer", length = param_nr)
   param_name <- vector(mode = "character", length = param_nr)
   seek(con, where = 168, origin = "start")
   # get parameter table
   for (i in 1:param_nr){
     param_id[i] <- i
-    param_name[i] <- str_sub(readBin(con,
-                                  what = "character", size = 20,
-                                  endian = "little",
-    ),
-    start = 1,
-    end = 20 # SOBEK output max. 20 chars names
-    )
+    param_name[i] <-
+      str_sub(stri_conv(readBin(con, what = "raw", n = 20),
+                        from = 'windows-1252'),
+              start = 1,
+              end = 20) # SOBEK output max. 20 chars names)
     seek(con, where = 168 + 20 * i, origin = "start")
   }
   close(con)
@@ -200,14 +189,14 @@
   # try to read .hia
   hia_file <- paste(substr(his.file, start = 1, stop = nchar(his.file) - 4),
                     ".HIA", sep = "")
-  if (file.exists(hia_file)){
-    hia_dt <- data.table::fread(file = hia_file,
+  if (file.exists(hia_file)) {
+    hia_dt <- fread(file = hia_file,
                                 sep = "\n",
-                                header = F,
+                                header = FALSE,
                                 col.names = "V1",
                                 na.strings = "",
                                 data.table = TRUE,
-                                # encoding = "UTF-8",
+                                encoding = "UTF-8",
                                 blank.lines.skip = TRUE,
                                 quote = "")
     # remove blank lines
@@ -215,27 +204,27 @@
     # check if there is a Long Parameters Section
     hia_check <- TRUE %in% grepl("^\\[Long Parameters]", hia_dt$V1)
     # check if Long Parameters is the last section, and empty?
-    if (hia_check){
+    if (hia_check) {
       long_loc_pos <- hia_dt[V1 == "[Long Parameters]", which = TRUE]
       if (long_loc_pos > length(hia_dt$V1)) hia_check <- FALSE
     }
     # check if Long Parameters is an empty section in between
-    if (hia_check){
+    if (hia_check) {
       # get the first character of the next line after the "[Long Parameters]
       first_char <- substr(hia_dt$V1[long_loc_pos + 1], 1, 1)
       if (first_char == "[") hia_check <- FALSE
     }
     # finally get Long Parameters if till here hia_check is TRUE
-    if (hia_check){
+    if (hia_check) {
       hia_sbegin <- grep("^\\[", hia_dt$V1) + 1
-      hia_send <- data.table::shift(hia_sbegin, type = "lead",
+      hia_send <- shift(hia_sbegin, type = "lead",
                                     fill = length(hia_dt$V1) + 2) - 2
       pos_long_loc <- grep("^\\[Long Parameters]", hia_dt$V1)
       i_long_loc <- which(hia_sbegin == pos_long_loc + 1)
       if (length(i_long_loc) > 0){
         long_loc <- hia_dt[hia_sbegin[i_long_loc]:hia_send[i_long_loc], ]
         long_loc[, c("param_id", "param_long") :=
-                   data.table::tstrsplit(V1, "=",                                                                     fixed = TRUE)]
+                   tstrsplit(V1, "=",                                                                     fixed = TRUE)]
         long_loc[, V1 := NULL]
         his.params <- merge(his.params, long_loc, all.x = TRUE,
                           by = "param_id",

@@ -4,6 +4,7 @@
 #' @import ggplot2
 #' @importFrom dplyr %>% select starts_with near
 #' @import data.table
+#' @importFrom stringi stri_conv
 #' @import grid
 #' @importFrom kableExtra kable kable_styling pack_rows add_header_above
 #' @importFrom utils write.table
