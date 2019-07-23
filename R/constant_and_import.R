@@ -2,6 +2,7 @@
 #' Standard colors in Excel
 #' @import stringr
 #' @import ggplot2
+#' @importFrom stringi stri_conv
 #' @importFrom dplyr %>% select starts_with near
 #' @import data.table
 #' @import grid

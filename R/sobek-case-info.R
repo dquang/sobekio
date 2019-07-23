@@ -31,12 +31,24 @@ sobek_case_info <- function(
 																	case.list = sobek_clist)
 	if (is.na(case_number)) stop("Case with name: ", case.name,
 																	" not found in ", sobek_cmt)
-	his_file <- switch(his.type,
-										 node = "calcpnt.his",
-										 reach = "reachseg.his",
-										 lateral = "qlat.his",
-										 struct = "struc.his",
-										 measstation = "measstat.his")
+	his_file <- switch(type,
+	                   node = "CALCPNT.HIS",
+	                   reach = "REACHSEG.HIS",
+	                   lateral = "QLAT.HIS",
+	                   struct = "STRUC.HIS",
+	                   measstation = "MEASSTAT.HIS",
+	                   bnd.dat = "BOUNDARY.HIS",
+	                   lat.dat = "LATERAL.DAT",
+	                   setting = "SETTINGS.DAT",
+	                   trigger = "TRIGGER.DEF",
+	                   trigger.tbl = "TRIGGER.TBL",
+	                   control.def = "CONTROL.DEF",
+	                   # control.dat = "control.dat",
+	                   profile.dat = "PROFILE.DAT",
+	                   profile.def = "PROFILE.DEF",
+	                   struct.dat = "STRUCT.DAT",
+	                   struct.def = "STRUCT.DEF"
+	)
 	his_file <- paste(sobek.project, case_number, his_file, sep = "/")
 	if (tolower(info) == "location"){
 		tmp <- his_location(his.file = his_file)
@@ -79,12 +91,12 @@ get_file_path <- function(case.name = NULL,
                           sobek.project = NULL,
                           type = NULL){
   # check SOBEK project
-  sobek_cmt <- paste(sobek.project, "caselist.cmt", sep = "/")
+  sobek_cmt <- paste(sobek.project, "CASELIST.CMT", sep = "/")
   if (!file.exists(sobek_cmt)) {
     stop("Case list or Sobek Caselist.cmt does not exist!")
   }
   # reading SOBEK caselist.cmt
-  sobek_clist <- data.table::fread(
+  sobek_clist <- fread(
     file = sobek_cmt,
     header = FALSE,
     sep = " ",
@@ -98,22 +110,22 @@ get_file_path <- function(case.name = NULL,
   if (is.na(case_number)) stop("Case with name: ", case.name,
                                " not found in ", sobek_cmt)
   his_file <- switch(type,
-                     node = "calcpnt.his",
-                     reach = "reachseg.his",
-                     lateral = "qlat.his",
-                     struct = "struc.his",
-                     measstation = "measstat.his",
-                     bnd.dat = "boundary.dat",
-                     lat.dat = "lateral.dat",
-                     setting = "settings.dat",
-                     trigger = "trigger.def",
-                     trigger.tbl = "trigger.tbl",
-                     control.def = "control.def",
+                     node = "CALCPNT.HIS",
+                     reach = "REACHSEG.HIS",
+                     lateral = "QLAT.HIS",
+                     struct = "STRUC.HIS",
+                     measstation = "MEASSTAT.HIS",
+                     bnd.dat = "BOUNDARY.HIS",
+                     lat.dat = "LATERAL.DAT",
+                     setting = "SETTINGS.DAT",
+                     trigger = "TRIGGER.DEF",
+                     trigger.tbl = "TRIGGER.TBL",
+                     control.def = "CONTROL.DEF",
                      # control.dat = "control.dat",
-                     profile.dat = "profile.dat",
-                     profile.def = "profile.def",
-                     struct.dat = "struct.dat",
-                     struct.def = "struct.def"
+                     profile.dat = "PROFILE.DAT",
+                     profile.def = "PROFILE.DEF",
+                     struct.dat = "STRUCT.DAT",
+                     struct.def = "STRUCT.DEF"
                      )
   his_file <- paste(sobek.project, case_number, his_file, sep = "/")
   his_file <- ifelse(file.exists(his_file), his_file, NA)

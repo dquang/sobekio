@@ -15,55 +15,47 @@ his_location <- function(his.file = "") {
     stop(paste("HIS file:", his.file, "does not exit!"))
   }
   con <- file(his.file, open = "rb", encoding = "native.enc")
-  # check .HIS file simple way
-  his_title <- vector(mode = "character", length = 4)
-  txt_title <- readBin(con, "character", size = 160, endian = "little")
-  for (i in 1:4) his_title[i] <- str_sub(txt_title,
-                                        start = 40*(i - 1) + 1, end = 40*i)
+  txt_title <- stri_conv(readBin(con, what = "raw", n = 160), 
+                         from = 'windows-1252')
+  his_title <- str_extract_all(txt_title, ".{40}", simplify = TRUE)
   # move file reading cursor to byte 160, where title ends
   # just to make sure correct reading
   seek(con, where = 160, origin = "start")
   # read total number of parameters
-  param_nr <- readBin(con, what = "int", n = 1, size = 4, endian = "little")
+  param_nr <- readBin(con, what = "int", n = 1, size = 4)
   # read total number of locations
-  total_loc <- readBin(con, what = "int", n = 1, size = 4, endian = "little")
+  total_loc <- readBin(con, what = "int", n = 1, size = 4)
   # initialize location -id and -name vectors
   loc_id <- vector(mode = "integer", length = total_loc)
   loc_name <- vector(mode = "character", length = total_loc)
   # 160 for the title, 4 + 4 for param_nr,total_loc, and 20*param_nr for params
-  # yes I think that it is more readable without spaces around "*"
   seek(con, where = 168 + 20 * param_nr, origin = "start")
   # get locations table
   for (i in 1:total_loc){
     loc_id[i] <- as.integer(i)
     seek(con, 4, "current")
-    loc_name[i] <- rawToChar(readBin(con, what = "raw", n = 20))
-    # loc_name[i] <- rawToChar(tmp)
-    # loc_name[i] <- str_sub(readBin(con,
-    # 															what = "character", size = 20,
-    # 															endian = "little"
-    # 															),
-    # 											start = 1,
-    # 											end = 20 # SOBEK output max. 20 chars names
-    # 											)
+    loc_name[i] <- stri_conv(readBin(con, what = "raw", n = 20), 
+                             from = 'windows-1252')
     seek(con, where = 168 + 20 * param_nr + 24 * i, origin = "start")
   }
   close(con)
-  his.locs <- data.table(cbind(as.integer(loc_id), 
-                               sobek.id = trimws(loc_name, whitespace = "[ \t\r\n\\h\\v]")
-                         ))
+  his.locs <- data.table(cbind(
+    as.integer(loc_id),
+    trimws(loc_name,
+           whitespace = "[ \t\r\n\\h\\v]")
+  ))
   colnames(his.locs) <- c("location", "sobek.id")
-  # try to read .hia
+  # try to read .HIA
   hia_file <- paste(str_sub(his.file, start = 1, end = nchar(his.file) - 4),
                     ".HIA", sep = "")
   if (file.exists(hia_file)){
-    hia_dt <- data.table::fread(file = hia_file,
+    hia_dt <- fread(file = hia_file,
                                 sep = "\n",
                                 header = F,
                                 col.names = "V1",
                                 na.strings = "",
                                 data.table = TRUE,
-                                # encoding = "UTF-8",
+                                encoding = "UTF-8",
                                 blank.lines.skip = TRUE,
                                 quote = "")
     # remove blank lines
@@ -72,32 +64,30 @@ his_location <- function(his.file = "") {
     # check if there is a Long Location Section
     hia_check <- TRUE %in% grepl("^\\[Long Locations]", hia_dt$V1)
     # check if Long Locations is the last section, and empty?
-    if (hia_check){
+    if (hia_check) {
       long_loc_pos <- which(hia_dt$V1 == "[Long Locations]")
       if (long_loc_pos >= length(hia_dt$V1)) hia_check <- FALSE
     }
     # check if Long Locations is an empty section in between
-    if (hia_check){
+    if (hia_check) {
       # get the first character of the next line after the "[Long Locations]
       first_char <- str_sub(hia_dt$V1[long_loc_pos + 1], 1, 1)
       if (first_char == "[") hia_check <- FALSE
     }
     # finally get Long Locations if till here hia_check is TRUE
-    if (hia_check){
+    if (hia_check) {
       hia_sbegin <- grep("^\\[", hia_dt$V1) + 1
       hia_send <- data.table::shift(hia_sbegin, type = "lead",
                                     fill = length(hia_dt$V1) + 2) - 2
       pos_long_loc <- grep("^\\[Long Locations]", hia_dt$V1)
       i_long_loc <- which(hia_sbegin == pos_long_loc + 1)
-      if (length(i_long_loc) > 0){
+      if (length(i_long_loc) > 0) {
         long_loc <- hia_dt[hia_sbegin[i_long_loc]:hia_send[i_long_loc], ]
-        long_loc[, c("location", "long.id") := data.table::tstrsplit(V1, "=",
-                                                                     fixed = TRUE)]
+        long_loc[, c("location", "long.id") := tstrsplit(V1, "=", fixed = TRUE)]
         long_loc[, V1 := NULL]
         his.locs <- merge(his.locs, long_loc, all.x = TRUE,
                           by = "location",
                           sort = FALSE)
-        # his.locs[which(is.na(long.id)), long.id := sobek.id]
       }
     }
   }
@@ -127,13 +117,10 @@ his_info <- function(his.file = "") {
     stop(paste("HIS file:", his.file, "does not exit!"))
   }
   con <- file(his.file, open = "rb", encoding = "native.enc")
-  # check .HIS file simple way
   # first 160 bytes are characters for the title part
-  # check .HIS file simple way
-  his_title <- vector(mode = "character", length = 4)
-  txt_title <- readBin(con, "character", size = 160, endian = "little")
-  for (i in 1:4) his_title[i] <- str_sub(txt_title,
-                                        start = 40*(i - 1) + 1, end = 40*i)
+  txt_title <- stri_conv(readBin(con, what = "raw", n = 160), 
+                         from = 'windows-1252')
+  his_title <- str_extract_all(txt_title, ".{40}", simplify = TRUE)
   # bytes 160-167 are for 2 int
   seek(con, where = 160, origin = "start")
   param_nr <- readBin(con, what = "int", size = 4, endian = "little")
@@ -205,7 +192,7 @@ his_from_list <- function(
   seek(con, 160)
   param_nr <- readBin(con, 'int', n = 1L, size = 4)
   close(con)
-  if(!is.vector(id.list)) stop("id must be a vector")
+  if (!is.vector(id.list)) stop("id must be a vector")
   if (!is.numeric(param)) {
     pardf <- .his_parameter(his.file)
     par <- .id2param(param, pardf)
@@ -216,7 +203,7 @@ his_from_list <- function(
     }
   } else {
     par <- as.integer(param)
-    if (!par %in% seq.int(1, param_nr, 1)){
+    if (!par %in% seq.int(1, param_nr, 1)) {
       stop('Parameter: ', param, ' out of range(1, ', param_nr,')')
     }
   }
@@ -269,7 +256,7 @@ his_from_file <- function(
                           id.list = as.character(id.list[, 1]),
                           param = param)
 
-  if (ncol(id.list) > 1){
+  if (ncol(id.list) > 1) {
     colnames(df_out) <- c("ts", id.list[, 2])
   }
   options("stringsAsFactors" = str_as_factor)
