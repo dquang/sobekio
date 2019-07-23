@@ -7,9 +7,9 @@
 .id2loc(id, his.locs)
 }
 \arguments{
-\item{his.locs}{Location table}
+\item{id}{Node/Reach ID}
 
-\item{sobek.id}{Node/Reach ID}
+\item{his.locs}{Location table}
 }
 \description{
 Convert Sobek ID to location index

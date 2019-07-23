@@ -5,6 +5,7 @@ write-test-*
 !*data.RData
 *.Ruserdata
 *.Rproj.user
+man/
 man/*.Rd
 *.Rd
 *.Rproj
