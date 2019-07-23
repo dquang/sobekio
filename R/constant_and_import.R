@@ -3,7 +3,7 @@
 #' @import stringr
 #' @import ggplot2
 #' @importFrom stringi stri_conv
-#' @importFrom dplyr %>% select starts_with near
+#' @importFrom dplyr %>% select starts_with near filter
 #' @import data.table
 #' @import grid
 #' @importFrom kableExtra kable kable_styling pack_rows add_header_above

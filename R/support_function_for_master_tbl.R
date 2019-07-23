@@ -286,15 +286,15 @@ get_segment_data <- function(
     segment_data <- merge(segment_data,
                           id_tbl[, .SD, .SDcols = -c('ID')],
                           by = c('case', 'ID_F'), sort = FALSE)
-  } else{
-    segment_data <- segment_data %>%
-      melt(id.vars = c('ts', 'case'),
-           variable.name = 'ID_F',
-           value.name = 'value') %>%
-      merge(
-            id_tbl[, .SD, .SDcols = -c('ID')],
-            by = c('case', 'ID_F'), sort = FALSE)
-  }
+  } #else{
+  #   segment_data <- segment_data %>%
+  #     melt(id.vars = c('ts', 'case'),
+  #          variable.name = 'ID_F',
+  #          value.name = 'value') %>%
+  #     merge(
+  #           id_tbl[, .SD, .SDcols = -c('ID')],
+  #           by = c('case', 'ID_F'), sort = FALSE)
+  # }
 
 
   return(segment_data)

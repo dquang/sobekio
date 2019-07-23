@@ -208,7 +208,7 @@ his_from_list <- function(
     }
   }
   locdf <- his_location(his.file)
-  locs <- sapply(id.list, .id2loc, locdf, USE.NAMES = FALSE)
+  locs <- map_int(id.list, .id2loc, locdf)
   hisdf <- .his_from_locs(his.file = his.file, locs = locs, param = par)
   tsdf <- .his_time_df(his.file = his.file)
   df_out <- data.table(tsdf, hisdf, stringsAsFactors = FALSE)

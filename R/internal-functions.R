@@ -267,6 +267,6 @@
   param_nr = readBin(con, 'int', n = 1, size = 4)
   close(con)
   # creating a mask for the matrix, to get only columns for the param
-  cols_mask <- sapply(locs, .loc2col, param, param_nr)
-  return(hisdf[, unlist(cols_mask)])
+  cols_mask <- map_dbl(locs, .loc2col, param, param_nr)
+  return(hisdf[, cols_mask])
 }

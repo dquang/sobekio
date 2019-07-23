@@ -209,7 +209,7 @@ transfer_fra <- function(
   main.case = '',
   rhein.case = '',
   main.prj = 'd:/so21302/main2015.lit',
-  rhein.prj = "d:/so21302/rhein29a.lit",
+  rhein.prj = "d:/so21302/rhein.lit",
   fra.id = 'p_frankfurt_ost'
 ){
   fra_main <- his_from_case(case.list = main.case,
@@ -220,7 +220,7 @@ transfer_fra <- function(
   bnd_file <- get_file_path(case.name = rhein.case,
                             sobek.project = rhein.prj,
                             type = "bnd.dat")
-  sobekio::change_tble(dat.file = bnd_file,
+  change_tble(dat.file = bnd_file,
                        s.id = '66',
                        tble = fra_main[, c('ts', 'fra')],
                        output = bnd_file,
