@@ -41,8 +41,8 @@ his_location <- function(his.file = "") {
   close(con)
   his.locs <- data.table(cbind(
     as.integer(loc_id),
-    trimws(loc_name,
-           whitespace = "[ \t\r\n\\h\\v]")
+    str_trim(loc_name, side = 'both')
+           # whitespace = "[ \t\r\n\\h\\v]")
   ))
   colnames(his.locs) <- c("location", "sobek.id")
   # try to read .HIA
