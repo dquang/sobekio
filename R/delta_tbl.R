@@ -96,8 +96,8 @@ get_summary_tbl <- function(
   cols <- c('Pegel',
             paste('bezug', hwe.list, sep = '_'),
             paste('ohne', hwe.list, sep = "_"),
-            paste('d_ob', hwe.list, sep = "_"),
             paste('mit', hwe.list, sep = "_"),
+            paste('d_ob', hwe.list, sep = "_"),
             paste('d_mb', hwe.list, sep = "_"),
             paste('d_mo', hwe.list, sep = "_")
   )
@@ -116,13 +116,13 @@ get_summary_tbl <- function(
   setcolorder(data_tbl, cols)
   # rounding data
   cols <- cols[-1]
-  if (param == 'waterlevel'){
+  if (param == 'waterlevel') {
     data_tbl[, (cols) := round(.SD, 2), .SDcols = cols]
   } else{
     data_tbl[, (cols) := round(.SD), .SDcols = cols]
   }
   
-  if (length(id.names) == length(data_tbl$Pegel)){
+  if (length(id.names) == length(data_tbl$Pegel)) {
     data_tbl$Pegel <- id.names
   }
   # exporting to html table
@@ -178,7 +178,7 @@ get_summary_tbl <- function(
                              'Delta (3) - (2)'
       )
       data_tbl <- data_tbl %>% 
-        kable() %>% 
+        kable(col.names = c('Pegel/Lage', rep(hwe.list, 6))) %>% 
         kable_styling(c("striped", "bordered")) %>%
         add_header_above(header = tbl_header)
     }

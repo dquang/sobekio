@@ -4,10 +4,16 @@
 # this function get definition table of triggers (trigger.def)
 .get_trigger_def <- function(trigger.file = NULL){
   stopifnot(file.exists(trigger.file))
-  trig_def <- fread(trig_def_f, sep = "\n", header = FALSE)
+  trig_def <- fread(trigger.file, sep = "\n", header = FALSE)
   trig_def[, orig_line_nr := .I]
-  str_mt <-  str_match(trig_def$V1, "TRGR id '([^']*)'")
+  str_mt <-  str_match(trig_def$V1,
+                       "TRGR id '([^']*)' nm '([^']*)'")
+  #ty ([0-9]{1}) tp ([0-9]{1})
   trig_def$id <- str_mt[, 2]
+  trig_def$nm <- str_mt[, 3]
+  trig_def$ty <- str_match(trig_def$V1, "ty ([0-9]{1}) ")[, 2]
+  trig_def$tp <- str_match(trig_def$V1, "tp ([0-9]{1}) ")[, 2]
+  trig_def$ml <- str_match(trig_def$V1, " ml '([^']*)' ")[, 2]
   # cumulative sum of the id, i.e. 
   # id takes the value of the first element, grouping by none-NA
   trig_def[, id := id[1], by = .(cumsum(!is.na(id)))]
@@ -16,10 +22,62 @@
 }
 
 
-.get_trigger_tbl <- function(
-  trig.id, trig.def
-){
-  return(trig.def[id == trig.id, c('V1', 'id')])
+# get_trigger_tbl <- function(
+#   case.name, sobek.project
+# ){
+#   return(trig.def[id == trig.id, c('V1', 'id')])
+# }
+
+
+#' Get information table for one trigger
+#'
+#' This function read important information of a trigger from the project case.
+#'
+#' @param t.id Id of the trigger
+#' @param case.name Name of the case
+#' @param sobek.project Path to Sobek project
+#' @param html If TRUE, return a html table
+#'
+#' @return a data.table or a html.table
+#' @export
+get_trigger_info <- function(t.id, case.name, sobek.project, html = TRUE) {
+  t_file <- get_file_path(case.name, sobek.project, type = 'trigger')
+  trig_def <- .get_trigger_def(t_file)[id == t.id]
+  t_type <- switch(trig_def[1, ty],
+                   '0' = 'time',
+                   '1' = 'hydraulic',
+                   '2' = 'combined')
+  t_par <- switch(trig_def[1, tp],
+                  '0' = 'waterlevel at branch location',
+                  '1' = 'head difference over structure',
+                  '2' = 'discharge at branch location',
+                  '3' = 'gate lower edge level',
+                  '4' = 'crest level',
+                  '6' = 'crest width',
+                  '6' = 'waterlevel in retention area',
+                  '7' = 'pressure difference over structure'
+                  )
+  trig_tbl <- data.table(
+    Parameter = list(
+      'Trigger_ID', 'Trigger_name', 'Trigger_type', 'Trigger_parameter', 
+      'Trigger_measurement', 'Trigger_tble'
+    ),
+    Value = list(
+      trig_def[1, id], trig_def[1, nm], t_type, t_par, trig_def[1, ml],
+      paste(trig_def[grepl(" <$", V1), V1], collapse = "<br>")
+    )
+  )
+  
+  if (isTRUE(html)) {
+    trig_tbl <- htmlTable::htmlTable(
+      trig_tbl,
+        align = 'l',
+        caption = paste(
+          "Information table of the Trigger:", t.id),
+        tfoot = paste('Case:', case.name)
+    )
+  }
+  return(trig_tbl)
 }
 
 
@@ -219,29 +277,81 @@
 #' Get information of a controller
 #' @param ct.id ID of the controller
 #' @param def.file Path to control.def file
+#' @param case.name Name of the case (considered if def.file == NULL)
+#' @param sobek.project Path to sobek.project (considered if def.file == NULL)
+#' @param trigger If TRUE, information about triggers will be given
 #' @export
 #' @return a list
 get_control_info <- function(ct.id = NULL,
-                             def.file = NULL){
+                             def.file = NULL,
+                             case.name = NULL,
+                             sobek.project = NULL,
+                             trigger = FALSE,
+                             html = TRUE
+                             ) {
+  
+  if (is.null(def.file)) {
+    def.file <- get_file_path(case.name, sobek.project, type = 'control.def')
+  } else {
+    if (isTRUE(trigger)) {
+      stopifnot(!is.null(case.name) & !is.null(sobek.project))
+    }
+  }
   ct_def <- .get_control_def(control.def.f = def.file)
-  ct_id_tbl <- ct_def[id == ct.id][1,]
+  ct_id_tbl <- ct_def[id == ct.id][1, ]
   ct_info_list <- list(
-    'ID' = ct_id_tbl$id,
-    'Name' = ct_id_tbl$name,
+    'Control_ID' = ct_id_tbl$id,
+    'Control_name' = ct_id_tbl$name,
     'Control_type' = .get_control_type(ct_id_tbl$ct),
     'Control_parameter' = .get_control_parameter(ct_id_tbl$ca),
     'Controlled_active' = ct_id_tbl$ac,
-    'Measurement_ID' = ct_id_tbl$ml,
+    'Control_measurement' = ct_id_tbl$ml,
     'Measured_parameter' = .get_type_of_measured_param(ct_id_tbl$cp),
     'Time_lag' = ct_id_tbl$mp,
     'Update_frequency' = ct_id_tbl$cf,
     'Trigger_active' = ct_id_tbl$ta,
     'Trigger_IDs' = ct_id_tbl$gi,
     'dValue/dt' = ct_id_tbl$mc,
-    'tble' = .get_control_tbl(ct.id, ct_def)
+    'Control_tble' = .get_control_tbl(ct.id, ct_def)
   )
   ct_info_tbl <- data.table(Parameter = names(ct_info_list),
                             Value = ct_info_list)
+  r.group <- c("Structure Information")
+  n.rgroup <- c(11) # Number of rows for "Structure information"
+  if (isTRUE(trigger)) {
+    trig_all <- str_match(
+      ct_info_tbl[Parameter == 'Trigger_IDs', Value], 
+      "'([^']+)' '([^']+)' '([^']+)' '([^']+)'"
+    )[, 2:5]
+    trig_all <- trig_all[trig_all != '-1']
+    if (length(trig_all) > 0) {
+      trig_tbl <- rbindlist(lapply(trig_all, get_trigger_info,
+                                   case.name = case.name, 
+                                   sobek.project = sobek.project,
+                                   html = FALSE)
+                            )
+      ct_info_tbl <- rbind(ct_info_tbl, trig_tbl)
+      r.group <- c("Controller Information")
+      n.rgroup <- c(13) # Number of rows for "Controller information"
+      ct_info_tbl[, orig_line := .I - 1]
+      r.group <- c("Controller Information", paste('Trigger', trig_all))
+      n.rgroup <- c(ct_info_tbl[Parameter == 'Trigger_ID', orig_line], 
+                    nrow(ct_info_tbl)) 
+      n.rgroup <- n.rgroup - shift(n.rgroup, 1, fill = 0)
+      ct_info_tbl[, orig_line := NULL]
+    }
+  }
+  if (isTRUE(html)) {
+    ct_info_tbl <- htmlTable::htmlTable(
+      ct_info_tbl,
+      align = 'l',
+      rgroup = r.group,
+      n.rgroup = n.rgroup,
+      caption = paste(
+        "Information table of the Controller:", ct.id),
+      tfoot = paste('Case:', case.name)
+    )
+  }
   return(ct_info_tbl)
 }
 
@@ -251,6 +361,8 @@ get_control_info <- function(ct.id = NULL,
 #' @param case.name Name of the case
 #' @param sobek.project Path to sobek project
 #' @param html Output to HTML table? Default TRUE
+#' @param trigger If TRUE, information about triggers will be given
+#' @param control If TRUE, information about controllers will be given
 #' @import data.table
 #' @export
 #' @return a data.table or a HTML object
@@ -258,7 +370,9 @@ get_struct_info <- function(
   s.id = NULL,
   case.name = NULL,
   sobek.project = NULL,
-  html = TRUE
+  html = TRUE,
+  trigger = TRUE,
+  control = TRUE
 ){
 
   # get path to files
@@ -277,9 +391,9 @@ get_struct_info <- function(
   str_id_tbl <- str_dat_tbl[id == s.id][1,]
   str_id_def <- str_def_tbl[def_ID == str_id_tbl$def_ID][1,]
   str_id_list <- list(
-    ID = s.id,
-    Name = str_id_tbl$name,
-    Type = .get_struct_type(str_id_def$def_ty),
+    Struct_ID = s.id,
+    Struct_name = str_id_tbl$name,
+    Struct_type = .get_struct_type(str_id_def$def_ty),
     "Crest_level" = str_id_def$cl,
     "Crest_width" = str_id_def$cw,
     Controller = str_id_tbl$ca,
@@ -290,7 +404,7 @@ get_struct_info <- function(
   if (!is.na(str_id_tbl$cj)){
     cj_list <- str_split(str_id_tbl$cj, ' ', simplify = TRUE)[1, ]
     ct_id_list <- gsub("'", "", cj_list[!grepl("'-1'", cj_list)])
-    if (length(ct_id_list) > 0){
+    if (length(ct_id_list) > 0) {
       str_id_list$Total_controllers <- length(ct_id_list)
       # ct_id_tbl <- subset(ct_def_tbl, id %in% ct_id_list & !is.na(ct))
       for (i in seq_along(ct_id_list)){
@@ -303,69 +417,34 @@ get_struct_info <- function(
     Parameter = names(str_id_list),
     Value = str_id_list
   )
-  if (isTRUE(html)){
+  r.group <- c("Structure Information")
+  n.rgroup <- c(11) # Number of rows for "Structure information"
+  if (isTRUE(control) & length(ct_id_list) > 0) {
+    ct_tbl <- rbindlist(lapply(ct_id_list, get_control_info,
+                        def.file = NULL, 
+                        case.name = case.name, 
+                        sobek.project = sobek.project,
+                        html = FALSE,
+                        trigger = trigger))
+    str_info_tbl <- rbind(str_info_tbl, ct_tbl)
+    # calculating number of rows for each Controller group
+    str_info_tbl[, orig_line := .I - 1]
+    r.group <- c("Structure Information", paste('Controller', ct_id_list))
+    n.rgroup <- c(str_info_tbl[Parameter == 'Control_ID', orig_line], 
+                 nrow(str_info_tbl)) 
+    n.rgroup <- n.rgroup - shift(n.rgroup, 1, fill = 0)
+    str_info_tbl[, orig_line := NULL]
+  }
+  if (isTRUE(html)) {
     str_info_tbl <- htmlTable::htmlTable(
       str_info_tbl,
       align = 'l',
+      rgroup = r.group,
+      n.rgroup = n.rgroup,
       caption = paste(
         "Information table of the structure:", s.id),
       tfoot = paste('Case:', case.name)
       )
   }
   return(str_info_tbl)
-}
-
-
-#' Get controlling information of a structure
-#' @param s.id ID of the structure
-#' @param case.name Name of the case
-#' @param sobek.project Path to sobek project
-#' @param html Should output to a HTML object. Default TRUE
-#' @export
-#' @return a data.table, a HTML object or NA
-get_struct_ct <- function(
-  s.id = NULL,
-  case.name = NULL,
-  sobek.project = NULL,
-  html = TRUE
-){
-  str_info_tbl <- get_struct_info(
-    s.id = s.id,
-    case.name = case.name,
-    sobek.project = sobek.project,
-    html = FALSE
-  )
-  ct_def_f <- get_file_path(case.name = case.name,
-                            sobek.project = sobek.project,
-                            type = 'control.def')
-  total_ct <- str_info_tbl[Parameter == 'Total_controllers', Value]
-  if (total_ct > 0){
-    ct_list <- str_info_tbl[grepl('^Control_', Parameter), Value]
-    ct_info_list <- lapply(ct_list, get_control_info, def.file = ct_def_f)
-    ct_info_tbl <- ct_info_list[[1]]
-    colnames(ct_info_tbl) <- c('Parameter', 'Controller_1')
-    if (length(ct_info_list) > 1){
-      for (i in 2:length(ct_info_list)){
-        ct_info_tbl <- merge(ct_info_tbl, ct_info_list[[i]], by = 'Parameter',
-                             sort = FALSE)
-        # colnames(ct_info_tbl) <- c('Parameter',
-        #                            paste('Controller', i, sep = '_'))
-      }
-    }
-    colnames(ct_info_tbl) <- c('Parameter',
-                               paste('Controller',
-                                     1:length(ct_info_list), sep = '_')
-                               )
-    if (isTRUE(html)){
-      ct_info_tbl <- htmlTable::htmlTable(
-        ct_info_tbl,
-        align = 'l',
-        caption = paste(
-          "Controlling information table of the structure:", s.id),
-        tfoot = paste('Case:', case.name)
-        )
-    }
-    return(ct_info_tbl)
-  }
-  return(NA)
 }

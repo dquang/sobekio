@@ -109,7 +109,7 @@ get_file_path <- function(case.name = NULL,
                                   case.list = sobek_clist)
   if (is.na(case_number)) stop("Case with name: ", case.name,
                                " not found in ", sobek_cmt)
-  his_file <- switch(type,
+  his_file <- switch(tolower(type),
                      node = "CALCPNT.HIS",
                      reach = "REACHSEG.HIS",
                      lateral = "QLAT.HIS",

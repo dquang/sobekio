@@ -38,6 +38,8 @@ plot_polder <- function(
   sobek.project = NULL,
   master.tbl = NULL,
   param = 'discharge',
+  q.vor = TRUE,
+  q.nach = TRUE,
   q.in = FALSE,
   q.out = FALSE,
   w.canal = FALSE,
@@ -189,18 +191,23 @@ plot_polder <- function(
   }
   if (isTRUE(verbose)) print('Adding hydrographs...')
   # if parameter is discharge, move waterlevel to secondary axis
-  if (tolower(param) == 'discharge'){
-    g <- g +
-      geom_line(aes(
-        y = Nach,
-        color = 'Q nach Maßnahme'
-      ),
-      size = 1) +
-      geom_line(aes(
-        y = Vor,
-        color = 'Q vor Maßnahme'
-      ),
-      size = 1)
+  if (tolower(param) == 'discharge') {
+    if (isTRUE(q.nach)) {
+      g <- g +
+        geom_line(aes(
+          y = Nach,
+          color = 'Q nach Maßnahme'
+        ),
+        size = 1)
+    }
+    if (isTRUE(q.vor)) {
+      g <- g +
+        geom_line(aes(
+          y = Vor,
+          color = 'Q vor Maßnahme'
+        ),
+        size = 1)
+    }
     if (isTRUE(w.canal)){
       q.in <- FALSE
       y2_min <- min(id_data$W_innen, na.rm = TRUE)
@@ -219,7 +226,7 @@ plot_polder <- function(
     }
     einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
     auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
-    if (isTRUE(q.in)){
+    if (isTRUE(q.in)) {
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
       y2_min <- id_data[, .SD,
                         .SDcols = einlass_cols
@@ -234,7 +241,7 @@ plot_polder <- function(
         y2_shift <- floor(y2_shift - y2_min*y2.scale)
       }
       # adding Einlass lines
-      if (length(einlass_cols) > 1){
+      if (length(einlass_cols) > 1) {
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
                                 variable.name = 'Einlass',
                                 value.name = 'Q_Einlass')
@@ -251,7 +258,7 @@ plot_polder <- function(
         size = 1)
       }
     }
-    if (isTRUE(q.out)){
+    if (isTRUE(q.out)) {
       y2_min <- id_data[, .SD,
                         .SDcols = c(einlass_cols, auslass_cols)
                         ] %>%
