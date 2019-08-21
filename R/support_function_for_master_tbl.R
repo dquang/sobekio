@@ -48,20 +48,16 @@ get_id_tbl <- function(
 ){
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   id_tbl <- master.tbl[grepl(name, besonderheit)]
-  if (drv == 'auto'){
+  
+  if (drv == 'auto') {
     str_mt <- str_match(id_tbl$besonderheit,
                             paste('(^.+)_', name, sep = "")
                             )
     measure_type <- toupper(unique(str_mt[,2]))
-    if (length(measure_type) > 1) {
       # warning('Type of the measure is not unique: ', measure_type)
-      if ('DRV' %in% measure_type) drv <- TRUE
-    } else{
-      drv <- ifelse(measure_type == 'DRV', TRUE, FALSE)
-    }
+    drv <- ifelse('DRV' %in% measure_type, TRUE, FALSE)
   }
-  if (isTRUE(drv)){
-
+  if (isTRUE(drv)) {
     drv_begin <- id_tbl[grepl(".+_Begin", besonderheit), km][[1]]
     drv_end <- id_tbl[grepl(".+_End", besonderheit), km][[1]]
     if (drv_begin < drv_end){
@@ -79,7 +75,7 @@ get_id_tbl <- function(
   }
   stopifnot(nrow(id_tbl) > 1)
   # creating new columns based on case name
-  for (i in seq_along(case.desc)){
+  for (i in seq_along(case.desc)) {
     col_n <- paste('case_desc', i, sep = "_")
     id_tbl[, eval(col_n) := case.desc[[i]]]
   }
@@ -93,10 +89,10 @@ get_id_tbl <- function(
   zustand_in_cases <- unique(as.character(case_tbl$zustand))
   id_tbl[, ID_F := ID]
   id_tbl_cols <- colnames(id_tbl)
-  for (i in seq_along(zustand_in_cases)){
-    if (zustand_in_cases[i] %in% id_tbl_cols){
+  for (i in seq_along(zustand_in_cases)) {
+    if (zustand_in_cases[i] %in% id_tbl_cols) {
       # get final, correct ID for each case
-      id_tbl[zustand == zustand_in_cases[i],
+      id_tbl[nchar(get(zustand_in_cases[i])) > 0,
              ID_F := get(zustand_in_cases[i])]
     }
 

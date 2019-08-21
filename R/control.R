@@ -101,6 +101,8 @@ get_trigger_info <- function(t.id, case.name, sobek.project, html = TRUE) {
     "STRU id.*ca (\\d \\d \\d \\d) cj ('[^']*' '[^']*' '[^']*' '[^']*').* stru")
   str_tbl$ca <- str_mt[, 2]
   str_tbl$cj <- str_mt[, 3]
+  str_tbl[is.na(ca), ca := str_match(V1, " ca (\\d) ")[, 2]]
+  str_tbl[is.na(cj), cj := str_match(V1, " cj ('[^']*') ")[, 2]]
 
   return(str_tbl)
 }
@@ -201,10 +203,10 @@ get_trigger_info <- function(t.id, case.name, sobek.project, html = TRUE) {
     "Culvert/Siphon",
     "Universal weir",
     "Bridge",
-    "Bbranch growth 1D Dam break node",
-    "Bbranch growth 2D Dam break node"
+    "Branch growth 1D Dam break node",
+    "Branch growth 2D Dam break node"
   )
-  if (s.id %in% id_list){
+  if (s.id %in% id_list) {
     str_type <- str_type_list[id_list == s.id]
   } else{
     str_type <- NULL
@@ -265,9 +267,9 @@ get_trigger_info <- function(t.id, case.name, sobek.project, html = TRUE) {
     "Flow direction",
     "Pressure difference"
   )
-  if (cp.id %in% id_list){
+  if (cp.id %in% id_list) {
     cp_type <- cp_type_list[id_list == cp.id]
-  } else{
+  } else {
     cp_type <- NULL
   }
   return(cp_type)
@@ -384,7 +386,7 @@ get_struct_info <- function(
                              type = 'struct.dat')
 
   str_dat_tbl <- .get_struct_dat(str_dat_f)
-  if (!s.id %in% str_dat_tbl$id){
+  if (!s.id %in% str_dat_tbl$id) {
     stop(s.id, ' not found in struct.dat. Remember that cases are sensitive')
   }
   str_def_tbl <- .get_struct_def(str_def_f)
@@ -401,7 +403,7 @@ get_struct_info <- function(
     'Total_controllers' = 0L,
     'Definition_ID' = str_id_tbl$def_ID
   )
-  if (!is.na(str_id_tbl$cj)){
+  if (!is.na(str_id_tbl$cj)) {
     cj_list <- str_split(str_id_tbl$cj, ' ', simplify = TRUE)[1, ]
     ct_id_list <- gsub("'", "", cj_list[!grepl("'-1'", cj_list)])
     if (length(ct_id_list) > 0) {
@@ -412,6 +414,8 @@ get_struct_info <- function(
         str_id_list[[ct_name]] <- ct_id_list[[i]]
       }
     }
+  } else {
+    ct_id_list <- NULL
   }
   str_info_tbl <- data.table(
     Parameter = names(str_id_list),
@@ -448,3 +452,119 @@ get_struct_info <- function(
   }
   return(str_info_tbl)
 }
+
+
+
+#' Turn off Weir(s) / Weir(s)
+#'
+#' Turn off Weir(s) / Weir(s) by deactivate all controllers and set crest width to 0
+#'
+#' @param struct Name(s) of the (River) Weir(s)
+#' @param case Case name
+#' @param sobek.project Path to sobek project
+#' @export
+set_struct_off <- function(
+  struct = NULL,
+  case.name = NULL,
+  sobek.project = NULL) {
+  struct.dat.f <- get_file_path(case.name = case.name, 
+                                sobek.project = sobek.project,
+                                type = 'struct.dat')
+  struct.def.f <- get_file_path(case.name = case.name, 
+                                sobek.project = sobek.project,
+                                type = 'struct.def')
+  struct_dat <- .get_struct_dat(struct.dat.f)
+  struct_def <- .get_struct_def(struct.def.f)
+  for (i in seq_along(struct)) {
+    struct_def_id <- struct_dat[id == struct[[i]], def_ID]
+    # deactivate all controllers, prevent time controllers open the structure
+    struct_dat[id == struct[[i]], 
+               V1 := str_replace(V1, 'ca \\d \\d \\d \\d', 'ca 0 0 0 0')]
+    struct_dat[id == struct[[i]], 
+               V1 := str_replace(V1, 'ca \\d ', 'ca 0 ')]
+    # change crest-width to 0, no water coming in
+    struct_def[def_ID == struct_def_id, V1 := str_replace(V1, ' cw \\S+ ',
+                                                          ' cw 0 ')]
+  }
+  file.copy(struct.dat.f, paste(struct.dat.f, ".BAK", sep = ""))
+  file.copy(struct.def.f, paste(struct.dat.f, ".BAK", sep = ""))
+  fwrite(struct_dat[, .SD, .SDcols = c("V1")], struct.dat.f, sep = "\n",
+         col.names = FALSE, quote = FALSE)
+  fwrite(struct_def[, .SD, .SDcols = c("V1")], struct.def.f, sep = "\n",
+         col.names = FALSE, quote = FALSE)
+}
+
+
+#' Turn on one River Weir / Weir
+#'
+#' Turn on one River Weir / Weir by activate related controllers and set its  characters
+#'
+#' @param struct Name(s) of the (River) Weir(s)
+#' @param cw Struct Crest Width
+#' @param ct Struct controller ID(s), ex. c("##114", "##112")
+#' @param case Case name
+#' @param sobek.project Path to sobek project
+#' @export
+set_struct_on <- function(
+  struct = NULL,
+  cw = NULL,
+  ct = NULL,
+  case.name = NULL,
+  sobek.project = NULL) {
+  
+  struct.dat.f <- get_file_path(case.name = case.name,
+                                sobek.project = sobek.project,
+                                type = 'struct.dat')
+  struct.def.f <- get_file_path(case.name = case.name,
+                                sobek.project = sobek.project,
+                                type = 'struct.def')
+  struct_dat <- .get_struct_dat(struct.dat.f)
+  struct_def <- .get_struct_def(struct.def.f)
+  struct_def_id <- struct_dat[id == struct, def_ID]
+  struct_type <- struct_def[def_ID == struct_def_id, def_ty][[1]]
+  # deactivate all controllers, prevent time controllers open the structure
+  ct <- unlist(ct)
+  if (!is.null(ct)) {
+    # number of controllers is between 1 and 4
+    stopifnot(length(ct) < 4 & length(ct) > 0)
+    if (!struct_type %in% c("0", "6")) stop('Only support Weir or River Weir')
+    # struct_type 0 for River Weir with max 4 Controllers
+    if (struct_type == "0") {
+      ca_match_patt <- " ca \\d \\d \\d \\d "
+      cj_match_patt <- " cj '[^']+' '[^']+' '[^']+' '[^']+' "
+      ca_rep_patt <- c(" ca", '0', '0', '0', '0', '')
+      cj_rep_patt <- c(" cj", "'-1'", "'-1'", "'-1'", "'-1'", "")
+      # ca_patt <- "'ca"
+      for (s in seq_along(ct)) {
+        ca_rep_patt[s + 1] <- '1'
+        cj_rep_patt[s + 1] <- paste("'", ct[[s]], "'", sep = "")
+      }
+      ca_rep_patt <- paste(ca_rep_patt, collapse = " ")
+      cj_rep_patt <- paste(cj_rep_patt, collapse = " ")
+    }
+    # struct_type 6 for simple Weir with max only one controller
+    if (struct_type == "6") {
+      if (length(ct) > 1) stop("Too many controllers for a Weir")
+      ca_match_patt <- " ca \\d "
+      cj_match_patt <- " cj '[^']+' "
+      ca_rep_patt <- c(" ca 1 ")
+      cj_rep_patt <- paste(" cj '", ct[[1]], "' ")
+    }
+    struct_dat[id == struct, 
+               V1 := str_replace(V1, ca_match_patt, ca_rep_patt)]
+  }
+  # change crest-width to cw
+  if (!is.null(cw)) {
+    cw_rep <- paste(' cw ', cw, ' ', sep = '')
+    struct_def[def_ID == struct_def_id, 
+               V1 := str_replace(V1, " cw \\S+ ", cw_rep)
+               ]
+  }
+  file.copy(struct.dat.f, paste(struct.dat.f, ".BAK", sep = ""))
+  file.copy(struct.def.f, paste(struct.dat.f, ".BAK", sep = ""))
+  fwrite(struct_dat[, .SD, .SDcols = c("V1")], struct.dat.f, sep = "\n",
+         col.names = FALSE, quote = FALSE)
+  fwrite(struct_def[, .SD, .SDcols = c("V1")], struct.def.f, sep = "\n",
+         col.names = FALSE, quote = FALSE)
+}
+

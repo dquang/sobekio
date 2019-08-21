@@ -4,6 +4,7 @@
 #' @import ggplot2
 #' @importFrom stringi stri_conv
 #' @importFrom dplyr %>% select starts_with near filter
+#' @importFrom purrr map_dbl map_int
 #' @import data.table
 #' @import grid
 #' @importFrom kableExtra kable kable_styling pack_rows add_header_above
