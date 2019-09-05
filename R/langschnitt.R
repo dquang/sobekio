@@ -63,6 +63,7 @@ plot_drv <- function(
   text.x.top.size = 8L,
   text.x.bottom.angle = 0L,
   ntick.x = 10L,
+  ntick.y = 7L,
   a.fill =  exl_std[3],
   a.alpha = 0.1,
   overlap = NULL,
@@ -248,7 +249,7 @@ plot_drv <- function(
     if (y1_length < 10) {
       y1_max_1 <- y1_max * 100
       y1_min_1 <- y1_min * 100
-      y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+      y1_pretty <- pretty(y1_min_1:y1_max_1,  ntick.y, ntick.y)
       y1_pretty <- y1_pretty / 100
     } else{
       y1_pretty <- pretty(y1_min:y1_max, 5, 5)
@@ -257,7 +258,7 @@ plot_drv <- function(
     if (length(y1_pretty) < 5 | check_y1_pretty > 1){
       y1_min_1 <- y1_min * 10
       y1_max_1 <- y1_max * 10
-      y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+      y1_pretty <- pretty(y1_min_1:y1_max_1,  ntick.y, ntick.y)
       y1_pretty <- y1_pretty/10
       # y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     }
@@ -282,7 +283,7 @@ plot_drv <- function(
       if (length(y1_pretty) < 5 | check_y1_pretty > 1){
         y1_min_1 <- y1_min * 10
         y1_max_1 <- y1_max * 10
-        y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+        y1_pretty <- pretty(y1_min_1:y1_max_1,  ntick.y, ntick.y)
         y1_pretty <- y1_pretty/10
       }
       if (!is.null(y2.tick1)) {
@@ -508,6 +509,7 @@ plot_longprofile <- function(
   text.x.top.size = 8L,
   text.x.bottom.angle = 0L,
   ntick.x = 10L,
+  ntick.y = 7L,
   highlight = NULL,
   highlight.text = NULL,
   a.fill = exl_std[3],
@@ -702,7 +704,7 @@ plot_longprofile <- function(
     if (y1_length < 10) {
       y1_max_1 <- y1_max * 100
       y1_min_1 <- y1_min * 100
-      y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+      y1_pretty <- pretty(y1_min_1:y1_max_1,  ntick.y, ntick.y)
       y1_pretty <- y1_pretty / 100
     } else{
       y1_pretty <- pretty(y1_min:y1_max, 5, 5)
@@ -711,7 +713,7 @@ plot_longprofile <- function(
     if (length(y1_pretty) < 5 | check_y1_pretty > 1){
       y1_min_1 <- y1_min * 10
       y1_max_1 <- y1_max * 10
-      y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+      y1_pretty <- pretty(y1_min_1:y1_max_1,  ntick.y, ntick.y)
       y1_pretty <- y1_pretty/10
       # y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     }
@@ -736,7 +738,7 @@ plot_longprofile <- function(
       if (length(y1_pretty) < 5 | check_y1_pretty > 1){
         y1_min_1 <- y1_min * 10
         y1_max_1 <- y1_max * 10
-        y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
+        y1_pretty <- pretty(y1_min_1:y1_max_1,  ntick.y, ntick.y)
         y1_pretty <- y1_pretty/10
       }
       if (!is.null(y2.tick1)) {

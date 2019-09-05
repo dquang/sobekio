@@ -124,7 +124,7 @@ get_segment_id_tbl <- function(
   stopifnot(from.km < to.km)
   # get the main river that has the most IDs if river == NULL
   river_ids <- master.tbl[, .N, by = river]
-  if (is.null(river)){
+  if (is.null(river)) {
     setorder(river_ids, -N)
     river <- river_ids$river[[1]]
   } else{
@@ -203,8 +203,7 @@ get_segment_data <- function(
     case.desc = case.desc,
     master.tbl = master.tbl
   )
-  segment_data_list <- list(rep(NA, length(case.list)))
-
+  # parallel reading data from cases
   if (isTRUE(do.par)) {
     if (isTRUE(verbose)) {
       print(paste('Getting data for',
@@ -241,11 +240,12 @@ get_segment_data <- function(
     }
     doParallel::stopImplicitCluster()
   } else{
+    segment_data_list <- list(rep(NA, length(case.list)))
     if (isTRUE(verbose)) {
       print(paste('Getting data for',
                   round(nrow(id_tbl)/length(case.list)),
                   'ID(s) in', length(case.list), 'case(s)'))
-      print('Try it will do.par = TRUE if you have more than 2 cases and so many IDs')
+      print('Try it with do.par = TRUE if you have more than one case and so many IDs')
       print('Please be patient...')
     }
     if (param == 'discharge') {
@@ -260,7 +260,7 @@ get_segment_data <- function(
         )
       }
     } else{
-      for (i in seq_along(case.list)){
+      for (i in seq_along(case.list)) {
         segment_data_list[[i]] <- his_from_case(
           case.list = case.list[[i]],
           sobek.project = sobek.project,
@@ -273,8 +273,35 @@ get_segment_data <- function(
     }
     segment_data <- rbindlist(segment_data_list, use.names = FALSE)
   }
-  if (isTRUE(get.max)){
-    if (isTRUE(get.max)) print('Calculating max values....')
+  # processing river segment that are divided in two or more branches
+  # to sum discharge at reaches that have same chainages along branches together
+  q_dup_new_col <- vector(mode = 'character')
+  q_dup_id <- vector(mode = 'character')
+  if (param == 'discharge') {
+    for (i in seq_along(case.list)) {
+      # get list of qIDs for this case
+      qid = id_tbl[case == case.list[[i]] &
+                     ID_TYPE == 'qID', list(km, ID_F)]
+      # finding the IDs that have duplicated km
+      qid_dup = qid[duplicated(km), km]
+      #setorder(qid_dup, km)
+      for (k in qid_dup) {
+        qid_k <- qid[km == k, ID_F]
+        #new_col = paste('q_km', k, sep = '_')
+        segment_data[case == case.list[[i]],
+                     eval(qid_k[1]) := rowSums(.SD, na.rm = TRUE), 
+                     .SDcols = qid_k
+                     ]
+        segment_data[case == case.list[[i]], 
+                     c(qid_k[-1]) := as.list(rep(NA, length(qid_k[-1])))
+                     ]
+        # change new_col to qid_k[1] for merging with id_tbl and get KM
+        #names(segment_data)[names(segment_data) == new_col] <- qid_k[1]
+      }
+    }
+  }
+  if (isTRUE(get.max)) {
+    if (isTRUE(verbose)) print('Calculating max values....')
     segment_data <- segment_data[, lapply(.SD, max, na.rm = TRUE),
                          .SDcols = -c("ts"), by = case] %>%
       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
@@ -293,7 +320,7 @@ get_segment_data <- function(
   # }
 
 
-  return(segment_data)
+  return(segment_data[!is.na(scheitel)])
 }
 
 

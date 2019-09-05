@@ -49,6 +49,7 @@ get_column_by_name <- function(column = NULL, df = NULL, suffix = "",
 #' @param date.labels Formatting of the date on x-axis
 #' @param text.x.angle Angle of text on x-axis
 #' @param text.size Size of all text
+#' @param h.lines list of (name = value) to be displayed as horizontal line
 #' @param ... This is the ID parameter to be transferred to his_from_case function. It is normally idType = idList
 #' @return A ggplot2 graphic
 #' @export
@@ -73,6 +74,7 @@ plot_multi_lines <- function(
   date.labels = "%d.%m.%Y",
   text.x.angle = 90L,
   text.size = 12L,
+  h.lines = NULL,
   ...
 ){
   stopifnot(!is.null(case.list), !is.null(sobek.project))
@@ -99,11 +101,12 @@ plot_multi_lines <- function(
     }
   }
   # cut table to peak.nday
-  if(!is.null(peak.nday)){
+  if (!is.null(peak.nday)) {
     cols <- colnames(qt[, .SD, .SDcols = -c('ts', 'case')])
-    if (is.null(peak.col)){
-      qt[, value_max := max(.SD, na.rm = TRUE), .SDcols = -c('ts'), by = case]
-      for (col_name in cols){
+    if (is.null(peak.col)) {
+      qt[, value_max := max(.SD, na.rm = TRUE), .SDcols = -c(peak.col), 
+         by = case]
+      for (col_name in cols) {
         qt[get(eval(col_name)) == value_max, ts_peak := ts]
       }
     } else{
@@ -146,7 +149,7 @@ plot_multi_lines <- function(
       date_labels = date.labels
     ) +
     geom_line(size = 1) +
-    theme_bw()+
+    theme_bw() +
     theme(
       legend.position = 'bottom',
       text = element_text(
@@ -156,9 +159,12 @@ plot_multi_lines <- function(
         angle = text.x.angle
       )
     ) +
-    ggtitle(p.title)+
+    ggtitle(p.title) +
     xlab(x.lab) + ylab(y.lab)
-  if (!is.null(facet.by)){
+  if (!is.null(h.lines)) {
+    #g + geom_hline()
+  }
+  if (!is.null(facet.by)) {
     g <- g + facet_grid(. ~ get(facet.by), scales = 'free_x')
   }
   g$labels$colour <- color.name

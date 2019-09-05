@@ -298,38 +298,38 @@ plot_peak_time <- function(
     # scale_shape_manual(values = c(1, 3)) +
     geom_vline(xintercept = indt[nchar(besonderheit) > 0, km],
                color = 'grey', size = 0.2)
-  g
-  p <- plotly::plot_ly(data = indt, 
-                       x = ~km,
-                       y = ~Zeitpunkt,
-                       color = ~case,
-                       symbol = ~Type
-  ) %>%
-    plotly::add_markers(
-      xaxis = 'x2',
-    ) %>%
-    plotly::layout(
-      legend = list(orientation = 'h',
-                    yanchor = 'bottom'),
-      # xaxis = list(rangemode = "tozero"),
-      xaxis2 = list(
-        side = 'bottom',
-        # rangemode = "tozero",
-        anchor = "y",
-        # overlaying = "x",
-        ticktext = indt[nchar(besonderheit) > 0, besonderheit],
-        tickvals = indt[nchar(besonderheit) > 0, km]
-      ),
-      xaxis2 = list(
-        side = 'top',
-        # rangemode = "tozero",
-        anchor = "y",
-        # overlaying = "x",
-        ticktext = indt[nchar(besonderheit) > 0, besonderheit],
-        tickvals = indt[nchar(besonderheit) > 0, km]
-      ),
-      yaxis = list(dtick = 86400000 / 6)
-    )
+  # g
+  # p <- plotly::plot_ly(data = indt, 
+  #                      x = ~km,
+  #                      y = ~Zeitpunkt,
+  #                      color = ~case,
+  #                      symbol = ~Type
+  # ) %>%
+  #   plotly::add_markers(
+  #     xaxis = 'x2',
+  #   ) %>%
+  #   plotly::layout(
+  #     legend = list(orientation = 'h',
+  #                   yanchor = 'bottom'),
+  #     # xaxis = list(rangemode = "tozero"),
+  #     xaxis2 = list(
+  #       side = 'bottom',
+  #       # rangemode = "tozero",
+  #       anchor = "y",
+  #       # overlaying = "x",
+  #       ticktext = indt[nchar(besonderheit) > 0, besonderheit],
+  #       tickvals = indt[nchar(besonderheit) > 0, km]
+  #     ),
+  #     xaxis2 = list(
+  #       side = 'top',
+  #       # rangemode = "tozero",
+  #       anchor = "y",
+  #       # overlaying = "x",
+  #       ticktext = indt[nchar(besonderheit) > 0, besonderheit],
+  #       tickvals = indt[nchar(besonderheit) > 0, km]
+  #     ),
+  #     yaxis = list(dtick = 86400000 / 6)
+  #   )
   # p
-  return(list(g = g, p = p))
+  return(g)
 }

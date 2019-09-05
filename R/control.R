@@ -568,3 +568,50 @@ set_struct_on <- function(
          col.names = FALSE, quote = FALSE)
 }
 
+
+
+#' Delete triggers OR controllers
+#'
+#' This function remove triggers OR controllers by IDs from files
+#'
+#' @param trig_ids IDs of triggers to remove
+#' @param cont_ids IDs of controllers to remove
+#' @param path path to trigger.def/control.def
+#' @param trig File name of trigger.def
+#' @param cont File name of control.def
+#' @param backup Default TRUE. To make a simple backup of the file
+#'
+#' @export
+delete_trigger_by_ids <- function(
+  trig_ids = NULL,
+  cont_ids = NULL,
+  path = ".",
+  trig = NULL,
+  cont = NULL,
+  backup = TRUE
+) {
+  
+  if (!is.null(trig_ids)) {
+    stopifnot(!is.null(trig))
+    trig_f <- paste(path, trig, sep = "/")
+    trig <- .get_trigger_def(trig_f)
+    trig_n <- trig[!id %in% trig_ids, ]
+    if (isTRUE(backup)) {
+      file.copy(trig_f, paste(trig_f, "_BAK", sep = ""), overwrite = TRUE)
+    }
+    fwrite(trig_n[, list(V1)], file = trig_f, col.names = FALSE,
+           quote = FALSE)
+  }
+  
+  if (!is.null(cont_ids)) {
+    stopifnot(!is.null(cont))
+    cont_f <- paste(path, cont, sep = "/")
+    cont <- .get_control_def(cont_f)
+    cont_n <- cont[!id %in% cont_ids, ]
+    if (isTRUE(backup)) {
+      file.copy(cont_f, paste(cont_f, "_BAK", sep = ""), overwrite = TRUE)
+    }
+    fwrite(cont_n[, list(V1)], file = cont_f, col.names = FALSE,
+           quote = FALSE)
+  }
+}
