@@ -516,7 +516,7 @@ plot_longprofile <- function(
   a.alpha = 0.1,
   overlap = NULL,
   talweg = FALSE,
-  master.tbl = NULL,
+  master.tbl,
   man.colors = NULL,
   verbose = TRUE,
   do.par = FALSE

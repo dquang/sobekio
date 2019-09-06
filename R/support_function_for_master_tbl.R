@@ -92,7 +92,7 @@ get_id_tbl <- function(
   for (i in seq_along(zustand_in_cases)) {
     if (zustand_in_cases[i] %in% id_tbl_cols) {
       # get final, correct ID for each case
-      id_tbl[nchar(get(zustand_in_cases[i])) > 0,
+      id_tbl[zustand == zustand_in_cases[i] & nchar(get(zustand_in_cases[i])) > 0,
              ID_F := get(zustand_in_cases[i])]
     }
 
@@ -151,10 +151,10 @@ get_segment_id_tbl <- function(
   zustand_in_cases <- unique(as.character(case_tbl$zustand))
   id_tbl[, ID_F := ID]
   id_tbl_cols <- colnames(id_tbl)
-  for (i in seq_along(zustand_in_cases)){
-    if (zustand_in_cases[i] %in% id_tbl_cols){
+  for (i in seq_along(zustand_in_cases)) {
+    if (zustand_in_cases[i] %in% id_tbl_cols) {
       # get final, correct ID for each case
-      id_tbl[zustand == zustand_in_cases[i],
+      id_tbl[zustand == zustand_in_cases[i] & nchar(get(zustand_in_cases[i])) > 0,
              ID_F := get(zustand_in_cases[i])]
     }
 
@@ -205,6 +205,9 @@ get_segment_data <- function(
   )
   # parallel reading data from cases
   if (isTRUE(do.par)) {
+    # rbind_fill <- function(...){
+    #   return(rbindlist(..., use.names = FALSE, fill = TRUE))
+    # }
     if (isTRUE(verbose)) {
       print(paste('Getting data for',
                   round(nrow(id_tbl)/length(case.list)),
@@ -215,10 +218,10 @@ get_segment_data <- function(
     # require("foreach", quietly = TRUE)
     doParallel::registerDoParallel(parallel::detectCores() - 1)
     `%dopar%` <- foreach::`%dopar%`
-    segment_data <- 
-      foreach::foreach(i = 1:length(case.list), .combine = rbind) %dopar% {
+    segment_data_list <- 
+      foreach::foreach(i = 1:length(case.list)) %dopar% {
       if (param == 'discharge') {
-          tmp <- his_from_case(
+          tmp <- sobekio::his_from_case(
             case.list = case.list[[i]],
             sobek.project = sobek.project,
             param = param,
@@ -271,8 +274,10 @@ get_segment_data <- function(
         )
       }
     }
-    segment_data <- rbindlist(segment_data_list, use.names = FALSE)
   }
+  segment_data <- rbindlist(segment_data_list,
+                            use.names = TRUE, fill = TRUE
+  )
   # processing river segment that are divided in two or more branches
   # to sum discharge at reaches that have same chainages along branches together
   q_dup_new_col <- vector(mode = 'character')
@@ -295,30 +300,24 @@ get_segment_data <- function(
         segment_data[case == case.list[[i]], 
                      c(qid_k[-1]) := as.list(rep(NA, length(qid_k[-1])))
                      ]
-        # change new_col to qid_k[1] for merging with id_tbl and get KM
-        #names(segment_data)[names(segment_data) == new_col] <- qid_k[1]
       }
     }
   }
   if (isTRUE(get.max)) {
     if (isTRUE(verbose)) print('Calculating max values....')
+    #sd_cols <- colnames(segment_data)
+    #sd_cols
     segment_data <- segment_data[, lapply(.SD, max, na.rm = TRUE),
                          .SDcols = -c("ts"), by = case] %>%
       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
     segment_data[is.infinite(scheitel), scheitel := NA]
-    segment_data <- merge(segment_data,
-                          id_tbl[, .SD, .SDcols = -c('ID')],
-                          by = c('case', 'ID_F'), sort = FALSE)
-  } #else{
-  #   segment_data <- segment_data %>%
-  #     melt(id.vars = c('ts', 'case'),
-  #          variable.name = 'ID_F',
-  #          value.name = 'value') %>%
-  #     merge(
-  #           id_tbl[, .SD, .SDcols = -c('ID')],
-  #           by = c('case', 'ID_F'), sort = FALSE)
-  # }
-
+    segment_data <- merge(
+      segment_data,
+      id_tbl[, .SD, .SDcols = c('ID_F', 'besonderheit', 'km', 'river', 'case')],
+      by = c('case', 'ID_F'),
+      sort = FALSE
+    )
+  }
 
   return(segment_data[!is.na(scheitel)])
 }
