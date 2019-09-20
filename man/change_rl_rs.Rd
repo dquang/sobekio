@@ -4,16 +4,21 @@
 \alias{change_rl_rs}
 \title{Change reference level of a cross section}
 \usage{
-change_rl_rs(crsn.id, pf.df, rl.new = 0, rs.new = rl.new + 10)
+change_rl_rs(id, case.name = NULL, sobek.project = NULL, rl.new = 0,
+  rs.new = rl.new + 10, profile.dat = NULL)
 }
 \arguments{
-\item{crsn.id}{ID of cross section}
+\item{id}{ID of cross section}
 
-\item{pf.df}{data.frame or path to the table of cross sections (profile.dat)}
+\item{case.name}{Name of the case}
+
+\item{sobek.project}{Path to sobek.project}
 
 \item{rl.new}{New value of bed level left}
 
 \item{rs.new}{New value of surface level right, default = rl.new + 10}
+
+\item{profile.dat}{Path to the profile.dat, if case and project were not given}
 }
 \description{
 Change reference level of a cross section

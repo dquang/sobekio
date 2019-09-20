@@ -20,7 +20,7 @@ sobek_sim <- function(case.name = NULL,
                  col.names = c("case_number", "case_name")
                  )
   # cname_is_number <- grepl("^\\d{1,}$", case.name)
-  if(grepl("^\\d{1,}$", case.name)){
+  if (grepl("^\\d{1,}$", case.name)) {
     c_number <- case.name
   } else{
     c_number <- .get_case_number(case.name, clist)
@@ -32,6 +32,7 @@ sobek_sim <- function(case.name = NULL,
   # copy relative file to working folder
   setwd(sobek.path)
   tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
+  tmp_folder <- paste(tmp_folder, floor(runif(1, 1, 10000)), sep = '_')
   # 03.06.2019 09:58 Change tmp_folder to absolut path,
   # for copying all data back (also restart files)
   tmp_folder <- paste(sobek.path, tmp_folder, sep = "\\")
@@ -64,7 +65,7 @@ sobek_sim <- function(case.name = NULL,
             )
   # cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "\\")
   wk_folder <- paste(tmp_folder, "WORK", sep = "\\")
-  if(!dir.exists(wk_folder)) dir.create(wk_folder)
+  if (!dir.exists(wk_folder)) dir.create(wk_folder)
   file.copy(from = dir(c_folder, full.names = TRUE,
                        recursive = TRUE,
                        all.files = TRUE,
@@ -82,7 +83,7 @@ sobek_sim <- function(case.name = NULL,
   fwrite(sim_ini, file = 'simulate.ini', col.names = FALSE,
          row.names = FALSE, quote = FALSE)
   cmd <- paste("cmd.exe /c ", sobek.path, "/programs/simulate.exe simulate.ini", sep = "")
-  if (interactive()){
+  if (interactive()) {
     print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
     print("If you need to do something else with R, please open another session")
   } else{
@@ -133,42 +134,42 @@ sobek_sim <- function(case.name = NULL,
       cdesc[V1 %like% "^VIEW1"] <- "VIEW1 2"
       cdesc[V1 %like% "^VIEW2"] <- "VIEW2 2"
       cdesc[V1 %like% "\\NETTER.DLF",
-            V1:=gsub("\\#\\NETTER.DLF",
+            V1 := gsub("\\#\\NETTER.DLF",
                      paste("\\", c_number,"\\NETTER.DLF", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\ODS2XLS.DLF",
-            V1:=gsub("\\#\\ODS2XLS.DLF",
+            V1 := gsub("\\#\\ODS2XLS.DLF",
                      paste("\\", c_number,"\\ODS2XLS.DLF", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\TABLES.LST",
-            V1:=gsub("\\#\\TABLES.LST",
+            V1 := gsub("\\#\\TABLES.LST",
                      paste("\\", c_number,"\\TABLES.LST", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\PARSEN.DMP",
-            V1:=gsub("\\#\\PARSEN.DMP",
+            V1 := gsub("\\#\\PARSEN.DMP",
                      paste("\\", c_number,"\\PARSEN.DMP", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\PARSEN.MSG",
-            V1:=gsub("\\#\\PARSEN.MSG",
+            V1 := gsub("\\#\\PARSEN.MSG",
                      paste("\\", c_number,"\\PARSEN.MSG", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\SOBEK.LOG",
-            V1:=gsub("\\#\\SOBEK.LOG",
+            V1 := gsub("\\#\\SOBEK.LOG",
                      paste("\\", c_number,"\\SOBEK.LOG", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\STRUC.HIS",
-            V1:=gsub("\\#\\STRUC.HIS",
+            V1 := gsub("\\#\\STRUC.HIS",
                      paste("\\", c_number,"\\STRUC.HIS", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\STRUC.HIA",
-            V1:=gsub("\\#\\STRUC.HIA",
+            V1 := gsub("\\#\\STRUC.HIA",
                      paste("\\", c_number,"\\STRUC.HIA", sep = ""),
                      V1, fixed = TRUE)
             ]
@@ -178,27 +179,27 @@ sobek_sim <- function(case.name = NULL,
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\STRUCDIM.HIA",
-            V1:=gsub("\\#\\STRUCDIM.HIA",
+            V1 := gsub("\\#\\STRUCDIM.HIA",
                      paste("\\", c_number,"\\STRUCDIM.HIA", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\REACHSEG.HIS",
-            V1:=gsub("\\#\\REACHSEG.HIS",
+            V1 := gsub("\\#\\REACHSEG.HIS",
                      paste("\\", c_number,"\\REACHSEG.HIS", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\REACHSEG.HIA",
-            V1:=gsub("\\#\\REACHSEG.HIA",
+            V1 := gsub("\\#\\REACHSEG.HIA",
                      paste("\\", c_number,"\\REACHSEG.HIA", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\REACHDIM.HIS",
-            V1:=gsub("\\#\\REACHDIM.HIS",
+            V1 := gsub("\\#\\REACHDIM.HIS",
                      paste("\\", c_number,"\\REACHDIM.HIS", sep = ""),
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\REACHDIM.HIA",
-            V1:=gsub("\\#\\REACHDIM.HIA",
+            V1 := gsub("\\#\\REACHDIM.HIA",
                      paste("\\", c_number,"\\REACHDIM.HIA", sep = ""),
                      V1, fixed = TRUE)
             ]
@@ -206,7 +207,7 @@ sobek_sim <- function(case.name = NULL,
              quote = FALSE)
       # ask_cp <- readline("copy result back to the case folder? (y/n): ")
 
-      if (overwrite){
+      if (overwrite) {
         # copy work folder back to case folder
         files_list <- list.files(".", recursive = TRUE, all.files = TRUE,
                                  no.. = TRUE)
@@ -215,14 +216,14 @@ sobek_sim <- function(case.name = NULL,
                   recursive = TRUE,
                   overwrite = TRUE)
         # copy restart folder back to restart folder
-        if (dir.exists("../restart")){
+        if (dir.exists("../restart")) {
           files_list <- list.files("../restart",
                                    recursive = TRUE,
                                    all.files = TRUE,
                                    full.names = TRUE,
                                    no.. = TRUE)
           file.copy(from = files_list,
-                    to = paste(sobek.project, 'restart', sep ="/") ,
+                    to = paste(sobek.project, 'restart', sep = "/") ,
                     recursive = TRUE,
                     overwrite = TRUE)
         }
@@ -269,6 +270,7 @@ sobek_edit <- function(case.name = NULL,
   # copy relative file to working folder
   setwd(sobek.path)
   tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
+  tmp_folder <- paste(tmp_folder, floor(runif(1, 1, 10000)), sep = '_')
   tmp_folder <- paste(sobek.path, tmp_folder, sep = "\\")
   wk_folder_del <- tmp_folder
   dir.create(tmp_folder)
@@ -429,6 +431,7 @@ sobek_view <- function(case.name = NULL,
   # copy relative file to working folder
   setwd(sobek.path)
   tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
+  tmp_folder <- paste(tmp_folder, floor(runif(1, 1, 10000)), sep = '_')
   # tmp_folder <- paste(sobek.path, tmp_folder, sep = "\\")
   dir.create(tmp_folder)
   cmt_folder <- paste(sobek.path, tmp_folder, 'CMTWORK', sep = "\\")
@@ -479,7 +482,7 @@ sobek_view <- function(case.name = NULL,
     fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE,
            col.names = FALSE)
   }
-  if (!external){
+  if (!external) {
     setwd(cmt_folder)
     cmd <- paste("cmd.exe /c ",
                  sobek.path,
@@ -487,7 +490,7 @@ sobek_view <- function(case.name = NULL,
                  cmt_folder, '\\ntrpluvr.ini ',
                  cmt_folder, '\\netter1.ntc ',
                  sep = "")
-    if (interactive()){
+    if (interactive()) {
       print("Waiting for NETTER. DO NOT terminate R or run any other commands...")
       print("If you need to do something else with R, please open another session")
     } else{
@@ -500,6 +503,7 @@ sobek_view <- function(case.name = NULL,
     system(command = cmd, wait = TRUE)
     # removing temp. data
     setwd(wkd)
+    cat('cleaning temporary data...')
     if (clear.temp) {
       unlink(wk_folder_del, recursive = TRUE)
     }
@@ -521,7 +525,7 @@ sobek_view <- function(case.name = NULL,
                     ' /s /q', sep = '')
     }
     cmd.file <- data.table(
-      V1=list(
+      V1 = list(
         '@echo off',
         cmd0,
         paste('echo You are viewing case:',

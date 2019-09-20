@@ -72,15 +72,16 @@ plot_drv <- function(
   verbose = TRUE,
   do.par = FALSE
 ){
+  param <- tolower(param)
   stopifnot(is.numeric(to.upstream) & is.numeric(to.downstream))
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
-  if (!is.null(compare.by)){
-    if (!compare.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')){
+  if (!is.null(compare.by)) {
+    if (!compare.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')) {
       stop("compare.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')")
     }
     cmp_vars <- unique(case_tbl[, get(compare.by)])
     if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
-    if (length(cmp_vars) != 2) {
+    if (length(cmp_vars) != 2 & isTRUE(delta)) {
       stop('compare.by must have two values not: ',
            str_flatten(cmp_vars, collapse = ", " ))
     }
@@ -106,13 +107,13 @@ plot_drv <- function(
     }
     total_case <-
       unique(as.vector(outer(cmp_vars, grp_vars, paste, sep = "_")))
-    if (compare.by != group.by){
+    if (compare.by != group.by) {
       if (length(total_case) != length(case.list)) {
         stop("Combination of compare.by and group.by is not distinct
              for calculating delta")
       }
     } else{
-      if (!near(length(total_case)/ 2, length(case.list), 0.1)) {
+      if (!near(length(total_case) / 2, length(case.list), 0.1)) {
         stop("Combination of compare.by and group.by is not distinct
              for calculating delta")
       }
@@ -177,18 +178,17 @@ plot_drv <- function(
   y1_min <- data_tbl[, min(scheitel, na.rm = TRUE)]
   y1_max <- data_tbl[, max(scheitel, na.rm = TRUE)]
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
+  y1_pretty <- pretty(y1_min_1:y1_max_1,  ntick.y, ntick.y)
   #----delta == TRUE----
   if (isTRUE(delta)) {
-    data_tbl[, group := seq_len(.N), by = c(compare.by)]
     y2_name <- paste('Delta',
                      ifelse(param == 'discharge', '(m³/s)', '(m)')
     )
-
     if (compare.by != group.by) {
       lt.by <- compare.by
       color.by <- group.by
       data_tbl_delta <-
-        dcast(data_tbl, group  ~ get(compare.by) + get(group.by)  ,
+        dcast(data_tbl, km  ~ get(compare.by) + get(group.by),
               value.var = 'scheitel')
       for (i in grp_vars) {
         col_i <- paste('Delta', i, sep = '_')
@@ -198,16 +198,21 @@ plot_drv <- function(
         data_tbl_delta[, eval(col_1) := NULL]
         data_tbl_delta[, eval(col_2) := NULL]
       }
-      data_tbl_delta <- melt(data_tbl_delta, id.vars = 'group',
+      data_tbl_delta <- melt(data_tbl_delta, id.vars = 'km',
                              variable.name = group.by,
                              value.name = 'delta',
                              sort = FALSE)
       data_tbl_delta <- data_tbl_delta[!is.na(delta)]
-      colnames(data_tbl_delta)[2] <- 'delta_color'
-      data_tbl <- merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
+      data_tbl_delta[, delta_color := get(group.by)]
+      data_tbl_delta[, eval(group.by) := str_replace(
+        get(group.by), 'Delta_', '')
+        ]
+      #colnames(data_tbl_delta)[2] <- 'delta_color'
+      data_tbl <- merge(data_tbl, data_tbl_delta, by = c('km', group.by),
+                        sort = FALSE)
     } else{
       data_tbl_delta <-
-        dcast(data_tbl, group  ~ get(compare.by),
+        dcast(data_tbl, km  ~ get(compare.by),
               value.var = 'scheitel')
       col_1 <- cmp_vars[1]
       col_2 <- cmp_vars[2]
@@ -218,7 +223,7 @@ plot_drv <- function(
                                             str_to_sentence(compare.by))
                      ]
       data_tbl <-
-        merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
+        merge(data_tbl, data_tbl_delta, by = 'km', sort = FALSE)
     }
     data_tbl[, delta := round(delta, 3)]
     y2_min <- min(data_tbl$delta, na.rm = TRUE)
@@ -263,7 +268,7 @@ plot_drv <- function(
       # y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     }
     if (!is.null(y2.tick1)) {
-      y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
+      y2_shift = y1_pretty[2] - y2.tick1 * y2.scale
     }
     y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     # print(y1_pretty)
@@ -287,7 +292,7 @@ plot_drv <- function(
         y1_pretty <- y1_pretty/10
       }
       if (!is.null(y2.tick1)) {
-        y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
+        y2_shift = y1_pretty[2] - y2.tick1 * y2.scale
       }
       y2_pretty <- (y1_pretty - y2_shift) / y2.scale
       y2_pretty <- unique(sort(c(y2_pretty, 0)))
@@ -321,6 +326,7 @@ plot_drv <- function(
   ) +
     theme_bw() +
     theme(legend.position = 'bottom',
+          legend.key.width = unit(2, "cm"),
           axis.text.x.top =
             element_text(angle = text.x.top.angle,
                          hjust = 0,
@@ -332,7 +338,8 @@ plot_drv <- function(
                          size = text.size)
     ) +
     labs(title = plot.title) +
-    ylab(y.lab)
+    ylab(y.lab) +
+    scale_y_continuous(breaks = y1_pretty)
   if (isTRUE(reverse.x)){
     g <- g +
       scale_x_reverse(
@@ -521,6 +528,7 @@ plot_longprofile <- function(
   verbose = TRUE,
   do.par = FALSE
 ){
+  param <- tolower(param)
   stopifnot(length(unique(case.list)) == length(case.list))
   stopifnot(is.numeric(from.km) & is.numeric(to.km))
   stopifnot(to.km > from.km)
@@ -532,12 +540,12 @@ plot_longprofile <- function(
   }
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   if (!is.null(compare.by)) {
-    if (!compare.by %in% c('zustand', 'vgf', 'notiz', 'zielpegel')) {
-      stop("compare.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel')")
+    if (!compare.by %in% c('zustand', 'vgf', 'notiz', 'hwe', 'zielpegel')) {
+      stop("compare.by must be one of ('zustand', 'hwe', 'vgf', 'notiz', 'zielpegel')")
     }
     cmp_vars <- unique(case_tbl[, get(compare.by)])
     if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
-    if (length(cmp_vars) != 2) {
+    if (length(cmp_vars) != 2 & isTRUE(delta)) {
       if (length(case.list) != 1) stop('compare.by must have two values not: ',
            str_flatten(cmp_vars, collapse = ", " ))
     }
@@ -632,9 +640,9 @@ plot_longprofile <- function(
   y1_min <- data_tbl[, min(scheitel, na.rm = TRUE)]
   y1_max <- data_tbl[, max(scheitel, na.rm = TRUE)]
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
+  y1_pretty <- pretty(y1_min:y1_max,  ntick.y, ntick.y)
   #----delta == TRUE----
   if (isTRUE(delta)) {
-    data_tbl[, group := seq_len(.N), by = c(compare.by)]
     y2_name <- paste('Delta',
                      ifelse(param == 'discharge', '(m³/s)', '(m)')
                      )
@@ -642,7 +650,7 @@ plot_longprofile <- function(
       lt.by <- compare.by
       color.by <- group.by
       data_tbl_delta <-
-        dcast(data_tbl, group  ~ get(compare.by) + get(group.by),
+        dcast.data.table(data_tbl, km ~ get(compare.by) + get(group.by),
               value.var = 'scheitel')
       for (i in grp_vars) {
         col_i <- paste('Delta', i, sep = '_')
@@ -652,16 +660,20 @@ plot_longprofile <- function(
         data_tbl_delta[, eval(col_1) := NULL]
         data_tbl_delta[, eval(col_2) := NULL]
       }
-      data_tbl_delta <- melt(data_tbl_delta, id.vars = 'group',
+      data_tbl_delta <- melt(data_tbl_delta, id.vars = 'km',
                              variable.name = group.by,
                              value.name = 'delta',
                              sort = FALSE)
       data_tbl_delta <- data_tbl_delta[!is.na(delta)]
-      colnames(data_tbl_delta)[2] <- 'delta_color'
-      data_tbl <- merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
+      data_tbl_delta[, delta_color := get(group.by)]
+      data_tbl_delta[, eval(group.by) := str_replace(
+        get(group.by), 'Delta_', '')
+        ]
+      data_tbl <- merge(data_tbl, data_tbl_delta, by = c('km', group.by),
+                        sort = FALSE)
     } else{
       data_tbl_delta <-
-        dcast(data_tbl, group  ~ get(compare.by),
+        dcast(data_tbl, km  ~ get(compare.by),
               value.var = 'scheitel')
       col_1 <- cmp_vars[1]
       col_2 <- cmp_vars[2]
@@ -672,7 +684,7 @@ plot_longprofile <- function(
                                             str_to_sentence(compare.by))
                                             ]
       data_tbl <-
-        merge(data_tbl, data_tbl_delta, by = 'group', sort = FALSE)
+        merge(data_tbl, data_tbl_delta, by = 'km', sort = FALSE)
     }
     data_tbl[, delta := round(delta, 3)]
     data_tbl[, Linienart := paste('Delta', get(delta.lt))]
@@ -707,10 +719,10 @@ plot_longprofile <- function(
       y1_pretty <- pretty(y1_min_1:y1_max_1,  ntick.y, ntick.y)
       y1_pretty <- y1_pretty / 100
     } else{
-      y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+      y1_pretty <- pretty(y1_min:y1_max,  ntick.y, ntick.y)
     }
     check_y1_pretty <- (max(y1_pretty) - min(y1_pretty)) / (y1_max - y1_min)
-    if (length(y1_pretty) < 5 | check_y1_pretty > 1){
+    if (length(y1_pretty) < 5 | check_y1_pretty > 1) {
       y1_min_1 <- y1_min * 10
       y1_max_1 <- y1_max * 10
       y1_pretty <- pretty(y1_min_1:y1_max_1,  ntick.y, ntick.y)
@@ -718,7 +730,7 @@ plot_longprofile <- function(
       # y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     }
     if (!is.null(y2.tick1)) {
-      y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
+      y2_shift = y1_pretty[2] - y2.tick1 * y2.scale
     }
     y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     # print(y1_pretty)
@@ -742,7 +754,7 @@ plot_longprofile <- function(
         y1_pretty <- y1_pretty/10
       }
       if (!is.null(y2.tick1)) {
-        y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
+        y2_shift = y1_pretty[2] - y2.tick1 * y2.scale
       }
       y2_pretty <- (y1_pretty - y2_shift) / y2.scale
       y2_pretty <- unique(sort(c(y2_pretty, 0)))
@@ -766,6 +778,7 @@ plot_longprofile <- function(
   ) +
     theme_bw() +
     theme(legend.position = 'bottom',
+          legend.key.width = unit(2, "cm"),
           axis.text.x.top =
             element_text(angle = text.x.top.angle,
                          hjust = 0,
@@ -777,8 +790,9 @@ plot_longprofile <- function(
                          size = text.size)
     ) +
     labs(title = plot.title) +
-    ylab(y.lab)
-  if (isTRUE(reverse.x)){
+    ylab(y.lab) +
+    scale_y_continuous(breaks = y1_pretty)
+  if (isTRUE(reverse.x)) {
     g <- g +
       scale_x_reverse(
         name = x.lab,
@@ -789,7 +803,7 @@ plot_longprofile <- function(
           name = 'Station'
         )
       )
-  } else{
+  } else {
     g <- g +
       scale_x_continuous(
         name = x.lab,

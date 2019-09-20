@@ -69,61 +69,49 @@ check_fra <- function(
 
 #' Checking Worms Input
 #' @param case.name Case from Rhein Model
-#' @param zustand "Zustand" von Worms (Messung, 'pz27_zpk_mittel', 'pz27_zpk_selten',...)
+#' @param zustand Colname for gettting data from LUBW from the worms.tbl
 #' @param sobek.project Rhein Project folder
 #' @param worms.tbl Table of Womrs values
-#' @param worms.id ID of Worsm boundary node, default 17
+#' @param check.dat Default = FALSE. That means it checks model output vs column in the worms.tbl by default. Set this parameter to TRUE to compare worms.tbl with boundary.dat
+#' @param worms.id Worms ID in boundary.dat, default 17
+#' @param mid Worms of pegel Worms in Sobek, for getting result from model. Default 'p_worms'
 #' @export
 check_worms <- function(
-  case.name = NULL,
-  zustand = NULL,
-  sobek.project = NULL,
-  worms.tbl = NULL,
-  worms.id = '17'
+  case.name,
+  zustand,
+  sobek.project = so_prj,
+  worms.tbl,
+  check.dat = FALSE,
+  worms.id = '17',
+  mid = 'p_worms'
 ){
 
-  stopifnot(length(case.name) == 1 & is.character(case.name))
-  stopifnot(!c(is.null(case.name), is.null(zustand), is.null(sobek.project),
-               is.null(worms.tbl))
-            )
-  # get zustand column
-  zustand_col <- switch(
-    tolower(zustand),
-    messung = 'Worms_mess_q',
-    bz18_zpk_mittel = 'LUBW_04_bz18_zpk_m',
-    bz18_zpk_selten = 'LUBW_04_bz18_zpk_s',
-    bz18_zpw_mittel = 'LUBW_04_bz18_zpw_m',
-    bz18_zpw_selten = 'LUBW_04_bz18_zpw_s',
-    pz27_zpk_mittel = 'LUBW_05_pz27_zpk_m',
-    pz27_zpk_selten = 'LUBW_05_pz27_zpk_s',
-    pz27_zpw_mittel = 'LUBW_05_pz27_zpw_m',
-    pz27_zpw_selten = 'LUBW_05_pz27_zpw_s',
-    nurrhein_zpk_mittel = 'zpk_nurRhein_m',
-    nurrhein_zpk_selten = 'zpk_nurRhein_s',
-    nurrhein_zpw_mittel = 'zpw_nurRhein_m',
-    nurrhein_zpw_selten = 'zpw_nurRhein_s',
-    nurrhein_vgf1 = 'nurRhein_vgf1',
-    nurnf_zpk_mittel = 'zpk_nurNF_m',
-    nurnf_zpk_selten = 'zpk_nurNF_s',
-    nurnf_zpw_mittel = 'zpw_nurNF_m',
-    nurnf_zpw_selten = 'zpw_nurNF_s',
-    nurnf_vgf1 = 'nurNF_vgf1'
-    )
-  # print(zustand_col)
-  stopifnot(!is.null(zustand_col))
-  qt_mod <- worms.tbl[, .SD, .SDcols = c('ts', zustand_col)]
-  colnames(qt_mod) <- c('ts', 'Worms')
+  qt_lubw <- worms.tbl[, .SD, .SDcols = c('ts', zustand)]
+  colnames(qt_lubw) <- c('ts', 'Worms_LUBW')
+  if (isTRUE(check.dat)) {
   # reading from boundary.dat
-  qt_dat <- get_data_from_id(
-    dat.file = get_file_path(
-      case.name = case.name,
-      sobek.project = sobek.project,
-      type = 'bnd.dat'
-    ),
-    s.id = worms.id
-  )
-  colnames(qt_dat) <- c('ts', 'Worms')
-  qt_dat[, Worms := as.numeric(Worms)]
-  testthat::expect_equal(qt_mod, qt_dat)
-  invisible(list(qt_mod, qt_dat))
+    qt_dat <- get_data_from_id(
+      dat.file = get_file_path(
+        case.name = case.name,
+        sobek.project = sobek.project,
+        type = 'bnd.dat'
+      ),
+      s.id = worms.id
+    )
+    colnames(qt_dat) <- c('ts', 'Worms_LUBW')
+    qt_dat[, Worms_LUBW := as.numeric(Worms_LUBW)]
+    testthat::expect_equal(qt_lubw, qt_dat)
+    return(TRUE)
+    #invisible(list(qt_lubw, qt_dat))
+  } else {
+    qt_lubw[, hwe := year(ts)][hwe == 2002, hwe := 2003]
+    qt_mod <- his_from_case(case.list = case.name, sobek.project = sobek.project,
+                            mID = mid, param = 'discharge')
+    # qt_mod[, hwe := year(ts)][hwe == 2002, hwe := 2003]
+    qt <- merge(qt_mod, qt_lubw, by = 'ts')
+    qt_cond <- all(near(qt$Worms_LUBW, qt[[mid]], 0.1))
+    stopifnot(qt_cond)
+    #invisible(qt)
+    return(TRUE)
+  }
 }

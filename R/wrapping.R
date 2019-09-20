@@ -26,11 +26,10 @@ save_polder <- function(plot, filename = NULL,
 #'  
 #' @export
 save_profile <- function(plot, filename = NULL,
-                        device = "png", width = 15, height = 10, dpi = 350
+                        device = "png", width = 18, height = 10, dpi = 350
                         , ...){
   f_args <- match.call(expand.dots = FALSE)
   if (is.null(filename)) filename <- paste(f_args$plot, ".png", sep = "")
   ggsave(filename = filename, plot = plot,
          device = device, width = width, height = height, dpi = dpi, ...)
 }
-

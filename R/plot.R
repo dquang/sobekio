@@ -170,6 +170,7 @@ plot_multi_lines <- function(
     geom_line(size = 1) +
     theme_bw() +
     theme(
+      legend.key.width = unit(2, "cm"),
       legend.position = 'bottom',
       text = element_text(
         size = text.size

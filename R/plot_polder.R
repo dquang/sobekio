@@ -237,7 +237,7 @@ plot_polder <- function(
       } else {
         y2_min <- floor(y2_min)
       }
-      if (y2_min*y2.scale != y1_min) {
+      if (y2_min * y2.scale != y1_min) {
         y2_shift <- floor(y2_shift - y2_min*y2.scale)
       }
       # adding Einlass lines
@@ -271,7 +271,7 @@ plot_polder <- function(
       if (y2_min*y2.scale != y1_min) {
         y2_shift <- floor(y2_shift - y2_min*y2.scale)
       }
-      if (length(auslass_cols) > 1){
+      if (length(auslass_cols) > 1) {
         id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
                                 variable.name = 'Auslass',
                                 value.name = 'Q_Auslass')
@@ -296,7 +296,7 @@ plot_polder <- function(
                 size = 1) +
       geom_line(aes(y = Vor,  color = 'W vor Maßnahme'),
                 size = 1)
-    if (isTRUE(w.canal)){
+    if (isTRUE(w.canal)) {
       y2_name <- 'Wasserstand (m+NHN)'
       y1_max <- id_data[, max(.SD, na.rm = TRUE),
                         .SDcols = c('Nach', 'Vor', 'W_innen')]
@@ -308,7 +308,7 @@ plot_polder <- function(
                              color = 'W in Maßnahme'),
                          size = 1)
     }
-    if (isTRUE(q.in)){
+    if (isTRUE(q.in)) {
       einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
       y2_min <- id_data[, .SD,
@@ -324,7 +324,7 @@ plot_polder <- function(
         y2_shift <- floor(y2_shift - y2_min*y2.scale)
       }
       # adding Einlass lines
-      if (length(einlass_cols) > 1){
+      if (length(einlass_cols) > 1) {
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
                                 variable.name = 'Einlass',
                                 value.name = 'Q_Einlass')
@@ -339,7 +339,7 @@ plot_polder <- function(
         ),
         size = 1)
       }
-      if (isTRUE(q.out)){
+      if (isTRUE(q.out)) {
         auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
         y2_min <- id_data[, .SD,
                           .SDcols = c(einlass_cols, auslass_cols)
@@ -353,7 +353,7 @@ plot_polder <- function(
         if (y2_min*y2.scale != y1_min) {
           y2_shift <- floor(y2_shift - y2_min*y2.scale)
         }
-        if (length(auslass_cols) > 1){
+        if (length(auslass_cols) > 1) {
           id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
                                   variable.name = 'Auslass',
                                   value.name = 'Q_Auslass')
@@ -375,8 +375,8 @@ plot_polder <- function(
   g$labels$linetype <- lt.name
   # calculating Max Volume
   if (isTRUE(verbose)) print('Calculating volume...')
-  if(!is.null(polder.f)){
-    if(is.null(polder.z)){
+  if (!is.null(polder.f)) {
+    if (is.null(polder.z)) {
       id_data[, H_innen_max := max(W_innen, na.rm = TRUE) -
                 min(W_innen, na.rm = TRUE), by = case]
       id_data[, Volume_max := round(H_innen_max * polder.f / 100, 2)]
@@ -397,7 +397,7 @@ plot_polder <- function(
   if (isTRUE(text.box)) {
     if (isTRUE(verbose)) print('Adding text box...')
     # print(einlass_cols)
-    for (i in einlass_cols){
+    for (i in einlass_cols) {
       einlass_max_col <- paste(i, 'Max', sep = '_')
       id_data[, eval(einlass_max_col) := max(get(i), na.rm = TRUE), by = case]
     }
@@ -410,9 +410,6 @@ plot_polder <- function(
                               fill = NA,
                               type = 'lead'),
             by = case]
-    if(!is.null(h.lines)){
-      id_hlines <- id_data[, min(ts), by = case]
-    }
     id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
     colnames(id_data_nrow) <- c('case', 'ts')
     id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'), sort = FALSE)
@@ -427,7 +424,7 @@ plot_polder <- function(
              label,
              sep = "")
            ]
-    for (i in einlass_cols){
+    for (i in einlass_cols) {
       einlass_max_col <- paste(i, 'Max', sep = '_')
       id_max[, eval(einlass_max_col) := round(as.numeric(get(einlass_max_col)), 1),
              .SDcols = einlass_max_col, by = case]
@@ -458,25 +455,28 @@ plot_polder <- function(
       )
   }
   
-  if (!is.null(h.lines)){
+  if (!is.null(h.lines)) {
+    id_hlines <- id_data[, min(ts), by = case]
     # id_hlines with 2 cols: V1, case
-    for (i in seq_along(h.lines)){
+    for (i in seq_along(h.lines)) {
       hline_label <- ifelse(is.null(names(h.lines[i])),
                             paste('V_', h.lines[[i]], sep = ""),
-                            names(h.lines[i])
-      )
+                            names(h.lines[i]))
       # adding new colume to id_hlines
       id_hlines[, eval(hline_label) := h.lines[[i]]]
       g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 3)
     }
     id_hlines <- melt(id_hlines, id.vars = c('case', 'V1'))
     # merging with case table for facetting
-    id_hlines <- merge(id_hlines, case_tbl, by = 'case', sort = FALSE)
+    id_hlines <-
+      merge(id_hlines, case_tbl, by = 'case', sort = FALSE)
     g <- g + geom_text(
       data    = id_hlines,
       # V1 is the colume name of the min (ts_hlines)
-      mapping = aes(x = V1, y = value,
-                    label = sub("^V_", "", variable)
+      mapping = aes(
+        x = V1,
+        y = value,
+        label = sub("^V_", "", variable)
       ),
       hjust   = 0,
       vjust = 0,

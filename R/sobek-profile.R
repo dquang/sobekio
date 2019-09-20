@@ -19,11 +19,13 @@ switch_DRV <- function(case.name, sobek.project, drv.name = NULL,
   pf.dat <- fread(file = paste(case_folder, 'profile.dat', sep = "/"),
                   sep = "\n",
                   header = F)
-  for (i in def.tbl[DRV == drv.name, id]){
-    if(status == "mit"){
+  for (i in def.tbl[DRV == drv.name, id]) {
+    if (status == "mit" | status == "with") {
       id_line <- def.tbl[id == as.character(i), DRV_in_qp]
-    } else{
+    } else if (status == "ohne" | status == "without") {
       id_line <- def.tbl[id == as.character(i), DRV_nicht_in_qp]
+    } else {
+      stop('status has to be "mit/with" or "ohne/without"')
     }
     pf.dat[grepl(paste("CRSN id '", i, "'", sep = ""), V1, fixed = TRUE),
            V1 := id_line]
@@ -43,7 +45,7 @@ switch_DRV <- function(case.name, sobek.project, drv.name = NULL,
 set_weir_info <- function(w.id, struct.def,
                           w.rt = NULL, w.cl = NULL, w.cw = NULL){
   
-  stopifnot(is.numeric(w.cl) & is.numeric(w.cw))
+  #stopifnot(is.numeric(w.cl) & is.numeric(w.cw))
   st_def <- fread(file = struct.def,
                   header = F,
                   sep = "\n")
@@ -83,71 +85,43 @@ set_weir_info <- function(w.id, struct.def,
   return(f_changed)
 }
 
-pf_extract <- function(pf.str, ptype = 'id'){
-  pattern <-  "CRSN id '(.*)' di '(.*)' rl (\\S*) (.*)"
-  pattern_rs <-  "CRSN id '(.*)' di '(.*)' rl (\\S*) rs (\\S*) (.*)"
-  str.matrix <- str_match(pf.str, pattern)
-  str.matrix_rs <- str_match(pf.str, pattern_rs)
-  # tcol <- ncol(str.matrix)
-  rel <- NA
-  # if (tcol == 1) rel <- NA
-  if (ptype == 'id') rel <- str.matrix[, 2]
-  if (ptype == 'di') rel <- str.matrix[, 3]
-  if (ptype == 'rl') rel <- str.matrix[, 4]
-  if (ptype == 'rs'){
-    rel <- str.matrix_rs[, 5]
-  }
-  if (ptype == 'rest'){
-    if (is.na(str.matrix_rs[1,1])) {
-      rel <- str.matrix[1,5]
-    } else{
-      rel <- str.matrix_rs[1, 6]
-    }
-  }
-  return(rel)
-}
 
 #' Change reference level of a cross section
-#' @param crsn.id ID of cross section
-#' @param pf.df data.frame or path to the table of cross sections (profile.dat)
+#' @param id ID of cross section
+#' @param case.name Name of the case
+#' @param sobek.project Path to sobek.project
+#' @param profile.dat Path to the profile.dat, if case and project were not given
 #' @param rl.new New value of bed level left
 #' @param rs.new New value of surface level right, default = rl.new + 10
 #' @export
-change_rl_rs <- function(crsn.id, pf.df, rl.new = 0, rs.new = rl.new + 10){
-  write_output <- FALSE
-  if(is.data.frame(pf.df)){
-    pf <- data.table(pf.df)
-  } else{
-    write_output <- TRUE
-    pf <- fread(file = pf.df, header = F, sep = "\n")
+change_rl_rs <- function(id,
+                         case.name = NULL,
+                         sobek.project = NULL,
+                         rl.new = 0, rs.new = rl.new + 10,
+                         profile.dat = NULL){
+  if (is.null(profile.dat)) {
+    stopifnot(!is.null(sobek.project) & !is.null(case.name))
+    profile.dat <- get_file_path(case.name = case.name,
+                                 sobek.project = sobek.project,
+                                 type = 'profile.dat')
   }
-  pf$id <- lapply(pf[, 1], pf_extract, ptype = "id")
-  pf.str <- pf$V1[pf$id == crsn.id]
+  pf <- fread(file = profile.dat, header = F, sep = "\n")
+  pf[, ID := str_match(V1, "CRSN id '([^']*)'")[, 2]]
+  rl_new_str = paste('rl', rl.new, 'rs')
+  rs_new_str = paste('rs', rs.new, '')
+  if (nrow(pf[ID == id]) == 0) stop('id not found!')
+  pf[ID == id, V1 := str_replace(V1, 'rl .* rs', rl_new_str)]
+  pf[ID == id, V1 := str_replace(V1, 'rs [^::SPACE::]+ ', rs_new_str)]
   # pattern <-  "CRSN id '(.*)' di '(.*)' rl (\\S*) (.*)"
   pattern_rs <-  "CRSN id '(.*)' di '(.*)' rl (\\S*) rs (\\S*) (.*)"
   # str.matrix <- str_match(pf.str, pattern)
   str.matrix_rs <- str_match(pf.str, pattern_rs)
-  rs_old <- str.matrix_rs[1, 5]
-  if (is.na(rs_old)){
-    cout <- str_replace(pf.str,
-                        "(CRSN id '.*rl )(\\S*)(.*)",
-                        paste("\\1", rl.new, "\\3", sep = ""))
-  } else{
-    cout <- str_replace(pf.str,
-                        "(CRSN id '.*rl )(\\S*) rs (\\S*)(.*)",
-                        paste("\\1", rl.new, " rs ", rs.new, "\\4", sep = "")
-    )
-  }
-  pf[pf$id == crsn.id, 1] <- cout
-  if (write_output) {
-    write.table(pf[, V1],
-                file = pf.df,
-                quote = FALSE,
-                row.names = FALSE,
-                col.names = FALSE
-    )
-  }
-  return(cout)
+  fwrite(pf[, c("V1")],
+              file = profile.dat,
+              quote = FALSE,
+              row.names = FALSE,
+              col.names = FALSE)
+  return(TRUE)
 }
 
 
