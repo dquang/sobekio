@@ -147,19 +147,16 @@ get_trigger_info <- function(t.id, case.name, sobek.project, html = TRUE) {
   ct_def[, org_line_nr := .I]
   ct_tbl <- ct_def[grepl('^CNTL id .*', V1)]
   ct_tbl[, id := str_match(V1, "CNTL id '([^']*)'")[,2]]
-  ct_tbl[, id := str_match(V1, "CNTL id '([^']*)'")[,2]]
-  ct_tbl[, name := str_match(V1, "CNTL id .* nm '([^']*)'")[,2]]
-  ct_tbl[, ct := str_match(V1, "CNTL id .* ct (\\d) ")[,2]]
-  ct_tbl[, ca := str_match(V1, "CNTL id .* ca (\\d) ")[,2]]
-  ct_tbl[, ac := str_match(V1, "CNTL id .* ac (\\d) ")[,2]]
-  ct_tbl[, cf := str_match(V1, "CNTL id .* cf (\\d{1,}) ")[,2]]
-  # ct_tbl[, ta := str_match(V1, "CNTL id .* ta (\\d{1,}) ")[,2]]
-  ct_tbl[, ta := str_match(V1, "CNTL id .* ta (\\d \\d \\d \\d) ")[,2]]
-  ct_tbl[, gi := str_match(V1, "gi ('.+') ao \\d")[,2]]
-  ct_tbl[, ao := str_match(V1, "ao (\\d \\d \\d \\d)")[,2]]
-  str_mt <- str_match(ct_tbl$V1, "mc (.*) bl (\\d) ti")
-  ct_tbl$mc <- str_mt[, 2]
-  ct_tbl$bl <- str_mt[, 3]
+  ct_tbl[, name := str_match(V1, " nm '([^']*)'")[,2]]
+  ct_tbl[, ct := str_match(V1, " ct (\\d) ")[,2]]
+  ct_tbl[, ca := str_match(V1, " ca (\\d) ")[,2]]
+  ct_tbl[, ac := str_match(V1, " ac (\\d) ")[,2]]
+  ct_tbl[, cf := str_match(V1, " cf (\\d{1,}) ")[,2]]
+  ct_tbl[, ta := str_match(V1, " ta (\\d \\d \\d \\d) ")[,2]]
+  ct_tbl[, gi := str_match(V1, " gi ('.+') ao \\d")[,2]]
+  ct_tbl[, ao := str_match(V1, " ao (\\d \\d \\d \\d)")[,2]]
+  ct_tbl[, mc := str_match(V1, " mc ([^\\ ]*) ")[,2]]
+  ct_tbl[, bl := str_match(V1, " bl (\\d) ")[,2]]
   ct_tbl[, cp := str_match(V1, " cp (\\d) ")[,2]]
   ct_tbl[, mp := str_match(V1, " mp (\\d) ")[,2]]
   ct_tbl[, ml := str_match(V1, " ml '([^']*)' ")[,2]]
@@ -177,7 +174,7 @@ get_trigger_info <- function(t.id, case.name, sobek.project, html = TRUE) {
 ){
   ct_id_tbl <- ct.def[id == ct.id, c("V1")]
   ct_id_tbl_nrow <- nrow(ct_id_tbl)
-  if (ct_id_tbl_nrow > 3){
+  if (ct_id_tbl_nrow > 3) {
     ct_id_tbl <- ct_id_tbl[3:(ct_id_tbl_nrow - 1)]
     return(paste(ct_id_tbl$V1, collapse = "<br>"))
   } else{

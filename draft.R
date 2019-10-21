@@ -1,599 +1,168 @@
-stopifnot(length(unlist(case.list)) == 2)
-param = tolower(param)
-stopifnot(param %in% c('discharge', 'waterlevel'))
-stopifnot(!c(is.null(name), is.null(case.list), is.null(master.tbl),
-             is.null(sobek.project)
-))
-#----get id_data----
-if (isTRUE(verbose)) print('Reading data at the measure...')
-id_data <- get_polder_data(
-  name = name,
-  case.list = case.list,
-  case.desc = case.desc,
-  param = param,
-  w.canal = TRUE,
-  sobek.project = sobek.project,
-  master.tbl = master.tbl,
-  verbose = verbose
-)
-case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
-# add case description columns, using for linetype later on
-id_data <- merge(id_data, case_tbl, by = 'case', sort = FALSE)
-cmp_vars <- case_tbl[, get(compare.by)]
-if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
-# read data for Bezugspegel
-if (!is.null(ref.mID)) {
-  if (isTRUE(verbose))
-    print('Reading data for ref.mID...')
-  if (length(ref.mID) > 1) {
-    ref.mID_id <- ref.mID[[1]]
-    if (hasName(ref.mID, 'ID')) ref.mID_id <- ref.mID$ID
-    ref.mID_name <- ref.mID[[2]]
-    if (hasName(ref.mID, 'name')) ref.mID_name <- ref.mID$name
-    # ref.mID_color <- ref.mID_name
-    ref.mID_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
-                           ref.mID_name)
-    ref.mID_type <- ifelse(param == 'discharge', 'qID', 'wID')
-    if (hasName(ref.mID, 'type'))
-      ref.mID_type <- ref.mID$type
-    ref_mID_args <- list(
-      case.list = case.list,
-      sobek.project = sobek.project,
-      id_type = ref.mID_id,
-      param = param,
-      verbose = FALSE
-    )
-    names(ref_mID_args)[3] <- ref.mID_type
-    ref_mID <- do.call(his_from_case, ref_mID_args)
-  } else{
-    ref_mID <- his_from_case(
-      case.list = case.list,
-      sobek.project = sobek.project,
-      mID = ref.mID[[1]],
-      param = param,
-      verbose = FALSE
-    )
-    ref.mID_name <-
-      ifelse(!is.null(names(ref.mID)), names(ref.mID),
-             toupper(ref.mID[[1]]))
-    ref.mID_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
-                           ref.mID_name)
-  }
-  colnames(ref_mID) <- c('ts', 'Bezugspegel', 'case')
-  id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
-  # get peak difference at the ref_measurement
-  scheitel_max_c1 <- id_data[get(compare.by) == cmp_vars[[1]],
-                             max(Bezugspegel)]
-  scheitel_max_c2 <- id_data[get(compare.by) == cmp_vars[[2]],
-                             max(Bezugspegel)]
-  scheitel_ref_mID_delta <- scheitel_max_c1 - scheitel_max_c2
-  scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta, 2)
-  # rounding value for discharge
-  if (abs(scheitel_ref_mID_delta) > 2) {
-    scheitel_ref_mID_delta <- round(scheitel_ref_mID_delta)
-  }
-  # get second Bezugspegel
-  if (!is.null(ref.mID2)) {
-    if (isTRUE(verbose))
-      print('Reading data for ref.mID2...')
-    if (length(ref.mID2) > 1) {
-      ref.mID2_id <- ref.mID2[[1]]
-      if (hasName(ref.mID2, 'ID')) ref.mID2_id <- ref.mID2$ID
-      ref.mID2_name <- ref.mID2[[2]]
-      if (hasName(ref.mID2, 'name')) ref.mID2_name <- ref.mID2$name
-      # ref.mID2_color <- ref.mID2_name
-      ref.mID2_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
-                              ref.mID2_name)
-      ref.mID2_type <- ifelse(param == 'discharge', 'qID', 'wID')
-      if (hasName(ref.mID2, 'type'))
-        ref.mID2_type <- ref.mID2$type
-      ref_mID_args <- list(
-        case.list = case.list,
-        sobek.project = sobek.project,
-        id_type = ref.mID2_id,
-        param = param,
-        verbose = FALSE
-      )
-      names(ref_mID_args)[3] <- ref.mID2_type
-      ref_mID2 <- do.call(his_from_case, ref_mID_args)
-    } else{
-      ref_mID2 <- his_from_case(
-        case.list = case.list,
-        sobek.project = sobek.project,
-        mID = ref.mID2[[1]],
-        param = param,
-        verbose = FALSE
-      )
-      ref.mID2_name <-
-        ifelse(!is.null(names(ref.mID2)), names(ref.mID2),
-               toupper(ref.mID2[[1]]))
-      ref.mID2_color <- paste(ifelse(param == 'discharge', 'Q', 'W'),
-                              ref.mID2_name)
-    }
-    colnames(ref_mID2) <- c('ts', 'Bezugspegel2', 'case')
-    id_data <- merge(id_data, ref_mID2, by = c('ts', 'case'))
-    # get peak difference at the ref_measurement
-    scheitel_max_c1 <- id_data[get(compare.by) == cmp_vars[[1]],
-                               max(Bezugspegel2)]
-    scheitel_max_c2 <- id_data[get(compare.by) == cmp_vars[[2]],
-                               max(Bezugspegel2)]
-    scheitel_ref_mID_delta2 <- scheitel_max_c1 - scheitel_max_c2
-    scheitel_ref_mID_delta2 <- round(scheitel_ref_mID_delta2, 2)
-    # rounding value for discharge
-    if (abs(scheitel_ref_mID_delta2) > 2) {
-      scheitel_ref_mID_delta2 <- round(scheitel_ref_mID_delta2)
-    }
-  }
-}
+library(data.table)
+library(tidyverse)
 
-# limit data to the peak value
-if (!is.null(peak.nday)){
-  stopifnot(is.numeric(peak.nday))
-  if (isTRUE(peak.pegel) & !is.null(ref.mID)){
-    ts_max <- id_data[Bezugspegel == max(Bezugspegel), ts]
-  } else{
-    ts_max <- id_data[Nach == max(Nach), ts]
-  }
-  xlim_min <- ts_max - peak.nday * 24 * 3600
-  xlim_max <- ts_max + peak.nday * 24 * 3600
-  id_data <- id_data[ts >= xlim_min & ts <= xlim_max]
-}
-# finding scheitel delta at the measure
-if (isTRUE(delta.measure)){
-  # calculate diff between two max value (different moment)
-  scheitel_max_c1 <- id_data[get(compare.by) == cmp_vars[[1]], max(Nach)]
-  scheitel_max_c2 <- id_data[get(compare.by) == cmp_vars[[2]], max(Nach)]
-  scheitel_measure_delta <- scheitel_max_c1 - scheitel_max_c2
-  scheitel_measure_delta <- round(scheitel_measure_delta, 2)
-  # rounding value for discharge
-  if (abs(scheitel_measure_delta) > 2) {
-    scheitel_measure_delta <- round(scheitel_measure_delta)
-  }
-}
-#-----preparing plot-----
-if (isTRUE(verbose)) print('Preparing graphic...')
-einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
-auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
-# for (j in c(einlass_cols, auslass_cols)) {
-#   set(id_data, j = j, value = round(id_data[[j]], 0))
-# }
-# id_data[, eval(einlass_cols) := lapply(einlass_cols, round, 1) ]
-y2_axis <- isTRUE(q.in)|isTRUE(q.out)|(param == 'discharge' & isTRUE(w.canal))
-# in case there is a y2_axis
-#----processing y-axes limits----
-y1_cols <- c('Nach')
-if (!is.null(ref.mID)) y1_cols <- c('Nach', 'Bezugspegel')
-if (!is.null(ref.mID2)) y1_cols <- c('Nach', 'Bezugspegel', 'Bezugspegel2')
-if (isTRUE(y2_axis)) {
-  if (isTRUE(w.canal) & param == 'waterlevel') y1_cols <- c(y1_cols, 'W_innen')
-  y2_cols <- c(einlass_cols,
-               auslass_cols)[c(rep(q.in, length(einlass_cols)),
-                               rep(q.out, length(auslass_cols)))]
-  if (isTRUE(w.canal) & param == 'discharge') {
-    q.in <- FALSE
-    q.out <- FALSE
-    y2_cols <- 'W_innen'
-  }
-  y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
-  y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
-  y2_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y2_cols]
-  y2_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y2_cols]
-  y1_length <- y1_max - y1_min
-  y2_length <- y2_max - y2_min
-  if (is.null(y2.scale)) {
-    y1_length <- y1_max - y1_min
-    y2_length <- y2_max - y2_min
-    y2.scale <- y1_length * 0.75 * 1000 / y2_length
-    for (i in 0:3) {
-      # if (abs(y2.scale) > 1) y2.scale <- round(y2.scale)
-      if (abs(y2.scale) > 10 ** i)
-        y2.scale <- round(y2.scale, -i)
+#' Plot multiple timeseries together without concerning time
+#' 
+#' This function plots hydrographs for several IDs and cases together without
+#' concerning time. The time will be converted to index
+#' 
+#' @param case.list List of cases
+#' @param case.desc Case naming according to NHWSP Standard
+#' @param id.names Names to assign for the IDs
+#' @param sobek.project Path to sobek project
+#' @param param Waterlevel/Discharge
+#' @param color.by Grouping for color. Default by ID
+#' @param lt.by Grouping for linetype
+#' @param color.name Name of color legend
+#' @param lt.name Name of linetype legend
+#' @param peak.nday Number of days around the peak to limit to
+#' @param peak.col Get peak on this column (id or id.names)
+#' @param p.title Title of the plot
+#' @param x.lab x-axis title
+#' @param y.lab y-axis title
+#' @param date.breaks x-axis breaks
+#' @param date.labels Formatting of the date on x-axis
+#' @param text.x.angle Angle of text on x-axis
+#' @param text.size Size of all text
+#' @param h.lines List of (name = value) to be displayed as horizontal line
+#' @param y2.ids List of IDs, by their indexes, not names, to move to second y-axis
+#' @param y.ntick Numbers of y-axis intervals. Acutally n-tick = n-interval - 1
+#' @param y2.scale Scale for second axis,
+#' @param y2.tick1 First value of the y2-axis, use this together with y2.scale to make it looks nice
+#' @param y2.lab Label for y2-axis, default = y.lab
+#' @param p.caption Caption for the graphic. The IDs that were moved to second axis will have a small start (*) at the end of their names, a caption is about to explain that.
+#' @param ... This is the ID parameter to be transferred to his_from_case function. It is normally idType = idList
+#' @return A ggplot2 graphic
+#' @export
+#' @import data.table
+plot_lines <- function(
+  case.list = NULL,
+  case.desc = case.list,
+  id.names = NULL,
+  sobek.project = NULL,
+  param = 'discharge',
+  color.by = 'variable',
+  lt.by = 'vgf',
+  color.name = 'Farbe',
+  lt.name = 'Linienart',
+  peak.nday = NULL,
+  peak.col = NULL,
+  p.title = 'Ganglinien an der Orten',
+  x.lab = 'Zeit',
+  y.lab = NULL,
+  y.ntick = 7L,
+  y2.ids = NULL,
+  y2.scale = 5,
+  y2.tick1 = 0,
+  y2.lab = y.lab,
+  p.caption = NULL,
+  date.breaks = '3 days',
+  date.labels = "%d.%m.%Y",
+  text.x.angle = 90L,
+  text.size = 12L,
+  h.lines = NULL,
+  ...
+){
+  stopifnot(!is.null(case.list), !is.null(sobek.project))
+  if (!is.null(y2.scale)) stopifnot(isTRUE(y2.scale > 0))
+  if (!is.null(y2.ids)) {
+    if (!is.numeric(y2.ids)) {
+      stop('y2.ids must be a vector of intergers, indicating which IDs (by their indexes) should be moved to the second y-axis, not: ', typeof(y2.ids))
     }
-    y2.scale <- y2.scale / 1000
-    y2_shift <- y1_min - y2_min * y2.scale
-    # if (y1_max < y2_max * y2.scale + y2_shift)
-  } else{
-    y2_shift <- round(y1_min - y2_min * y2.scale, 2)
+    y2.ids <- y2.ids + 1 # the first column is 'ts'
   }
-  if (y1_length < 10) {
-    y1_max_1 <- y1_max * 100
-    y1_min_1 <- y1_min * 100
-    y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
-    y1_pretty <- y1_pretty / 100
-  } else{
-    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+  
+  case_type <- parse_case(case.desc = case.desc, orig.name = case.list)
+  if (is.null(y.lab)) {
+    y.lab = switch(tolower(param),
+                   'Value',
+                   discharge = 'Abfluss m³/s',
+                   waterlevel = 'Wasserstand (m+NHN)',
+                   'crest level' = 'Crest level (m+NHN)'
+    )
   }
-  if (!is.null(y2.tick1)) {
-    y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
+  qt <- his_from_case(case.list = case.list, 
+                      sobek.project = sobek.project,
+                      ...,
+                      # mID = c('p_koeln','p_duesseldorf2'),
+                      param = param
+  )
+  if (!is.null(id.names)) {
+    if (length(id.names) == ncol(qt) - 2) {
+      colnames(qt) <- c('ts', id.names, 'case')
+    } else{
+      warning("id.names is not same length as id.list. Names were not changed")
+    }
   }
-  y2_pretty <- (y1_pretty - y2_shift) / y2.scale
-  if (0 %between% c(min(y2_pretty), max(y2_pretty))){
-    y2_pretty <- unique(sort(c(y2_pretty, 0)))
+  y2_cols <- colnames(qt)[y2.ids]
+  for (i in case.list) {
+    qt[case == i, ts_id := .I]
   }
-} else{
-  # in case there is no y2_axis
-  if (isTRUE(w.canal) & param == 'waterlevel') y1_cols <- c(y1_cols, 'W_innen')
-  y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
-  y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
-  y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-}
-if (is.infinite(y2.scale)){
-  y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
-  y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
-  y1_pretty <- pretty(y1_min:y1_max, 5, 5)
-  y2.scale = 1
-  y2_shift = min(y1_pretty)
-}
-# make sure y1_max is in the range of y1_pretty
-y1_tick_diff <- abs(y1_pretty[2] - y1_pretty[1])
-if (max(y1_pretty) < y1_max + y1_tick_diff){
-  y1_max <- y1_max + y1_tick_diff/2
-  if (y1_length < 10) {
-    y1_max_1 <- y1_max * 10
-    y1_min_1 <- y1_min * 10
-    y1_pretty <- pretty(y1_min_1:y1_max_1, 5, 5)
-    y1_pretty <- y1_pretty / 10
-  } else{
-    y1_pretty <- pretty(y1_min:y1_max, 5, 5)
+  qt[, ts := NULL]
+  cols <- colnames(qt[, .SD, .SDcols = -c('ts_id', 'case')])
+  qt <- melt(qt, id.vars = c('ts_id', 'case'))
+  qt[, value_max := max(value, na.rm = TRUE), by = c('case', 'variable')]
+  qt[is.infinite(value_max), value_max := NA]
+  qt[value == value_max, ts_peak := as.numeric(ts_id)]
+  qt[, ts_peak := max(ts_peak, na.rm = TRUE), by = c('case', 'variable')]
+  qt[is.infinite(ts_peak), ts_peak := NA]
+  ts_center <- qt[value_max == max(value_max, na.rm = TRUE), ts_peak][1]
+  # moving center to only one center of the max
+  qt[, ts_id := ts_id + ts_center - ts_peak]
+  qt <- merge(qt, case_type, by = 'case', sort = FALSE)
+  y1_min <- qt[!variable %in% y2_cols, min(value, na.rm = TRUE)]
+  y1_max <- qt[!variable %in% y2_cols, max(value, na.rm = TRUE)]
+  y1_pretty <- pretty(y1_min:y1_max, y.ntick, y.ntick)
+  if (length(unlist(lt.by)) > 1) {
+    qt[, Linientype := do.call(paste, c(.SD, sep = " ")), .SDcols = lt.by]
+    lt.by <- 'Linientype'
   }
-}
-#----initializing graphic----
-if (!is.null(ref.mID)){
-  g <- ggplot(data = id_data,
-              mapping = aes(x = ts, linetype = !!ensym(compare.by))
+  if (length(unlist(color.by)) > 1) {
+    qt[, Farbe := do.call(paste, c(.SD, sep = " ")), .SDcols = color.by]
+    color.by <- 'Farbe'
+  }
+  # graphic---------------------------------------------------------------------
+  g <- ggplot(qt[!variable %in% y2_cols],
+              aes(x = ts_id, y = value,
+                  color = !!ensym(color.by),
+                  # quasiquotation, that's a great option from tidyverse
+                  linetype = !!ensym(lt.by)
+              )
   ) +
-    geom_line(aes(y = Bezugspegel, color = ref.mID_color),
-              size = 1)
-  if (!is.null(ref.mID2)){
-    g <- g +
-      geom_line(aes(y = Bezugspegel2, color = ref.mID2_color),
-                size = 1)
-  }
-} else{
-  g <- ggplot(data = id_data,
-              mapping = aes(x = ts, linetype = !!ensym(compare.by))
-  )
-}
-if (isTRUE(verbose)) print('Adding hydrographs...')
-if (tolower(param) == 'discharge'){
-  #----working with discharge----
-  g <- g +
-    geom_line(aes(y = Nach,  color = 'Q nach Maßnahme'),
-              size = 1)
-  if (isTRUE(w.canal)){
-    q.in <- FALSE
-    # if parameter is discharge, move waterlevel to secondary axis
-    g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
-                           color = 'W in Maßnahme'),
-                       size = 1)
-    y2_name <- 'Wasserstand (m+NHN)'
-  }
-  if (isTRUE(q.in)){
-    y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-    # adding Einlass lines
-    if (length(einlass_cols) > 1){
-      id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
-                              variable.name = 'Einlass',
-                              value.name = 'Q_Einlass')
-      id_data_einlass[, Einlass := paste("Q", Einlass)]
-      g <- g + geom_line(data = id_data_einlass,
-                         aes(y = Q_Einlass * y2.scale + y2_shift,
-                             color = Einlass),
-                         size = 1)
-    } else{
-      g <- g + geom_line(aes(
-        y = !!ensym(einlass_cols) * y2.scale + y2_shift,
-        color = eval(paste('Q', einlass_cols))
-      ),
-      size = 1)
-    }
-  }
-  if (isTRUE(q.out)){
-    if (length(auslass_cols) > 1){
-      id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
-                              variable.name = 'Auslass',
-                              value.name = 'Q_Auslass')
-      id_data_auslass[, Auslass := paste("Q", Auslass)]
-      g <- g + geom_line(data = id_data_auslass,
-                         aes(y = Q_Auslass * y2.scale + y2_shift,
-                             color = Auslass),
-                         size = 1)
-    } else{
-      g <- g + geom_line(aes(
-        y = !!ensym(auslass_cols) * y2.scale + y2_shift,
-        color = eval(paste('Q',  auslass_cols))
-      ),
-      size = 1)
-    }
-  }
-  #----working with WL----
-} else {
-  # adding W_innen directly to the graphic should not be a problem
-  g <- g +
-    geom_line(aes(y = Nach,  color = 'W nach Maßnahme'),
-              size = 1)
-  if (isTRUE(w.canal)){
-    y2_name <- 'Wasserstand (m+NHN)'
-    g <- g + geom_line(aes(y = W_innen,
-                           color = 'W in Maßnahme'),
-                       size = 1)
-  }
-  if (isTRUE(q.in)){
-    einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
-    y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-    # adding Einlass lines
-    if (length(einlass_cols) > 1){
-      id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
-                              variable.name = 'Einlass',
-                              value.name = 'Q_Einlass')
-      id_data_einlass[, Einlass := paste('Q', Einlass)]
-      g <- g + geom_line(data = id_data_einlass,
-                         aes(y = Q_Einlass * y2.scale + y2_shift,
-                             color = Einlass),
-                         size = 1)
-    } else{
-      g <- g + geom_line(aes(
-        y = !!ensym(einlass_cols) * y2.scale + y2_shift,
-        color = eval(paste('Q', einlass_cols))
-      ),
-      size = 1)
-    }
-  }
-  if (isTRUE(q.out)){
-    y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-    if (length(auslass_cols) > 1){
-      id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
-                              variable.name = 'Auslass',
-                              value.name = 'Q_Auslass')
-      id_data_auslass[, Auslass := paste('Q', Auslass)]
-      g <- g + geom_line(data = id_data_auslass,
-                         aes(y = Q_Auslass * y2.scale + y2_shift,
-                             color = Auslass),
-                         size = 1)
-    } else{
-      g <- g + geom_line(aes(
-        y = !!ensym(auslass_cols) * y2.scale + y2_shift,
-        color = eval(paste('Q', auslass_cols))
-      ),
-      size = 1)
-    }
-  }
-}
-g$labels$colour <- color.name
-g$labels$linetype <- lt.name
-#----calculating Max Volume----
-if (isTRUE(verbose)) print('Calculating volume...')
-if(!is.null(polder.f)){
-  if(is.null(polder.z)){
-    id_data[, H_innen_max := max(W_innen, na.rm = TRUE) -
-              min(W_innen, na.rm = TRUE), by = case
-            ]
-    id_data[, Volume_max := round(H_innen_max * polder.f / 100, 2)]
-  } else{
-    id_data[, Volume_max := round(polder.z * polder.f / 100, 2)]
-  }
-} else {
-  id_vol_data <- get_polder_volume(name = name,
-                                   case.list = case.list,
-                                   case.desc = case.desc,
-                                   sobek.project = sobek.project,
-                                   master.tbl = master.tbl
-  )
-  id_data <- merge(id_data, id_vol_data, by = 'case', sort = FALSE)
-}
-#----annotating max value----
-if (isTRUE(verbose)) print('Adding text box...')
-# print(einlass_cols)
-# if (isTRUE(q.in)){
-for (i in einlass_cols) {
-  einlass_max_col <- paste(i, 'Max', sep = '_')
-  id_data[, eval(einlass_max_col) := max(get(i), na.rm = TRUE)]
-}
-# }
-id_data[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
-# finding the locations on x-axis for the annotated text
-# get length of x_axis, then get text.pos of it
-id_data[, N := .N, by = case]
-id_data[, ts_min := shift(ts, n = floor(text.pos.x*N),
-                          fill = NA, type = 'lead'),
-        by = case]
-if(!is.null(h.lines)){
-  id_hlines <- id_data[, min(ts), by = case]
-}
-id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
-colnames(id_data_nrow) <- c('case', 'ts')
-id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'), sort = FALSE)
-# id_max[, Q_in_max := round(Q_in_max)]
-id_max[, W_in_max := round(W_in_max, 2)]
-id_max[, label := '']
-case_has_max <- id_max[W_in_max == max(W_in_max, na.rm = TRUE), case]
-id_max[case == case_has_max,
-       label := paste(
-         'V_max in Maßnahme: ', Volume_max, ' Mio. m³\n',
-         'W_max in Maßnahme:   ', W_in_max, ' m + NHN\n',
-         label,
-         sep = "")
-       ]
-for (i in einlass_cols){
-  einlass_max_col <- paste(i, 'Max', sep = '_')
-  id_max[, eval(einlass_max_col) := round(as.numeric(get(einlass_max_col)), 1),
-         .SDcols = einlass_max_col]
-  id_max[case == case_has_max,
-         label := paste(
-           label,
-           'Q_max durch ', i, ': ', get(einlass_max_col), ' m³/s\n',
-           sep = "")
-         ]
-}
-delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')
-if (isTRUE(delta.pegel) & !is.null(ref.mID)){
-  id_max[, label := paste(
-    'Delta am ', ref.mID_name, ": ", scheitel_ref_mID_delta, " ", delta_unit, " \n",
-    label,
-    sep = ""
-  )]
-  # adding delta ref.mID2
-  if (!is.null(ref.mID2)){
-    id_max[, label := paste(
-      'Delta am ', ref.mID2_name, ": ", scheitel_ref_mID_delta2, " ", delta_unit, " \n",
-      label,
-      sep = ""
-    )]
-  }
-}
-if (isTRUE(delta.measure)){
-  id_max[, label := paste(
-    'Delta an der Maßnahme: ', scheitel_measure_delta, " ", delta_unit, " \n",
-    label,
-    sep = ""
-  )]
-}
-# y position of the text block
-y1_pos_txt <- y1_pretty[(length(y1_pretty)-1)]
-if (!is.null(text.pos.y)){
-  y1_pos_txt <- text.pos.y
-  if (abs(text.pos.y) < 1.2) y1_pos_txt <- text.pos.y * (y1_max - y1_min) + y1_min
-}
-g <- g +
-  geom_text(
-    data    = id_max[case == case_has_max],
-    mapping = aes(x = ts_min,
-                  y = y1_pos_txt,
-                  label = label),
-    hjust = 0,
-    vjust = 1
-  )
-
-if (!is.null(h.lines)){
-  # id_hlines with 2 cols: V1, case
-  for (i in seq_along(h.lines)){
-    hline_label <- ifelse(is.null(names(h.lines[i])),
-                          paste('V_', h.lines[[i]], sep = ""),
-                          names(h.lines[i])
-    )
-    # adding new colume to id_hlines
-    id_hlines[, eval(hline_label) := h.lines[[i]]]
-    g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 3)
-  }
-  id_hlines <- melt(id_hlines, id.vars = c('case', 'V1'))
-  # merging with case table for facetting
-  id_hlines <- merge(id_hlines, case_tbl, by = 'case', sort = FALSE)
-  g <- g + geom_text(
-    data    = id_hlines,
-    # V1 is the colume name of the min (ts_hlines)
-    mapping = aes(x = V1, y = value,
-                  label = sub("^V_", "", variable)
-    ),
-    hjust   = 0,
-    vjust = 0,
-    check_overlap = TRUE
-  )
-}
-if (isTRUE(y2_axis)){
-  if (y2.scale != 0){
-    g <- g +
-      scale_y_continuous(
-        breaks = y1_pretty,
-        sec.axis =
-          sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
-                   breaks = y2_pretty,
-                   labels = round(y2_pretty, 2),
-                   name = y2_name)
-      )
-  } else{
-    # in this case, y2 is a zero h-line
-    g <- g +
-      scale_y_continuous(
-        breaks = y1_pretty,
-        sec.axis =
-          sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
-                   # breaks = y2_pretty,
-                   # labels = round(y2_pretty, 2),
-                   name = y2_name)
-      )
-  }
-}
-#----graphic layout----
-y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
-if (is.null(plot.title)){
-  plot.title <- paste(str_extract(y1_label, 'Abfluss|Wasserstand'),
-                      ' Ganglinien für Maßnahme: ', name,
-                      '. Hochwasser: ', case_tbl$hwe[[1]],
-                      sep = '')
-}
-g <- g + theme_bw() +
-  theme(
-    legend.position = 'bottom',
-    text = element_text(size = text.size),
-    axis.text.x = element_text(angle = text.x.angle)
-  )+
-  scale_x_datetime(
-    name = 'Zeit',
-    date_breaks = date.break,
-    date_labels = date.label
-  ) + ylab(y1_label) +
-  ggtitle(plot.title)
-#----adding delta line beneath the main graphic----
-if (isTRUE(delta.line)){
-  delta_data <- dcast(id_data, ts ~ get(compare.by),
-                      value.var = 'Nach')
-  delta_data[, `Delta an der Maßnahme` := get(cmp_vars[1]) - get(cmp_vars[2])]
-  delta_data[, eval(cmp_vars[1]) := NULL]
-  delta_data[, eval(cmp_vars[2]) := NULL]
-  if(!is.null(ref.mID)){
-    delta_p1 <- dcast(id_data, ts ~ get(compare.by),
-                      value.var = 'Bezugspegel')
-    delta_p1[, eval(paste('Delta am ', ref.mID_name)) :=
-               get(cmp_vars[1]) - get(cmp_vars[2])]
-    delta_p1[, eval(cmp_vars[1]) := NULL]
-    delta_p1[, eval(cmp_vars[2]) := NULL]
-    delta_data <- merge(delta_data, delta_p1, by = 'ts',
-                        sort = FALSE)
-    if(!is.null(ref.mID2)){
-      delta_p2 <- dcast(id_data, ts ~ get(compare.by),
-                        value.var = 'Bezugspegel2')
-      delta_p2[, eval(paste('Delta am ', ref.mID2_name)) :=
-                 get(cmp_vars[1]) - get(cmp_vars[2])]
-      delta_p2[, eval(cmp_vars[1]) := NULL]
-      delta_p2[, eval(cmp_vars[2]) := NULL]
-      delta_data <- merge(delta_data, delta_p2, by = 'ts',
-                          sort = FALSE)
-    }
-  }
-  delta_data <- melt(delta_data,
-                     id.vars = 'ts', value.name = 'value',
-                     variable.name = 'Delta')
-  delta_title <- ifelse(param == 'discharge',
-                        paste('Abfluss Differenz (',
-                              cmp_vars[1], " - ", cmp_vars[2], ")",
-                              sep = ""),
-                        paste('Wasserstand Differenz (',
-                              cmp_vars[1], " - ", cmp_vars[2], ")",
-                              sep = ""))
-  delta_ylab <- ifelse(param == 'discharge',
-                       'Abfluss Differenz (m³/s)',
-                       'Wasserstand Differenz (cm)'
-  )
-  if (param == 'waterlevel') delta_data[, value := round(value * 100, 1)]
-  g2 <- ggplot(data = delta_data,
-               aes(x = ts, y = value, linetype = Delta))+
-    scale_x_datetime(name = 'Zeit', breaks = date.break,
-                     date_labels = date.label)+
     geom_line(size = 1) +
     theme_bw() +
     theme(
+      legend.key.width = unit(2, "cm"),
       legend.position = 'bottom',
-      text = element_text(size = text.size),
-      axis.text.x = element_blank()
+      text = element_text(
+        size = text.size
+      ),
+      axis.text.x = element_text(
+        angle = text.x.angle
+      )
     ) +
-    ggtitle(delta_title) + ylab(delta_ylab)
-  g2$labels$linetype = 'Linienart'
-  g <- cowplot::plot_grid(g, g2, ncol = 1, rel_heights = rel.heights,
-                          align = 'v', axis = 'l')
-}
-if (isTRUE(verbose) & isTRUE(y2_axis)) {
-  print(paste('tried with y2.scale = ', y2.scale,
-              '. y2_shift = ', y2_shift,
-              ". Use y2.tick1 and y2.scale to adjust y2-axis",
-              sep = ""))
+    ggtitle(p.title) +
+    xlab(x.lab) + ylab(y.lab) +
+    scale_y_continuous(breaks = y1_pretty)
+  
+  # horizontal lines --------------------------------------------------------
+  
+  if (!is.null(h.lines)) {
+    for (i in seq_along(h.lines)) {
+      hline_label <- ifelse(is.null(names(h.lines[i])), h.lines[[i]],
+                            names(h.lines[i]))
+      g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 2) +
+        annotate('text', 
+                 x = min(qt$ts_id, na.rm = TRUE), 
+                 y = h.lines[[i]], color = 'black',
+                 label = hline_label,
+                 hjust = 0, vjust = 0)
+    }
+  }
+  g$labels$colour <- color.name
+  g$labels$linetype <- lt.name
+  if (!is.null(p.caption)) {
+    g <- g + labs(caption = p.caption)
+  }
+  return(g)
 }

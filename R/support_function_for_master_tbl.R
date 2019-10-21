@@ -215,7 +215,7 @@ get_segment_data <- function(
     master.tbl = master.tbl,
     param = param
   )
-
+  if (nrow(id_tbl) == 0) stop('No ID found! Check master.tbl, name of river or from.km, to.km')
   # param == 'waterlevel' -> does not accept duplicated KM in the same case
   if (param != 'discharge') {
     for (i in seq_along(case.list)) {
@@ -233,23 +233,18 @@ get_segment_data <- function(
   }
   # parallel reading data from cases
   if (isTRUE(do.par)) {
-    # rbind_fill <- function(...){
-    #   return(rbindlist(..., use.names = FALSE, fill = TRUE))
-    # }
     if (isTRUE(verbose)) {
       print(paste('Getting data for',
                   round(nrow(id_tbl)/length(case.list)),
                   'ID(s) in', length(case.list), 'case(s)'))
       print('Your computer will be overloaded for a short time. Please be patient...')
     }
-    # require("doParallel", quietly = TRUE)
-    # require("foreach", quietly = TRUE)
     doParallel::registerDoParallel(parallel::detectCores() - 1)
     `%dopar%` <- foreach::`%dopar%`
     segment_data_list <- 
       foreach::foreach(i = 1:length(case.list)) %dopar% {
       if (param == 'discharge') {
-          tmp <- sobekio::his_from_case(
+          tmp <- his_from_case(
             case.list = case.list[[i]],
             sobek.project = sobek.project,
             param = param,
@@ -312,10 +307,8 @@ get_segment_data <- function(
       qid = id_tbl[case == case.list[[i]], list(km, ID_F)]
       # finding the IDs that have duplicated km
       km_dup = qid[duplicated(km), km]
-      #setorder(qid_dup, km)
       for (k in km_dup) {
         qid_k <- qid[km == k, ID_F]
-        #new_col = paste('q_km', k, sep = '_')
         segment_data[case == case.list[[i]],
                      eval(qid_k[1]) := rowSums(.SD, na.rm = TRUE), 
                      .SDcols = qid_k
@@ -328,11 +321,22 @@ get_segment_data <- function(
   }
   if (isTRUE(get.max)) {
     if (isTRUE(verbose)) print('Calculating max values....')
-    #sd_cols <- colnames(segment_data)
-    #sd_cols
     segment_data <- segment_data[, lapply(.SD, max, na.rm = TRUE),
                          .SDcols = -c("ts"), by = case] %>%
       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
+    # removing ID_F that were aggregated to the first ID_F at the duplicated KM
+    if (param == 'discharge') {
+      for (i in seq_along(case.list)) {
+        # get list of qIDs for this case
+        qid = id_tbl[case == case.list[[i]], list(km, ID_F)]
+        # finding the IDs that have duplicated km
+        km_dup = qid[duplicated(km), km]
+        for (k in km_dup) {
+          qid_k <- qid[km == k, ID_F]
+          segment_data <- segment_data[!(case == case.list[[i]] & ID_F %in% qid_k[-1])]
+        }
+      }
+    }
     segment_data[is.infinite(scheitel), scheitel := NA]
     segment_data <- merge(
       segment_data,
@@ -342,7 +346,7 @@ get_segment_data <- function(
     )
   }
 
-  return(segment_data[!is.na(scheitel)])
+  return(segment_data)
 }
 
 
@@ -669,6 +673,7 @@ get_drv_data <- function(
     case.desc = case.desc,
     master.tbl = master.tbl
   )
+  if (nrow(id_tbl) == 0) stop('No ID found! Check master.tbl, name of the DRV or to.upstream, to.downstream')
   if (param != 'discharge') {
     id_tbl <- id_tbl[ID_TYPE == 'wID']
     for (i in seq_along(case.list)) {
@@ -693,14 +698,12 @@ get_drv_data <- function(
                   'ID(s) in', length(case.list), 'case(s)'))
       print('Your computer will be overloaded for a short time. Please be patient...')
     }
-    # require("doParallel", quietly = TRUE)
-    # require("foreach", quietly = TRUE)
     doParallel::registerDoParallel(parallel::detectCores() - 1)
     `%dopar%` <- foreach::`%dopar%`
-    drv_data <- 
-      foreach::foreach(i = 1:length(case.list), .combine = rbind) %dopar% {
+    drv_data_list <- 
+      foreach::foreach(i = 1:length(case.list)) %dopar% {
         if (param == 'discharge') {
-          tmp <- his_from_case(
+          tmp <- sobekio::his_from_case(
             case.list = case.list[[i]],
             sobek.project = sobek.project,
             param = param,
@@ -709,7 +712,7 @@ get_drv_data <- function(
             verbose = FALSE
           )
         } else{
-          tmp <- his_from_case(
+          tmp <- sobekio::his_from_case(
             case.list = case.list[[i]],
             sobek.project = sobek.project,
             param = param,
@@ -722,12 +725,12 @@ get_drv_data <- function(
       }
     doParallel::stopImplicitCluster()
   } else {
+    drv_data_list <- list()
     print(paste('Getting data for',
                 round(nrow(id_tbl)/length(case.list)),
                 'ID(s) in', length(case.list), 'case(s)'))
-    drv_data_list <- list()
     if (param == 'discharge') {
-      for (i in seq_along(case.list)){
+      for (i in seq_along(case.list)) {
         drv_data_list[[i]] <- his_from_case(
           case.list = case.list[[i]],
           sobek.project = sobek.project,
@@ -738,7 +741,7 @@ get_drv_data <- function(
         )
       }
     } else{
-      for (i in seq_along(case.list)){
+      for (i in seq_along(case.list)) {
         drv_data_list[[i]] <- his_from_case(
           case.list = case.list[[i]],
           sobek.project = sobek.project,
@@ -749,19 +752,51 @@ get_drv_data <- function(
         )
       }
     }
-    drv_data <- rbindlist(drv_data_list, use.names = FALSE)
   }
-  
-  
-  if (isTRUE(get.max)){
+  drv_data <- rbindlist(drv_data_list, use.names = TRUE, fill = TRUE)
+  # to sum discharge at reaches that have same chainages along branches together
+  q_dup_new_col <- vector(mode = 'character')
+  q_dup_id <- vector(mode = 'character')
+  if (param == 'discharge') {
+    for (i in seq_along(case.list)) {
+      # get list of qIDs for this case
+      qid = id_tbl[case == case.list[[i]], list(km, ID_F)]
+      # finding the IDs that have duplicated km
+      km_dup = qid[duplicated(km), km]
+      for (k in km_dup) {
+        qid_k <- qid[km == k, ID_F]
+        drv_data[case == case.list[[i]],
+                     eval(qid_k[1]) := rowSums(.SD, na.rm = TRUE), 
+                     .SDcols = qid_k
+                     ]
+        drv_data[case == case.list[[i]], 
+                     c(qid_k[-1]) := as.list(rep(NA, length(qid_k[-1])))
+                     ]
+      }
+    }
+  }
+  if (isTRUE(get.max)) {
     drv_data <- drv_data[, lapply(.SD, max, na.rm = TRUE),
                              .SDcols = -c("ts"), by = case] %>%
       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
+    # removing ID_F that were aggregated to the first ID_F at the duplicated KM
+    if (param == 'discharge') {
+      for (i in seq_along(case.list)) {
+        # get list of qIDs for this case
+        qid = id_tbl[case == case.list[[i]], list(km, ID_F)]
+        # finding the IDs that have duplicated km
+        km_dup = qid[duplicated(km), km]
+        for (k in km_dup) {
+          qid_k <- qid[km == k, ID_F]
+          drv_data <- drv_data[!(case == case.list[[i]] & ID_F %in% qid_k[-1])]
+        }
+      }
+    }
+    drv_data[is.infinite(scheitel), scheitel := NA]
   }
   drv_data <- merge(drv_data,
                     id_tbl[, .SD, .SDcols = -c('ID')],
                     by = c('case', 'ID_F'), sort = FALSE)
-
   return(drv_data)
 }
 
@@ -923,7 +958,7 @@ get_polder_max <- function(
                            by = c(group.by, 'group'), sort = FALSE)
     }
   } else{
-    for (i in col_get_delta){
+    for (i in col_get_delta) {
       data_tbl_delta <-
         dcast(id_data_max, group  ~ get(compare.by),
               value.var = i)

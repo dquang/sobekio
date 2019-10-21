@@ -15,6 +15,7 @@
 #' @param plan.ohne List of "Planzustand ohne Maßnahme" cases
 #' @param plan.mit List of "Planzustand mit Maßnahme" cases
 #' @param hwe.list List of HWE (must unique)
+#' @param agg.ids List of ID-groups to aggregate (sum) results of those IDs, ex. agg.ids = list(c("ID1", "ID2"), c("ID1", "ID2")). This is not applied for waterlevel.
 #' @param id.name Names assign to the IDs
 #' @param html.out Output to html tables
 #' @param out.dec Output decimal
@@ -30,6 +31,7 @@ get_summary_tbl <- function(
   plan.ohne = NULL,
   plan.mit = NULL,
   hwe.list = NULL,
+  agg.ids = NULL,
   id.names = NULL,
   html.out = TRUE,
   out.dec = ",",
@@ -56,7 +58,17 @@ get_summary_tbl <- function(
   stopifnot(length(plan.ohne) == length(plan.mit))
   # stopifnot(n_case == length(plan.ohne))
   stopifnot(n_case == length(unique(plan.ohne)))
-  
+  # check aggregating IDs
+  if (!is.null(agg.ids)) {
+    if (param == 'waterlevel') stop('Aggregating is not applied for waterlevel')
+    if (!is.list(agg.ids)) stop('agg.ids must be given in form of list. Ex. agg.ids = list(pegel_1 = c("ID1", "ID2")')
+    for (i_d in unlist(agg.ids)) {
+      if (!i_d %in% unlist(id_args)) {
+        print(id_args)
+        stop('one of ID for aggregating is not in the list of IDs')
+      }
+    }
+  }
   # reading data from sobek
   bezug_tbl <- his_from_case(case.list = bezug, get.max = TRUE,
                              sobek.project = sobek.project,
@@ -70,8 +82,28 @@ get_summary_tbl <- function(
                                 sobek.project = sobek.project,
                                 ...,
                                 param = param)
+  # aggregating discharge for locations that have more than one IDs
+  if (!is.null(agg.ids)) {
+    for (loc_ids in agg.ids) {
+      # aggregate data to the first column
+      bezug_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+                   .SDcols = loc_ids
+                   ]
+      plan_ohne_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+                   .SDcols = loc_ids
+                   ]
+      plan_mit_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+                    .SDcols = loc_ids
+                    ]
+      # delete the rest
+      for (col in loc_ids[-1]) {
+        bezug_tbl[, eval(col) := NULL]
+        plan_ohne_tbl[, eval(col) := NULL]
+        plan_mit_tbl[, eval(col) := NULL]
+      }
+    }
+  }
   # changing case names to their description
-  
   for (i in seq_along(hwe.list)) {
     bezug_tbl[case == bezug[[i]],
               case := paste('bezug', hwe.list[[i]], sep = "_")]
@@ -126,7 +158,7 @@ get_summary_tbl <- function(
     data_tbl$Pegel <- id.names
   }
   # exporting to html table
-  if (isTRUE(html.out)){
+  if (isTRUE(html.out)) {
     # formatting decimal mark, make it easy to copy to Excel
     # data_tbl[, (cols) := format(.SD, decimal.mark = out.dec), .SDcols = cols]
     data_tbl <- data_tbl %>% mutate_at(
@@ -192,6 +224,7 @@ get_summary_tbl <- function(
 #' @param zustand1 List of cases for the reference scenario (substrahend)
 #' @param zustand2 List of cases for the comparing scenario (minuend)
 #' @param hwe.list List of names for cases (must unique)
+#' @param agg.ids List of ID-groups to aggregate (sum) results of those IDs, ex. agg.ids = list(c("ID1", "ID2"), c("ID1", "ID2")). This is not applied for waterlevel.
 #' @param id.name Names assign to the IDs
 #' @param html.out Output to html tables
 #' @param out.dec Output decimal
@@ -206,6 +239,7 @@ get_delta_table <- function(
   zustand1 = NULL,
   zustand2 = NULL,
   hwe.list = NULL,
+  agg.ids = NULL,
   id.names = NULL,
   html.out = TRUE,
   out.dec = ",",
@@ -232,6 +266,17 @@ get_delta_table <- function(
   stopifnot(length(zustand1) == length(zustand2))
   stopifnot(n_case == length(zustand2))
   stopifnot(n_case == length(unique(hwe.list)))
+  # check aggregating IDs
+  if (!is.null(agg.ids)) {
+    if (param == 'waterlevel') stop('Aggregating is not applied for waterlevel')
+    if (!is.list(agg.ids)) stop('agg.ids must be given in form of list. Ex. agg.ids = list(pegel_1 = c("ID1", "ID2")')
+    for (i_d in unlist(agg.ids)) {
+      if (!i_d %in% unlist(id_args)) {
+        print(id_args)
+        stop('one of ID for aggregating is not in the list of IDs')
+      }
+    }
+  }
   # reading data from sobek
   zustand1_tbl <- his_from_case(case.list = zustand1, get.max = TRUE,
                                 ...,
@@ -244,8 +289,24 @@ get_delta_table <- function(
                                 # mID = pegel_ID, 
                                 sobek.project = sobek.project,
                                 param = param)
+  # aggregating discharge for locations that have more than one IDs
+  if (!is.null(agg.ids)) {
+    for (loc_ids in agg.ids) {
+      # aggregate data to the first column
+      zustand1_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+                   .SDcols = loc_ids
+                   ]
+      zustand2_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+                   .SDcols = loc_ids
+                   ]
+      # delete the rest
+      for (col in loc_ids[-1]) {
+        zustand1_tbl[, eval(col) := NULL]
+        zustand2_tbl[, eval(col) := NULL]
+      }
+    }
+  }
   # changing case names to their description
-  
   for (i in seq_along(hwe.list)) {
     zustand1_tbl[case == zustand1[[i]],
                  case := paste('Z1', hwe.list[[i]], sep = "_")]
@@ -275,17 +336,17 @@ get_delta_table <- function(
   setcolorder(data_tbl, cols)
   # rounding data
   cols <- cols[-1]
-  if (param == 'waterlevel'){
+  if (param == 'waterlevel') {
     data_tbl[, (cols) := round(.SD, 2), .SDcols = cols]
   } else{
     data_tbl[, (cols) := round(.SD), .SDcols = cols]
   }
   
-  if (length(id.names) == length(data_tbl$Pegel)){
+  if (length(id.names) == length(data_tbl$Pegel)) {
     data_tbl$Pegel <- id.names
   }
   # exporting to html table
-  if (isTRUE(html.out)){
+  if (isTRUE(html.out)) {
     # formatting decimal mark, make it easy to copy to Excel
     # data_tbl[, (cols) := format(.SD, decimal.mark = out.dec), .SDcols = cols]
     data_tbl <- data_tbl %>% mutate_at(
