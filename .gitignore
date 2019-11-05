@@ -6,9 +6,11 @@ write-test-*
 *.Ruserdata
 *.Rproj.user
 *.Rd
+man/*.*
 *.Rproj
 NAMESPACE
 .Rproj.user
 inst/doc
 doc
 Meta
+.RData*

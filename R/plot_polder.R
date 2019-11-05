@@ -159,7 +159,7 @@ plot_polder <- function(
   #-----preparing plot-----
   if (isTRUE(verbose)) print('Preparing graphic...')
   y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
-  if (!is.null(ref.mID)){
+  if (!is.null(ref.mID)) {
     y1_max <- id_data[, max(.SD, na.rm = TRUE),
                       .SDcols = c('Nach', 'Vor', 'Bezugspegel')]
     y1_min <- id_data[, min(.SD, na.rm = TRUE),
@@ -350,8 +350,8 @@ plot_polder <- function(
         } else {
           y2_min <- floor(y2_min)
         }
-        if (y2_min*y2.scale != y1_min) {
-          y2_shift <- floor(y2_shift - y2_min*y2.scale)
+        if (y2_min * y2.scale != y1_min) {
+          y2_shift <- floor(y2_shift - y2_min * y2.scale)
         }
         if (length(auslass_cols) > 1) {
           id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
@@ -370,6 +370,13 @@ plot_polder <- function(
         }
       }
     }
+  }
+  if (!is.null(facet.by)) {
+    if (length(facet.by) > 1) {
+      id_data[, facet_by := paste(get(facet.by[1]), get(facet.by[2]))]
+      facet.by <- 'facet_by'
+    }
+    g <- g + facet_wrap(ensym(facet.by), scales = 'free_x')
   }
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
@@ -437,12 +444,13 @@ plot_polder <- function(
     }
     # removing 'Inf' in id_max
     id_max[, label := str_replace_all(label, "-*Inf.*\n", "k.A.\n")]
-    # id_max[Volume_max == 'k.A.', label := '']
     # y position of the text block
-    y1_pos_txt <- y1_pretty[(length(y1_pretty)-1)]
-    if (!is.null(text.pos.y)){
+    y1_pos_txt <- y1_pretty[(length(y1_pretty) - 1)]
+    if (!is.null(text.pos.y)) {
       y1_pos_txt <- text.pos.y
-      if (abs(text.pos.y) < 1.2) y1_pos_txt <- text.pos.y * (y1_max - y1_min) + y1_min
+      if (abs(text.pos.y) < 1.2) {
+        y1_pos_txt <- text.pos.y * (y1_max - y1_min) + y1_min
+      }
     }
     g <- g +
       geom_text(
@@ -513,9 +521,6 @@ plot_polder <- function(
       ) +
     ylab(y1_label) + xlab('Zeit') +
     ggtitle(plot.title)
-  if (!is.null(facet.by)) {
-    g <- g + facet_wrap(ensym(facet.by), scales = 'free_x')
-  }
 
   return(g)
 }

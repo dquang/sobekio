@@ -8,15 +8,30 @@
 #' @param get.max Default FALSE. If TRUE, the max values will return
 #' @param get.abs.max Default FALSE. If TRUE, the values that have absolute max will return.
 #' If get.abs.max and get.max both are TRUE, the absolute max will return
-#' @param id_name Default NULL. To set names for the IDs
 #' @param f.sep Seperator of the id.file, default = 'TAB'
 #' @param f.header Logical. Has id.file header?
 #' @param f.comment Comment character of the files. Default "#"
 #' @param id.names Character vector for naming the IDs. Default NULL
 #' @param ... This accept only one parameter in syntax of ID_TYPE = ID_LIST.
-#' ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID
+#' ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID...
 #' ID_LIST is a character vector.
 #' For example mID = c('p_koeln', 'p_mainz')
+#' \tabular{ll}{
+#'   \strong{ID_TYPE} \tab \strong{DESCRIPTION} \cr
+#'   mID          \tab Results at Measurements  \cr
+#'   wID          \tab Results at Nodes         \cr
+#'   qID          \tab Results at Reaches       \cr
+#'   lID or latID \tab Results at Laterals      \cr
+#'   sID          \tab Results at Structures    \cr
+#'   pID          \tab Results for Pumpstations \cr
+#'   tID          \tab Results for Triggers     \cr
+#'   fmID         \tab Results from Flowmap     \cr
+#'   fhID         \tab Results from Flowhis.his \cr
+#'   moID         \tab Results from Morpmap.his \cr
+#'   smID         \tab Results from Gsedmap.his \cr
+#'   shID         \tab Results from Gsedhis.his \cr
+#'   File name    \tab HIS file name without '.HIS'. Ex. reachvol = c('ID1', 'ID2')
+#' }
 #' @return a data.table
 #' @export
 his_from_case <- function(
@@ -36,17 +51,8 @@ his_from_case <- function(
   if (isTRUE(get.abs.max)) get.max <- FALSE
   f_args <- as.list(match.call(expand.dots = FALSE))
   id_args <- list(...)
-  # h_args <- as.list(match.call(expand.dots = TRUE))
   stopifnot(!is.null(case.list) & !is.null(sobek.project))
-  id_types <- c('MID', 'WID', 'QID', 'LID', 'LATID', 'SID', 'PID', 'TID')
   id_type <- names(f_args$...)
-  if (length(id_args) != 1 | !toupper(id_type) %in% id_types) {
-    print('You may have typos in parameter names! Check following parameters:')
-    print(names(f_args$...))
-    stop("List of IDs must be given and ID_TYPE is one of: ",
-         "c('mID', 'wID', 'qID', 'lID', 'latID', 'sID', 'pID', 'tID')"
-    )
-  }
   # processing case.list
   if (is.character(case.list) && length(case.list) == 1 && file.exists(case.list)) {
     # reading case.list
@@ -64,8 +70,7 @@ his_from_case <- function(
     colnames(clist)[1] <- "case_name"
   } else {
     if (is.vector(case.list)) {
-      clist <- data.table(case_name = case.list,
-                          stringAsFactors = FALSE)
+      clist <- data.table(case_name = case.list)
     } else {
         stop("case.list must be a path to file or a character vector")
       }
@@ -85,9 +90,8 @@ his_from_case <- function(
     if (ncol(id_tbl) > 1) id.names <- id_tbl[, 2]
   }
   n_case = length(case.list)
-  # n_id = length(id_list)
   # check SOBEK project
-  sobek_cmt <- paste(sobek.project, "caselist.cmt", sep = "/")
+  sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
   if (!file.exists(sobek_cmt)) {
     stop("Sobek Caselist.cmt does not exist! Check sobek.project Folder")
   }
@@ -122,15 +126,26 @@ his_from_case <- function(
     LID = 'QLAT.HIS',
     LATID = 'QLAT.HIS',
     PID = 'PUMP.HIS',
-    TID = 'TRIGGERS.HIS'
+    TID = 'TRIGGERS.HIS',
+    FMID = 'FLOWMAP.HIS',
+    MOID = 'MORPMAP.HIS',
+    FHID = 'FLOWHIS.HIS',
+    SMID = 'GSEDMAP.HIS',
+    SHID = 'GSEDHIS.HIS',
+    paste0(id_type, '.HIS') # take id_type as file prefix
   )
-  clist[, his_file := paste(sobek.project,
-                            case_number, his_fname, sep = "/")
-        ]
+  if (Sys.info()[['sysname']] != 'Windows') {
+    # for system with case-sensitive file naming
+    clist[, case_folder := paste(sobek.project, case_number, sep = "/")]
+    clist[, his_file := file_path(name = his_fname, path = case_folder)]
+  } else {
+    clist[, his_file := paste(sobek.project,
+                              case_number, his_fname, sep = "/")
+          ]
+  }
+
   if (isTRUE(do.par)) {
     # parallel computing here
-    # requireNamespace("doParallel", quietly = TRUE)
-    # requireNamespace("foreach", quietly = TRUE)
     doParallel::registerDoParallel(parallel::detectCores() - 1)
     `%dopar%` <- foreach::`%dopar%`
     result <- foreach::foreach(i = 1:n_case, .combine = rbind) %dopar% {
@@ -146,7 +161,7 @@ his_from_case <- function(
   } else{
     # if case.name found in the caselist.cmt
     result_list <- list(rep(NA, n_case))
-    for (i in 1:n_case){
+    for (i in 1:n_case) {
       this_case_name <- clist$case_name[[i]]
       this_case_hfile <- clist$his_file[[i]]
       his_data <- his_from_list(
@@ -160,7 +175,7 @@ his_from_case <- function(
     rm(result_list)
   }
   # get the max values if get.max == TRUE, only for one type of ID
-  if (isTRUE(get.max)){
+  if (isTRUE(get.max)) {
       result <- result[, lapply(.SD, max,
       na.rm = TRUE),
       .SDcols = -c('ts'),
@@ -171,7 +186,7 @@ his_from_case <- function(
                      lapply(.SD, function(x) {
                        x_abs <- abs(x)
                        i_max <- which.max(x_abs)
-                       if (length(i_max) == 1){
+                       if (length(i_max) == 1) {
                          ret <- x[i_max]
                        } else{
                          warning('Could not found value that has absolute max. -Inf returned.')
@@ -244,7 +259,7 @@ his_from_case_old <- function(
     stop("Sobek Caselist.cmt does not exist! Check sobek.project Folder")
   }
   case.list <- unlist(case.list)
-  if (is.character(case.list) && length(case.list) == 1 && file.exists(case.list)){
+  if (is.character(case.list) && length(case.list) == 1 && file.exists(case.list)) {
     # reading case.list
     clist <- read.table(
       file = case.list,
@@ -257,13 +272,13 @@ his_from_case_old <- function(
     )
     clist <- data.table(clist)
   } else {
-    if (is.vector(case.list)){
+    if (is.vector(case.list)) {
       clist <- data.table(matrix(case.list,
                                  nrow = length(case.list),
                                  ncol = 1),
                           stringAsFactors = FALSE)
     } else {
-      if (is.data.frame(case.list)){
+      if (is.data.frame(case.list)) {
         clist <- data.table(case.list)
       } else {
         stop("case.list must be a path to file, a list, or a data.frame")
@@ -272,8 +287,8 @@ his_from_case_old <- function(
   }
   # first column in the clist is case_name
   colnames(clist)[1] <- "case_name"
-  if (ncol(clist) >= 2){
-    if(!"case_folder" %in% colnames(clist)) colnames(clist)[2] <- "case_folder"
+  if (ncol(clist) >= 2)  {
+    if (!"case_folder" %in% colnames(clist)) colnames(clist)[2] <- "case_folder"
   }
   col_case_folder <- ifelse("case_folder" %in% colnames(clist),
                             TRUE, FALSE
@@ -292,7 +307,7 @@ his_from_case_old <- function(
                               FUN = .get_case_number, case.list = sobek_clist)
   clist[tolower(case_name) == 'work', case_number := 'work']
   # check if clist contain a column for destination
-  if ("case_folder" %in% colnames(clist)){
+  if ("case_folder" %in% colnames(clist)) {
     clist$case_dest_folder <- lapply(clist$case_folder,
                                      FUN = function(x, pth = out.folder) {
                                        paste(pth, x, sep = "/")
@@ -319,7 +334,7 @@ his_from_case_old <- function(
   if (copy.his) {
     for (i in clist$case_number) {
       if (!is.na(i)) {
-        if (!dir.exists(clist$case_folder[clist$case_number == i])){
+        if (!dir.exists(clist$case_folder[clist$case_number == i])) {
           dir.create(clist$case_folder[clist$case_number == i],
                      recursive = TRUE)
         }
@@ -381,7 +396,7 @@ his_from_case_old <- function(
                            clist$case_sobek_folder[clist$case_number == i]
       )
       if (!is.null(wID)) {
-        if(length(wID)==1 && file.exists(wID)){
+        if (length(wID) == 1 && file.exists(wID)) {
           tmp <- his_from_file(
             his.file = paste(his_folder, "CALCPNT.HIS", sep = "/"),
             id.file = wID[[1]],
@@ -390,7 +405,7 @@ his_from_case_old <- function(
           tmp$case <- clist$case_name[clist$case_number == i]
           wID_res[[i]] <- tmp
         } else {
-          if (is.vector(wID)){
+          if (is.vector(wID)) {
             tmp <- his_from_list(
               his.file = paste(his_folder, "CALCPNT.HIS", sep = "/"),
               id.list = unlist(wID),
@@ -404,7 +419,7 @@ his_from_case_old <- function(
 
       # get data for Discharge
       if (!is.null(qID)) {
-        if(length(qID)==1 && file.exists(qID)){
+        if (length(qID) == 1 && file.exists(qID)) {
           tmp <- his_from_file(
             his.file = paste(his_folder, "REACHSEG.HIS", sep = "/"),
             id.file = qID[[1]],
@@ -413,7 +428,7 @@ his_from_case_old <- function(
           tmp$case <- clist$case_name[clist$case_number == i]
           qID_res[[i]] <- tmp
         } else {
-          if (is.vector(qID)){
+          if (is.vector(qID)) {
             tmp <- his_from_list(
               his.file = paste(his_folder, "REACHSEG.HIS", sep = "/"),
               id.list = unlist(qID),
@@ -427,7 +442,7 @@ his_from_case_old <- function(
 
       # get data for Laterals
       if (!is.null(lID)) {
-        if(length(lID)==1 && file.exists(lID)){
+        if (length(lID) == 1 && file.exists(lID)) {
           tmp <- his_from_file(
             his.file = paste(his_folder, "QLAT.HIS", sep = "/"),
             id.file = lID[[1]],
@@ -436,7 +451,7 @@ his_from_case_old <- function(
           tmp$case <- clist$case_name[clist$case_number == i]
           lID_res[[i]] <- tmp
         } else {
-          if (is.vector(lID)){
+          if (is.vector(lID)) {
             tmp <- his_from_list(
               his.file = paste(his_folder, "QLAT.HIS", sep = "/"),
               id.list = unlist(lID),
@@ -450,7 +465,7 @@ his_from_case_old <- function(
 
       # get data for Structure
       if (!is.null(sID)) {
-        if(length(sID)==1 && file.exists(sID)){
+        if (length(sID) == 1 && file.exists(sID)) {
           tmp <- his_from_file(
             his.file = paste(his_folder, "STRUC.HIS", sep = "/"),
             id.file = sID[[1]],
@@ -459,7 +474,7 @@ his_from_case_old <- function(
           tmp$case <- clist$case_name[clist$case_number == i]
           sID_res[[i]] <- tmp
         } else {
-          if (is.vector(sID)){
+          if (is.vector(sID)) {
             tmp <- his_from_list(
               his.file = paste(his_folder, "STRUC.HIS", sep = "/"),
               id.list = unlist(sID),
@@ -473,7 +488,7 @@ his_from_case_old <- function(
 
       # get data for Measstation
       if (!is.null(mID)) {
-        if(length(mID)==1 && file.exists(mID)){
+        if (length(mID) == 1 && file.exists(mID)) {
           tmp <- his_from_file(
             his.file = paste(his_folder, "MEASSTAT.HIS", sep = "/"),
             id.file = mID[[1]],
@@ -482,7 +497,7 @@ his_from_case_old <- function(
           tmp$case <- clist$case_name[clist$case_number == i]
           mID_res[[i]] <- tmp
         } else {
-          if (is.vector(mID)){
+          if (is.vector(mID)) {
             tmp <- his_from_list(
               his.file = paste(his_folder, "MEASSTAT.HIS", sep = "/"),
               id.list = unlist(mID),
@@ -495,7 +510,6 @@ his_from_case_old <- function(
       }
     }
   }
-  # rm(tmp)
 
   if (length(wID_res) > 0) {
     result$waterlevel <- data.table::rbindlist(wID_res)
@@ -523,7 +537,7 @@ his_from_case_old <- function(
   if (length(result) == 1) {
     result <- result[[1]]
     # get the max values if get.max == TRUE, only for one type of ID
-    if (isTRUE(get.max)){
+    if (isTRUE(get.max)) {
       result <- result[, lapply(.SD, max, na.rm = TRUE), by = case]
     }
   }

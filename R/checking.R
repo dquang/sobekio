@@ -78,14 +78,27 @@ check_fra <- function(
 #' @export
 check_worms <- function(
   case.name,
-  zustand,
+  case.desc = case.name,
+  zustand = NULL,
   sobek.project = so_prj,
-  worms.tbl,
+  worms.tbl = lubw,
   check.dat = FALSE,
   worms.id = '17',
+  lubw.code = lubw_code,
   mid = 'p_worms'
 ){
-
+  # if zustand was not given, try to differ it from case.name
+  if (is.null(zustand)) {
+    zustand_chk <- map(lubw.code$pat, grepl, x = case.desc)
+    zustand_pos = which(zustand_chk == TRUE)
+    if (length(zustand_pos) > 1) {
+      print('There are more than two \'zustand\' possible for this case: ')
+      print(lubw.code$colname[zustand_pos])
+      stop('Too many \'zustand\' possible. Try again!')
+    }
+    print(paste('tried with zustand =', lubw.code$colname[zustand_pos]))
+    zustand <- lubw.code$colname[zustand_pos]
+  }
   qt_lubw <- worms.tbl[, .SD, .SDcols = c('ts', zustand)]
   colnames(qt_lubw) <- c('ts', 'Worms_LUBW')
   if (isTRUE(check.dat)) {
@@ -100,6 +113,7 @@ check_worms <- function(
     )
     colnames(qt_dat) <- c('ts', 'Worms_LUBW')
     qt_dat[, Worms_LUBW := as.numeric(Worms_LUBW)]
+    setkey(qt_dat, ts)
     testthat::expect_equal(qt_lubw, qt_dat)
     return(TRUE)
     #invisible(list(qt_lubw, qt_dat))

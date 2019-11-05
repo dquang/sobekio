@@ -31,7 +31,7 @@ his_location <- function(his.file = "") {
   # 160 for the title, 4 + 4 for param_nr,total_loc, and 20*param_nr for params
   seek(con, where = 168 + 20 * param_nr, origin = "start")
   # get locations table
-  for (i in 1:total_loc){
+  for (i in 1:total_loc) {
     loc_id[i] <- as.integer(i)
     seek(con, 4, "current")
     loc_name[i] <- stri_conv(readBin(con, what = "raw", n = 20), 
@@ -48,14 +48,14 @@ his_location <- function(his.file = "") {
   # try to read .HIA
   hia_file <- paste(str_sub(his.file, start = 1, end = nchar(his.file) - 4),
                     ".HIA", sep = "")
-  if (file.exists(hia_file)){
+  if (file.exists(hia_file)) {
     hia_dt <- fread(file = hia_file,
                                 sep = "\n",
                                 header = F,
                                 col.names = "V1",
                                 na.strings = "",
                                 data.table = TRUE,
-                                encoding = "UTF-8",
+                                encoding = "Latin-1",
                                 blank.lines.skip = TRUE,
                                 quote = "")
     # remove blank lines
@@ -92,7 +92,7 @@ his_location <- function(his.file = "") {
     }
   }
   options("stringsAsFactors" = str_as_factor)
-  if (!'long.id' %in% colnames(his.locs)) his.locs[, long.id:='']
+  if (!'long.id' %in% colnames(his.locs)) his.locs[, long.id := '']
   return(his.locs)
 }
 
@@ -211,7 +211,7 @@ his_from_list <- function(
   locs <- map_int(id.list, .id2loc, locdf)
   hisdf <- .his_from_locs(his.file = his.file, locs = locs, param = par)
   tsdf <- .his_time_df(his.file = his.file)
-  df_out <- data.table(tsdf, hisdf, stringsAsFactors = FALSE)
+  df_out <- data.table(tsdf, hisdf)
   options("stringsAsFactors" = str_as_factor)
   colnames(df_out) <- c('ts', id.list)
   return(df_out)
