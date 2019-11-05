@@ -37,6 +37,3 @@ type -> file
 \item struct.def: get path to struct.def
 }
 }
-\examples{
-get_file_path(case.name = 'Default', sobek.project = 'd:/so21302/rhein.lit', type = 'bnd.dat')
-}

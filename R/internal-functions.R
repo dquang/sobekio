@@ -1,21 +1,3 @@
-#' Convert Sobek ID to location index
-#' @param id Node/Reach ID
-#' @param his.locs Location table
-.id2loc <- function(id, his.locs) {
-  # using exact matching to prevent potential problem caused by special characters
-  location <- his.locs[sobek.id == id, location]
-  if (length(location) == 0) {
-    location <- his.locs[long.id == id, location]
-  }
-  if (length(location) == 0) {
-    location <- NA_integer_
-  }
-  if (is.na(location[[1]])) warning("sobek.id: '", id,
-                               "' does not found in the location table")
-  return(as.integer(location[[1]]))
-}
-
-
 # Convert parameter name to parameter index
 .id2param <- function(param.name, param.df) {
   # using exact matching to prevent potential problem caused by special characters
@@ -41,29 +23,11 @@
 }
 
 
-# Get column index of parameter (param) at the location (loc)
-# in the data matrix
-.loc2col <- function(loc, param, n_param) {
-  colnr <- param + n_param * (loc - 1)
-  return(colnr)
-}
-
-
-.get_case_number <- function(case.name, case.list) {
-  setkey(case.list, case_name)
-  if (typeof(case.list) != "list") stop("case.list must be a list")
-  x  <-  as.integer(case.list[case.name, case_number])
-  if (is.na(x)) warning("case ", case.name, " not found in the case list")
-  return(x)
-}
-
-
 # Get data matrix of the .HIS file
 # @param his.file Path to .HIS file, string
 # @return a numeric matrix with ncol = total_loc*total_param, nrow = total_tstep
 .his_df <- function(his.file) {
   con <- file(his.file, open = "rb", encoding = "native.enc")
-  # his_fsize <- file.size(his.file)
   seek(con, 160)
   param_nr <- readBin(con, "int", size = 4)
   total_loc <- readBin(con, "int", size = 4)
@@ -243,23 +207,6 @@
 }
 
 
-#' Get data of given locations and parameter
-#' @param his.file Path to .HIS file, string
-#' @param param Index of the parameter, integer
-#' @return a data.table
-.his_from_locs <- function(his.file, locs, param = 1L) {
-  # get whole data matrix
-  hisdf <- .his_df(his.file)
-  con <- file(his.file, 'rb', encoding = 'native.enc')
-  seek(con, 160)
-  param_nr = readBin(con, 'int', n = 1, size = 4)
-  close(con)
-  # creating a mask for the matrix, to get only columns for the param
-  cols_mask <- map_dbl(locs, .loc2col, param, param_nr)
-  return(hisdf[, cols_mask])
-}
-
-
 #' Information for his_from_case
 id_type_tbl <- data.table(
   ID_TYPE = c(
@@ -302,7 +249,7 @@ id_type_tbl <- data.table(
 #' @param name Name of the file
 #' @param path Path to parent folder
 #' @param f_tbl Table of file name and path
-#' @return A character string or NA if not found
+#' @return A character string or NA_character_ if not found
 file_path <- function(name = NULL, path = NULL, f_tbl = NULL) {
   if (is.null(f_tbl)) {
     f_list <- list.files(path = path, all.files = TRUE, 
@@ -316,6 +263,6 @@ file_path <- function(name = NULL, path = NULL, f_tbl = NULL) {
     f_tbl <- data.table(cs_path = f_list, f_name_upper = f_name_list)
   }
   ret <- f_tbl[f_name_upper == toupper(name), cs_path]
-  if (length(ret) != 1) ret <- NA
+  if (length(ret) != 1) ret <- NA_character_
   return(ret)
 }

@@ -27,27 +27,30 @@ his_location <- function(his.file = "") {
   total_loc <- readBin(con, what = "int", n = 1, size = 4)
   # initialize location -id and -name vectors
   loc_id <- vector(mode = "integer", length = total_loc)
+  loc_id <- seq.int(from = 1, to = total_loc, by = 1)
   loc_name <- vector(mode = "character", length = total_loc)
   # 160 for the title, 4 + 4 for param_nr,total_loc, and 20*param_nr for params
   seek(con, where = 168 + 20 * param_nr, origin = "start")
   # get locations table
   for (i in 1:total_loc) {
-    loc_id[i] <- as.integer(i)
     seek(con, 4, "current")
     loc_name[i] <- stri_conv(readBin(con, what = "raw", n = 20), 
                              from = 'windows-1252')
     seek(con, where = 168 + 20 * param_nr + 24 * i, origin = "start")
   }
   close(con)
-  his.locs <- data.table(cbind(
-    as.integer(loc_id),
-    str_trim(loc_name, side = 'both')
-           # whitespace = "[ \t\r\n\\h\\v]")
-  ))
-  colnames(his.locs) <- c("location", "sobek.id")
+  his_locs <- data.table(
+    location = loc_id,
+    sobek.id = str_trim(loc_name, side = 'both')
+  )
   # try to read .HIA
   hia_file <- paste(str_sub(his.file, start = 1, end = nchar(his.file) - 4),
                     ".HIA", sep = "")
+  hia_file <- paste(
+    str_sub(basename(his.file), start = 1, end = nchar(basename(his.file)) - 4), 
+    ".hia", sep = ""
+    )
+  hia_file <- file_path(hia_file, dirname(his.file))
   if (file.exists(hia_file)) {
     hia_dt <- fread(file = hia_file,
                                 sep = "\n",
@@ -83,17 +86,16 @@ his_location <- function(his.file = "") {
       i_long_loc <- which(hia_sbegin == pos_long_loc + 1)
       if (length(i_long_loc) > 0) {
         long_loc <- hia_dt[hia_sbegin[i_long_loc]:hia_send[i_long_loc], ]
-        long_loc[, c("location", "long.id") := tstrsplit(V1, "=", fixed = TRUE)]
+        long_loc[, c("location", "sobek.id") := tstrsplit(V1, "=", fixed = TRUE)]
         long_loc[, V1 := NULL]
-        his.locs <- merge(his.locs, long_loc, all.x = TRUE,
-                          by = "location",
-                          sort = FALSE)
+        his_locs <- rbind(long_loc, his_locs)
       }
     }
   }
   options("stringsAsFactors" = str_as_factor)
-  if (!'long.id' %in% colnames(his.locs)) his.locs[, long.id := '']
-  return(his.locs)
+  his_locs[, location := as.integer(location)]
+  setkey(his_locs, sobek.id)
+  return(his_locs)
 }
 
 
@@ -127,14 +129,14 @@ his_info <- function(his.file = "") {
   total_loc <- readBin(con, what = "int", size = 4, endian = "little")
   seek(con, where = 168, origin = "start")
   # read parameter names
-  params_str <- readBin(con, what = "character", size = 20*param_nr,
+  params_str <- readBin(con, what = "character", size = 20 * param_nr,
                         endian = "little")
   # each parameter name is stored in a fixed string having length = 20
   param_names <- vector(mode = "character", length = param_nr)
   # removing padding strings at the end
   for (i in 1:param_nr) param_names[i] <- str_sub(params_str,
-                                                 start = 20*(i - 1) + 1,
-                                                 end = 20*i)
+                                                 start = 20 * (i - 1) + 1,
+                                                 end = 20 * i)
   close(con)
   # The rest is for numerical data with the following structure
   data_bytes <- file.size(his.file) -
@@ -195,21 +197,24 @@ his_from_list <- function(
   if (!is.vector(id.list)) stop("id must be a vector")
   if (!is.numeric(param)) {
     pardf <- .his_parameter(his.file)
-    par <- .id2param(param, pardf)
-    if (is.na(par)) {
+    par_int <- .id2param(param, pardf)
+    if (is.na(par_int)) {
       print('List of Parameters in the .HIS file')
       print(pardf)
       stop('Parameter: ', param, ' not found')
     }
   } else {
-    par <- as.integer(param)
-    if (!par %in% seq.int(1, param_nr, 1)) {
+    par_int <- as.integer(param)
+    if (!par_int %in% seq.int(1, param_nr, 1)) {
       stop('Parameter: ', param, ' out of range(1, ', param_nr,')')
     }
   }
   locdf <- his_location(his.file)
-  locs <- map_int(id.list, .id2loc, locdf)
-  hisdf <- .his_from_locs(his.file = his.file, locs = locs, param = par)
+  locs <- locdf[id.list, location]
+  hisdf <- .his_df(his.file)
+  # creating a mask for the matrix, to get only columns for the param
+  cols_mask <- par_int + par_int * (locs - 1)
+  hisdf <- hisdf[, cols_mask]
   tsdf <- .his_time_df(his.file = his.file)
   df_out <- data.table(tsdf, hisdf)
   options("stringsAsFactors" = str_as_factor)
@@ -261,24 +266,4 @@ his_from_file <- function(
   }
   options("stringsAsFactors" = str_as_factor)
   return(df_out)
-}
-
-
-#' Convert his file to CSV, for one parameter
-#' @param his.file Path to his file
-#' @param output Path to output file
-#' @param param Index or Name of parameter to get value
-#' @param ... Other parameters passing to data.table::fwrite function
-#' @export
-his_2_csv <- function(his.file = NULL,
-                      output = NULL,
-                      param = 1L,
-                      ...){
-  rloc <- his_location(his.file)
-  # ifelse does not work, weird!
-  rtble <- his_from_list(his.file = his.file,
-                         id.list = rloc$sobek.id,
-                         param = param)
-  if(!dir.exists(dirname(output))) dir.create(dirname(output), recursive = TRUE)
-  data.table::fwrite(rtble, file = output, ...)
 }
