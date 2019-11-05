@@ -32,11 +32,25 @@ If get.abs.max and get.max both are TRUE, the absolute max will return}
 \item{f.sep}{Seperator of the id.file, default = 'TAB'}
 
 \item{...}{This accept only one parameter in syntax of ID_TYPE = ID_LIST.
-ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID
+ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID...
 ID_LIST is a character vector.
-For example mID = c('p_koeln', 'p_mainz')}
-
-\item{id_name}{Default NULL. To set names for the IDs}
+For example mID = c('p_koeln', 'p_mainz')
+\tabular{ll}{
+\strong{ID_TYPE} \tab \strong{DESCRIPTION} \cr
+mID          \tab Results at Measurements  \cr
+wID          \tab Results at Nodes         \cr
+qID          \tab Results at Reaches       \cr
+lID or latID \tab Results at Laterals      \cr
+sID          \tab Results at Structures    \cr
+pID          \tab Results for Pumpstations \cr
+tID          \tab Results for Triggers     \cr
+fmID         \tab Results from Flowmap     \cr
+fhID         \tab Results from Flowhis.his \cr
+moID         \tab Results from Morpmap.his \cr
+smID         \tab Results from Gsedmap.his \cr
+shID         \tab Results from Gsedhis.his \cr
+File name    \tab HIS file name without '.HIS'. Ex. reachvol = c('ID1', 'ID2')
+}}
 }
 \value{
 a data.table

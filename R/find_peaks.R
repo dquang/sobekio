@@ -5,7 +5,7 @@
 #' @param column Name of the column in the indt to work with
 #' @param nups minimum number of increasing steps before a peak is reached
 #' @param ndowns minimum number of decreasing steps after the peak
-#' @return a list of (plot = graphic, peaks = matrix of peaks, and m_center = row index for the center)
+#' @return a list
 #' @export
 find_peaks <- function(
   indt = NULL,
@@ -39,7 +39,7 @@ find_peaks <- function(
       xend = indt_peak[.N, orig_row],
       yend = peak_min
     ), color = 'red')
-  for (i in seq_along(f_peaks[, 2])){
+  for (i in seq_along(f_peaks[, 2])) {
     g <- g + geom_vline(xintercept = indt_peak[f_peaks[i,2], orig_row],
                         color = 'blue')
   }
@@ -52,7 +52,7 @@ find_peaks <- function(
 #' Find the center of (mass) volume and peaks
 #' @param indt input data.table as result from his_from_case
 #' @param peak.percent peak area as percent, ex. 0.05 means that the 5% on the top is consider as peak area.
-#' @return a list of (plot = graphic, peaks = matrix of peaks, and m_center = row index for the center)
+#' @return a list
 #' @export
 volume_center <- function(
   indt = NULL,

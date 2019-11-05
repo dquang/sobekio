@@ -630,7 +630,6 @@ get_polder_volume <- function(
   }
   id_data_vol <- rbindlist(id_data_list)
   rm(id_data_list, id_data_tmp)
-  # id_data_vol
   return(id_data_vol)
 }
 

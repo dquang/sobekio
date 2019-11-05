@@ -199,7 +199,7 @@ plot_multi_lines <- function(
     data_hline[, labels := str_replace(labels, 'hline_\\d_', '')]
     g <- g + 
       geom_text(aes(x = ts_min, y = hlines, label = labels), 
-                data = data_hline, color = 'black',
+                data = data_hline, color = 'black', check_overlap = TRUE,
                 hjust = 0, vjust = 0)
   }
   if (!is.null(facet.by)) {
@@ -305,6 +305,33 @@ plot_lines <- function(
     }
   }
   y2_cols <- colnames(qt)[y2.ids]
+  if (!is.null(peak.nday)) {
+    cols <- colnames(qt[, .SD, .SDcols = -c('ts', 'case')])
+    if (is.null(peak.col)) {
+      qt[, value_max := max(.SD, na.rm = TRUE), .SDcols = cols, by = case]
+      for (col_name in cols) {
+        qt[get(eval(col_name)) == value_max, ts_peak := ts]
+      }
+    } else{
+      if (peak.col %in% cols) {
+        qt[, value_max := max(.SD, na.rm = TRUE), .SDcols = peak.col, by = case]
+        qt[get(eval(peak.col)) == value_max, ts_peak := ts]
+      } else {
+        warning('There is no column with name: "', peak.col, '" in the data table',
+                '. The peak is peak of column that has the max value')
+        qt[, value_max := max(.SD, na.rm = TRUE), .SDcols = cols, by = case]
+        for (col_name in cols) {
+          qt[get(eval(col_name)) == value_max, ts_peak := ts]
+        }
+      }
+    }
+    qt[, ts_peak := max(ts_peak, na.rm = TRUE), by = case]
+    qt[, ts_min := ts_peak - peak.nday * 24 * 3600]
+    qt[, ts_max := ts_peak + peak.nday * 24 * 3600]
+    qt <- qt[ts >= ts_min & ts <= ts_max]
+    qt[, c('ts_min', 'ts_max', 'ts_peak', 'value_max') :=
+         list(rep(NULL, 4))]
+  }
   for (i in case.list) {
     qt[case == i, ts_id := .I]
   }
@@ -323,6 +350,13 @@ plot_lines <- function(
   y1_min <- qt[!variable %in% y2_cols, min(value, na.rm = TRUE)]
   y1_max <- qt[!variable %in% y2_cols, max(value, na.rm = TRUE)]
   y1_pretty <- pretty(y1_min:y1_max, y.ntick, y.ntick)
+  y1_length <- y1_max - y1_min
+  if (y1_length < 10) {
+    y1_min_1 <- y1_min * 100
+    y1_max_1 <- y1_max * 100
+    y1_pretty <- pretty(y1_min_1:y1_max_1, y.ntick, y.ntick)
+    y1_pretty <- y1_pretty / 100
+  }
   if (length(unlist(lt.by)) > 1) {
     qt[, Linientype := do.call(paste, c(.SD, sep = " ")), .SDcols = lt.by]
     lt.by <- 'Linientype'

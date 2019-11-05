@@ -7,7 +7,7 @@
   if (length(location) == 0) {
     location <- his.locs[long.id == id, location]
   }
-  if (length(location) == 0){
+  if (length(location) == 0) {
     location <- NA_integer_
   }
   if (is.na(location[[1]])) warning("sobek.id: '", id,
@@ -21,7 +21,7 @@
   # using exact matching to prevent potential problem caused by special characters
   param_short_check <- grep(tolower(param.name), tolower(param.df$param_short),
                       fixed = TRUE)
-  if (length(param_short_check) == 1){
+  if (length(param_short_check) == 1) {
     # stop('parameter with name: ', param.name, ' is ambiguous or not found')
     rel <- param_short_check[[1]]
   } else {
@@ -29,7 +29,7 @@
     param_long_check <- grep(tolower(param.name),
                              tolower(param.df$param_long),
                              fixed = TRUE)
-    if (length(param_long_check) == 1){
+    if (length(param_long_check) == 1) {
       rel <- param_long_check[[1]]
       } else{
         warning('parameter with name: ', param.name, 
@@ -48,18 +48,6 @@
   return(colnr)
 }
 
-
-# Get case number from case name
-# .get_case_number <- function(case.name, case.list) {
-#   if (typeof(case.list) != "list") stop("case.list must be a list")
-#   if (case.name %in% case.list$case_name){
-#     x <- case.list$case_number[case.list$case_name == case.name]
-#     return(x)
-#   } else{
-#     warning("case ", case.name, " not found in the case list")
-#     return(NA_integer_)
-#   }
-# }
 
 .get_case_number <- function(case.name, case.list) {
   setkey(case.list, case_name)
@@ -142,15 +130,15 @@
       gregexpr(dt_pattern, his_title[4])
     )[[1]]
   ))
-  his_time <- matrix(nrow = total_tstep, ncol = 1)
+  his_time <- vector(mode = 'numeric', length = total_tstep)
   seek(con, where = 168 + 20 * param_nr + 24 * total_loc)
   for (i in 1:total_tstep) {
-    his_time[i, 1] <- readBin(con, "integer", size = 4) * his_dt
+    his_time[i] <- readBin(con, "integer", size = 4) * his_dt
     seek(con, where = 4 * param_nr * total_loc, origin = "current")
   }
   close(con)
   his_time <- as.POSIXct(his_time, origin = his_t0, tz = "GMT")
-  colnames(his_time) <- c("ts")
+  his_time <- data.table(ts = his_time)
 
   return(his_time)
 }
@@ -174,7 +162,7 @@
   param_name <- vector(mode = "character", length = param_nr)
   seek(con, where = 168, origin = "start")
   # get parameter table
-  for (i in 1:param_nr){
+  for (i in 1:param_nr) {
     param_id[i] <- i
     param_name[i] <-
       str_sub(stri_conv(readBin(con, what = "raw", n = 20),
@@ -221,7 +209,7 @@
                                     fill = length(hia_dt$V1) + 2) - 2
       pos_long_loc <- grep("^\\[Long Parameters]", hia_dt$V1)
       i_long_loc <- which(hia_sbegin == pos_long_loc + 1)
-      if (length(i_long_loc) > 0){
+      if (length(i_long_loc) > 0) {
         long_loc <- hia_dt[hia_sbegin[i_long_loc]:hia_send[i_long_loc], ]
         long_loc[, c("param_id", "param_long") :=
                    tstrsplit(V1, "=",                                                                     fixed = TRUE)]
@@ -269,4 +257,65 @@
   # creating a mask for the matrix, to get only columns for the param
   cols_mask <- map_dbl(locs, .loc2col, param, param_nr)
   return(hisdf[, cols_mask])
+}
+
+
+#' Information for his_from_case
+id_type_tbl <- data.table(
+  ID_TYPE = c(
+    'mID', # Results at Measurements
+    'wID', # Results at Nodes
+    'qID', # Results at Reaches
+    'lID or latID', # Results at Laterals
+    'sID', # Results at Structures
+    'pID', # Results for Pumpstations
+    'tID', # Results for Triggers
+    'fmID', # Results from Flowmap
+    'fhID', # Results from Flowhis.his
+    'moID', # Results from Morpmap.his
+    'smID', # Results from Gsedmap.his
+    'shID',  # Results from Gsedhis.his
+    'File name'
+  ),
+  DESCRIPTION = c(
+    'Results at Measurements',
+    'Results at Nodes',
+    'Results at Reaches',
+    'Results at Laterals',
+    'Results at Structures',
+    'Results for Pumpstations',
+    'Results for Triggers',
+    'Results from Flowmap',
+    'Results from Flowhis.his',
+    'Results from Morpmap.his',
+    'Results from Gsedmap.his',
+    'Results from Gsedhis.his',
+    'HIS file name without \'.HIS\'. Ex. reachvol = c(\'ID1\', \'ID2\')'
+  )
+) 
+
+
+#' Finding correct file path
+#' 
+#' This function find the case-sensitive file path to a file
+#' 
+#' @param name Name of the file
+#' @param path Path to parent folder
+#' @param f_tbl Table of file name and path
+#' @return A character string or NA if not found
+file_path <- function(name = NULL, path = NULL, f_tbl = NULL) {
+  if (is.null(f_tbl)) {
+    f_list <- list.files(path = path, all.files = TRUE, 
+                         include.dirs = FALSE,
+                         full.names = TRUE, recursive = FALSE,
+                         no.. = TRUE)
+    f_name_list <- list.files(path = path, all.files = TRUE, 
+                              include.dirs = FALSE,
+                              full.names = FALSE, recursive = FALSE,
+                              no.. = TRUE) %>% toupper()
+    f_tbl <- data.table(cs_path = f_list, f_name_upper = f_name_list)
+  }
+  ret <- f_tbl[f_name_upper == toupper(name), cs_path]
+  if (length(ret) != 1) ret <- NA
+  return(ret)
 }
