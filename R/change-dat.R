@@ -70,10 +70,6 @@ set_q_const <- function(dat.file = NULL,
   options(OutDec = ".")
   on.exit(options(OutDec = outDec))
   if (!file.exists(dat.file)) stop(dat.file, " file does not exist!")
-  # out.file <- ifelse(is.null(output),
-  #                    paste(dat.file, ".mod", sep = ""),
-  #                    output)
-
   lat_dat <- fread(file = dat.file,
                    sep = "\n",
                    header = FALSE,
@@ -151,10 +147,6 @@ change_tble <- function(dat.file = NULL,
   # check input
   if (!is.data.frame(tble)) stop('tble must be a data.frame/data.table')
   if (!file.exists(dat.file)) stop(dat.file, " file does not exist!")
-  # out.file <- ifelse(is.null(output),
-  #                    paste(dat.file, ".mod", sep = ""),
-  #                    output)
-
   lat_dat <- fread(file = dat.file,
                    sep = "\n",
                    header = FALSE,
@@ -195,7 +187,7 @@ change_tble <- function(dat.file = NULL,
          quote = FALSE,
          col.names = FALSE,
          sep = " ")
-  if (!is.null(comments)){
+  if (!is.null(comments)) {
     fwrite(list(paste("*", comments)),
            file = output,
            append = TRUE,
@@ -213,12 +205,12 @@ change_tble <- function(dat.file = NULL,
   prn_pattern <- "[\"\'][0-9]{4}/[0-9]{2}/[0-9]{2};[0-9]{2}:[0-9]{2}:[0-9]{2}[\"\'] [0-9]{1,}\\.?[0-9]{1,} <"
   tble_sample <- sample(1:length(tble[, 1]), 5, replace = T)
   tble_check <- FALSE %in% grepl(prn_pattern, tble[tble_sample, 1])
-  if (tble_check){
+  if (tble_check) {
     if (!is.data.table(tble)) tble <- as.data.table(tble)
     if (ncol(tble) != 2) stop('tble should have 2 columns')
     colnames(tble) <- c('ts', 'value')
     ts_class_check <- FALSE %in% grepl("POSIX", tble[1, 1])
-    if (ts_class_check){
+    if (ts_class_check) {
       tble[, ts := as.POSIXct(ts, tz = 'GMT',
                               tryFormats = c(
                                 "%Y-%m-%d %H:%M:%S",

@@ -124,7 +124,7 @@ get_file_path <- function(case.name = NULL,
                      profile.def = "PROFILE.DEF",
                      struct.dat = "STRUCT.DAT",
                      struct.def = "STRUCT.DEF",
-                     'NA'
+                     type # if type is not one of the keywords, returns itself.
                      )
   his_file <- file_path(name = his_file, 
                         path = paste(sobek.project, case_number, sep = '/')
