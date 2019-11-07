@@ -10,14 +10,14 @@ sobek_case_info <- function(
 	sobek.project = NULL,
 	his.type = NULL,
 	info = NULL
-){
+) {
 	# check SOBEK project
-	sobek_cmt <- paste(sobek.project, "caselist.cmt", sep = "/")
+	sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
 	if (!file.exists(sobek_cmt)) {
 		stop("Case list or Sobek Caselist.cmt does not exist!")
 	}
 	# reading SOBEK caselist.cmt
-	sobek_clist <- data.table::fread(
+	sobek_clist <- fread(
 		file = sobek_cmt,
 		header = FALSE,
 		sep = " ",
@@ -27,8 +27,8 @@ sobek_case_info <- function(
 		col.names = c("case_number", "case_name")
 	)
 	sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
-	case_number <- .get_case_number(case.name = case.name,
-																	case.list = sobek_clist)
+	setkey(sobek_clist, case_name)
+	case_number <- sobek_clist[case.name, case_number]
 	if (is.na(case_number)) stop("Case with name: ", case.name,
 																	" not found in ", sobek_cmt)
 	his_file <- switch(type,
@@ -43,18 +43,19 @@ sobek_case_info <- function(
 	                   trigger = "TRIGGER.DEF",
 	                   trigger.tbl = "TRIGGER.TBL",
 	                   control.def = "CONTROL.DEF",
-	                   # control.dat = "control.dat",
 	                   profile.dat = "PROFILE.DAT",
 	                   profile.def = "PROFILE.DEF",
 	                   struct.dat = "STRUCT.DAT",
-	                   struct.def = "STRUCT.DEF"
+	                   struct.def = "STRUCT.DEF",
+	                   'NA'
 	)
-	his_file <- paste(sobek.project, case_number, his_file, sep = "/")
-	if (tolower(info) == "location"){
+	his_file <- file_path(name = his_file, 
+	                      path = paste(sobek.project, case_number, sep = '/'))
+	if (tolower(info) == "location") {
 		tmp <- his_location(his.file = his_file)
 		return(tmp)
 	} else{
-			if (tolower(info) == "general"){
+			if (tolower(info) == "general") {
 				tmp <- his_info(his.file = his_file)
 				return(tmp)
 			} else{
@@ -82,16 +83,13 @@ sobek_case_info <- function(
 #' * profile.def: get path to profile.def
 #' * struct.dat: get path to struct.dat
 #' * struct.def: get path to struct.def
-#' @examples
-#' get_file_path(case.name = 'Default', sobek.project = 'd:/so21302/rhein.lit', type = 'bnd.dat')
-#' @md
 #' @return Path to the needed file
 #' @export
 get_file_path <- function(case.name = NULL,
                           sobek.project = NULL,
                           type = NULL){
   # check SOBEK project
-  sobek_cmt <- paste(sobek.project, "CASELIST.CMT", sep = "/")
+  sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
   if (!file.exists(sobek_cmt)) {
     stop("Case list or Sobek Caselist.cmt does not exist!")
   }
@@ -105,8 +103,9 @@ get_file_path <- function(case.name = NULL,
     blank.lines.skip = TRUE,
     col.names = c("case_number", "case_name")
   )
-  case_number <- .get_case_number(case.name = case.name,
-                                  case.list = sobek_clist)
+  sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
+  setkey(sobek_clist, case_name)
+  case_number <- sobek_clist[case.name, case_number]
   if (is.na(case_number)) stop("Case with name: ", case.name,
                                " not found in ", sobek_cmt)
   his_file <- switch(tolower(type),
@@ -121,13 +120,14 @@ get_file_path <- function(case.name = NULL,
                      trigger = "TRIGGER.DEF",
                      trigger.tbl = "TRIGGER.TBL",
                      control.def = "CONTROL.DEF",
-                     # control.dat = "control.dat",
                      profile.dat = "PROFILE.DAT",
                      profile.def = "PROFILE.DEF",
                      struct.dat = "STRUCT.DAT",
-                     struct.def = "STRUCT.DEF"
+                     struct.def = "STRUCT.DEF",
+                     type # if type is not one of the keywords, returns itself.
                      )
-  his_file <- paste(sobek.project, case_number, his_file, sep = "/")
-  his_file <- ifelse(file.exists(his_file), his_file, NA)
+  his_file <- file_path(name = his_file, 
+                        path = paste(sobek.project, case_number, sep = '/')
+                        )
   return(his_file)
 }

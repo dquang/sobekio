@@ -2,7 +2,7 @@
 % Please edit documentation in R/create-dat.R
 \name{create_dat}
 \alias{create_dat}
-\title{Create Sobek Input .DAT from}
+\title{Create Sobek Input}
 \usage{
 create_dat(id.file = "", data.file = "", bnd.header = NULL,
   lat.header = NULL, factor = 1, bnd.out = NULL,
@@ -15,11 +15,11 @@ create_dat(id.file = "", data.file = "", bnd.header = NULL,
 
 \item{data.file}{Path to Data file}
 
-\item{bnd.header}{Path to header file for boundary}
+\item{bnd.header}{Path to boundary header file}
 
-\item{lat.header}{Path to header file for Lateral}
+\item{lat.header}{Path to lateral header file}
 
-\item{factor}{Vergrößerung Faktor}
+\item{factor}{manificition factor}
 
 \item{bnd.out}{Output path for Boundary.dat (full file path)}
 
@@ -34,7 +34,8 @@ Output.case must be a character vector combine (case.name, sobek.project)
 like c('case name', 'd:/so21302/main.lit')}
 }
 \description{
-Create Sobek Input .DAT from
+This function creates boundary.dat and lateral.dat from time series stored
+in text file and header files
 }
 \details{
 Example for id.file

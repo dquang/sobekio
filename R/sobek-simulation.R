@@ -13,17 +13,19 @@ sobek_sim <- function(case.name = NULL,
                       ){
   sobek.path <- gsub("/", "\\\\", sobek.path)
   sobek.project <- gsub("/", "\\\\", sobek.project)
-  clist <- fread(file = paste(sobek.project, "caselist.cmt", sep = "/"),
+  sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
+  clist <- fread(file = sobek_cmt,
                  header = FALSE,
                  sep = " ",
                  quote = "'",
                  col.names = c("case_number", "case_name")
                  )
-  # cname_is_number <- grepl("^\\d{1,}$", case.name)
+  clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
+  setkey(clist, case_name)
   if (grepl("^\\d{1,}$", case.name)) {
     c_number <- case.name
   } else{
-    c_number <- .get_case_number(case.name, clist)
+    c_number <- clist[case.name, case_number]
     stopifnot(!is.na(c_number))
   }
   c_folder <- paste(sobek.project, c_number, sep = "/")
@@ -252,16 +254,19 @@ sobek_edit <- function(case.name = NULL,
                       external = TRUE){
   sobek.path <- gsub("/", "\\\\", sobek.path)
   sobek.project <- gsub("/", "\\\\", sobek.project)
-  clist <- fread(file = paste(sobek.project, "caselist.cmt", sep = "\\"),
+  sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
+  clist <- fread(file = sobek_cmt,
                  header = FALSE,
                  sep = " ",
                  quote = "'",
                  col.names = c("case_number", "case_name")
   )
-  if(grepl("^\\d{1,}$", case.name)){
+  clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
+  setkey(clist, case_name)
+  if (grepl("^\\d{1,}$", case.name)) {
     c_number <- case.name
   } else{
-    c_number <- .get_case_number(case.name, clist)
+    c_number <- clist[case.name, case_number]
     stopifnot(!is.na(c_number))
   }
   c_folder <- paste(sobek.project, c_number, sep = "\\")
@@ -413,16 +418,19 @@ sobek_view <- function(case.name = NULL,
                        external = TRUE){
   sobek.path <- gsub("/", "\\\\", sobek.path)
   sobek.project <- gsub("/", "\\\\", sobek.project)
-  clist <- fread(file = paste(sobek.project, "caselist.cmt", sep = "\\"),
+  sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
+  clist <- fread(file = sobek_cmt,
                  header = FALSE,
                  sep = " ",
                  quote = "'",
                  col.names = c("case_number", "case_name")
   )
-  if(grepl("^\\d{1,}$", case.name)){
+  clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
+  setkey(clist, case_name)
+  if (grepl("^\\d{1,}$", case.name)) {
     c_number <- case.name
   } else{
-    c_number <- .get_case_number(case.name, clist)
+    c_number <- clist[case.name, case_number]
     stopifnot(!is.na(c_number))
   }
   c_folder <- paste(sobek.project, c_number, sep = "\\")
@@ -432,7 +440,6 @@ sobek_view <- function(case.name = NULL,
   setwd(sobek.path)
   tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
   tmp_folder <- paste(tmp_folder, floor(runif(1, 1, 10000)), sep = '_')
-  # tmp_folder <- paste(sobek.path, tmp_folder, sep = "\\")
   dir.create(tmp_folder)
   cmt_folder <- paste(sobek.path, tmp_folder, 'CMTWORK', sep = "\\")
   work_folder <- paste(sobek.path, tmp_folder, 'WORK', sep = "\\")
@@ -456,7 +463,7 @@ sobek_view <- function(case.name = NULL,
   c_folder_short <- str_replace(c_folder, '^[:alpha:]{1,}:[\\\\/]*', '')
   sobek.project_short <- str_replace(sobek.project, '^[:alpha:]{1,}:[\\\\/]*', '')
   sobek.path_short <- str_replace(sobek.path, '^[:alpha:]{1,}:[\\\\/]*', '')
-  for (i in cmt_files){
+  for (i in cmt_files) {
     f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
     f1[, V1 := gsub("_CASE_DIR_SHORT_",  c_folder_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_CASE_DIR_", c_folder, V1, fixed = TRUE)]
@@ -464,13 +471,11 @@ sobek_view <- function(case.name = NULL,
     f1[, V1 := gsub("_PROGRAM_DIR_", sobek.path,  V1, fixed = TRUE)]
     f1[, V1 := gsub("_PROJECT_DIR_SHORT_", sobek.project_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_PROJECT_DIR_", sobek.project, V1, fixed = TRUE)]
-
-    # f1[, V1 := gsub(fixed_folder, "_PROGRAM_DIR_\\fixed",  V1, fixed = TRUE)]
     f2 <- paste(cmt_folder, basename(i), sep = "\\")
     fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE,
            col.names = FALSE)
   }
-  for (i in work_files){
+  for (i in work_files) {
     f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
     f1[, V1 := gsub("_CASE_DIR_SHORT_",  c_folder_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_CASE_DIR_", c_folder, V1, fixed = TRUE)]

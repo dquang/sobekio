@@ -12,21 +12,24 @@ sobek_export <- function(case.list,
                          his.only = FALSE
                          ){
   if (!dir.exists(dest)) dir.create(dest)
-  if (is.character(case.list[[1]]) & file.exists(case.list[[1]])){
+  if (is.character(case.list[[1]]) & file.exists(case.list[[1]])) {
     case.list <-  data.table(read.table(case.list,
-                                        header = FALSE, sep ="\n",
+                                        header = FALSE, sep = "\n",
                                         encoding = "windows-1252",
                                         stringsAsFactors = FALSE
     )
     )
     case.list <- case.list$V1
   }
-  sobek_clist <- data.table(read.table(
-    paste(sobek.project, "caselist.cmt", sep = "/"),
-    header = FALSE, col.names = c('case_number', 'case_name'),
-    sep = " ", quote = "'"), stringsAsFactors = FALSE
-    )
+  sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
+  sobek_clist <- fread(file = sobek_cmt,
+                       header = FALSE,
+                       sep = " ",
+                       quote = "'",
+                       col.names = c("case_number", "case_name")
+  )
   sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
+  setkey(sobek_clist, case_name)
   all_files <- dir(path = sobek.project,
                    pattern = "^[^0-9]{1,}$",
                    full.names = TRUE, no.. = TRUE)
@@ -77,9 +80,8 @@ sobek_export <- function(case.list,
                      header = FALSE, sep = "\n", fill = FALSE,
                      stringsAsFactors = FALSE
                      )
-  case_folders <- sapply(case.list, .get_case_number, sobek_clist)
-
-  for (i in case_folders){
+  case_folders <- sobek_clist[case.list, case_number]
+  for (i in case_folders) {
     sobek_reg <- sobek_reg[!grepl(paste("\\\\", i, "\\\\", sep = ""),
                                   V1)]
   }
