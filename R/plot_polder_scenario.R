@@ -46,8 +46,6 @@ plot_polder_scenario <- function(
   param = 'discharge',
   q.in = FALSE,
   q.out = FALSE,
-  # sum.q.in = FALSE,
-  # sum.q.out = FALSE,
   w.canal = FALSE,
   ref.mID = NULL,
   ref.mID2 = NULL,
@@ -73,7 +71,8 @@ plot_polder_scenario <- function(
   text.x.angle = 0L,
   polder.f = NULL,
   polder.z = NULL,
-  verbose = TRUE){
+  verbose = TRUE) {
+  
   #----checking input----
   # there should be only two cases
   stopifnot(length(unlist(case.list)) == 2)
@@ -204,9 +203,9 @@ plot_polder_scenario <- function(
     }
   }
   # limit data to the peak value
-  if (!is.null(peak.nday)){
+  if (!is.null(peak.nday)) {
     stopifnot(is.numeric(peak.nday))
-    if (isTRUE(peak.pegel) & !is.null(ref.mID)){
+    if (isTRUE(peak.pegel) & !is.null(ref.mID)) {
       ts_max <- id_data[Bezugspegel == max(Bezugspegel), ts]
     } else{
       ts_max <- id_data[Nach == max(Nach), ts]
@@ -216,7 +215,7 @@ plot_polder_scenario <- function(
     id_data <- id_data[ts >= xlim_min & ts <= xlim_max]
   }
   #----finding scheitel delta at the measure----
-  if (isTRUE(delta.measure)){
+  if (isTRUE(delta.measure)) {
     # calculate diff between two max value (different moment)
     scheitel_max_c1 <- id_data[get(compare.by) == cmp_vars[[1]], max(Nach)]
     scheitel_max_c2 <- id_data[get(compare.by) == cmp_vars[[2]], max(Nach)]
@@ -235,7 +234,7 @@ plot_polder_scenario <- function(
   #   set(id_data, j = j, value = round(id_data[[j]], 0))
   # }
   # id_data[, eval(einlass_cols) := lapply(einlass_cols, round, 1) ]
-  y2_axis <- isTRUE(q.in)|isTRUE(q.out)|(param == 'discharge' & isTRUE(w.canal))
+  y2_axis <- isTRUE(q.in) | isTRUE(q.out) | (param == 'discharge' & isTRUE(w.canal))
   # in case there is a y2_axis
   #----processing y-axes limits----
   y1_cols <- c('Nach')
@@ -286,10 +285,10 @@ plot_polder_scenario <- function(
       y2_shift = y1_pretty[1] - y2.tick1 * y2.scale
     }
     y2_pretty <- (y1_pretty - y2_shift) / y2.scale
-    if (0 %between% c(min(y2_pretty), max(y2_pretty))){
+    if (0 %between% c(min(y2_pretty), max(y2_pretty))) {
       y2_pretty <- unique(sort(c(y2_pretty, 0)))
     }
-    if (is.infinite(y2.scale)){
+    if (is.infinite(y2.scale)) {
       y1_max <- id_data[, max(.SD, na.rm = TRUE), .SDcols = y1_cols]
       y1_min <- id_data[, min(.SD, na.rm = TRUE), .SDcols = y1_cols]
       y1_pretty <- pretty(y1_min:y1_max, 5, 5)
@@ -299,7 +298,7 @@ plot_polder_scenario <- function(
   }
   # make sure y1_max is in the range of y1_pretty
   y1_tick_diff <- abs(y1_pretty[2] - y1_pretty[1])
-  if (max(y1_pretty) < y1_max + y1_tick_diff){
+  if (max(y1_pretty) < y1_max + y1_tick_diff) {
     y1_max <- y1_max + y1_tick_diff/2
     if (y1_length < 10) {
       y1_max_1 <- y1_max * 10
@@ -311,13 +310,13 @@ plot_polder_scenario <- function(
     }
   }
   #----initializing graphic----
-  if (!is.null(ref.mID)){
+  if (!is.null(ref.mID)) {
     g <- ggplot(data = id_data,
                 mapping = aes(x = ts, linetype = !!ensym(compare.by))
     ) +
       geom_line(aes(y = Bezugspegel, color = ref.mID_color),
       size = 1)
-    if (!is.null(ref.mID2)){
+    if (!is.null(ref.mID2)) {
       g <- g +
         geom_line(aes(y = Bezugspegel2, color = ref.mID2_color),
         size = 1)
@@ -328,12 +327,12 @@ plot_polder_scenario <- function(
     )
   }
   if (isTRUE(verbose)) print('Adding hydrographs...')
-  if (tolower(param) == 'discharge'){
+  if (tolower(param) == 'discharge') {
     #----working with discharge----
     g <- g +
       geom_line(aes(y = Nach,  color = 'Q nach Maßnahme'),
                 size = 1)
-    if (isTRUE(w.canal)){
+    if (isTRUE(w.canal)) {
       q.in <- FALSE
       # if parameter is discharge, move waterlevel to secondary axis
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
@@ -341,10 +340,10 @@ plot_polder_scenario <- function(
                          size = 1)
       y2_name <- 'Wasserstand (m+NHN)'
     }
-    if (isTRUE(q.in)){
+    if (isTRUE(q.in)) {
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
       # adding Einlass lines
-      if (length(einlass_cols) > 1){
+      if (length(einlass_cols) > 1) {
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
                                 variable.name = 'Einlass',
                                 value.name = 'Q_Einlass')
@@ -361,8 +360,8 @@ plot_polder_scenario <- function(
         size = 1)
       }
     }
-    if (isTRUE(q.out)){
-      if (length(auslass_cols) > 1){
+    if (isTRUE(q.out)) {
+      if (length(auslass_cols) > 1) {
         id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
                                 variable.name = 'Auslass',
                                 value.name = 'Q_Auslass')
@@ -385,17 +384,17 @@ plot_polder_scenario <- function(
     g <- g +
       geom_line(aes(y = Nach,  color = 'W nach Maßnahme'),
                 size = 1)
-    if (isTRUE(w.canal)){
+    if (isTRUE(w.canal)) {
       y2_name <- 'Wasserstand (m+NHN)'
       g <- g + geom_line(aes(y = W_innen,
                              color = 'W in Maßnahme'),
                          size = 1)
     }
-    if (isTRUE(q.in)){
+    if (isTRUE(q.in)) {
       einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
       # adding Einlass lines
-      if (length(einlass_cols) > 1){
+      if (length(einlass_cols) > 1) {
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
                                 variable.name = 'Einlass',
                                 value.name = 'Q_Einlass')
@@ -412,9 +411,9 @@ plot_polder_scenario <- function(
         size = 1)
       }
     }
-    if (isTRUE(q.out)){
+    if (isTRUE(q.out)) {
       y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
-      if (length(auslass_cols) > 1){
+      if (length(auslass_cols) > 1) {
         id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
                                 variable.name = 'Auslass',
                                 value.name = 'Q_Auslass')
@@ -436,8 +435,8 @@ plot_polder_scenario <- function(
   g$labels$linetype <- lt.name
   #----calculating Max Volume----
   if (isTRUE(verbose)) print('Calculating volume...')
-  if(!is.null(polder.f)){
-    if(is.null(polder.z)){
+  if(!is.null(polder.f)) {
+    if(is.null(polder.z)) {
       id_data[, H_innen_max := max(W_innen, na.rm = TRUE) -
                 min(W_innen, na.rm = TRUE), by = case
               ]
@@ -487,7 +486,7 @@ plot_polder_scenario <- function(
            label,
            sep = "")
          ]
-  for (i in einlass_cols){
+  for (i in einlass_cols) {
     einlass_max_col <- paste(i, 'Max', sep = '_')
     id_max[, eval(einlass_max_col) := round(as.numeric(get(einlass_max_col)), 1),
            .SDcols = einlass_max_col]
@@ -499,14 +498,14 @@ plot_polder_scenario <- function(
            ]
   }
   delta_unit <- ifelse(param == 'discharge', 'm³/s', 'm')
-  if (isTRUE(delta.pegel) & !is.null(ref.mID)){
+  if (isTRUE(delta.pegel) & !is.null(ref.mID)) {
     id_max[, label := paste(
       'Delta am ', ref.mID_name, ": ", scheitel_ref_mID_delta, " ", delta_unit, " \n",
       label,
       sep = ""
     )]
     # adding delta ref.mID2
-    if (!is.null(ref.mID2)){
+    if (!is.null(ref.mID2)) {
       id_max[, label := paste(
         'Delta am ', ref.mID2_name, ": ", scheitel_ref_mID_delta2, " ", delta_unit, " \n",
         label,
@@ -514,7 +513,7 @@ plot_polder_scenario <- function(
       )]
     }
   }
-  if (isTRUE(delta.measure)){
+  if (isTRUE(delta.measure)) {
     id_max[, label := paste(
       'Delta an der Maßnahme: ', scheitel_measure_delta, " ", delta_unit, " \n",
       label,
@@ -522,8 +521,8 @@ plot_polder_scenario <- function(
     )]
   }
   # y position of the text block
-  y1_pos_txt <- y1_pretty[(length(y1_pretty)-1)]
-  if (!is.null(text.pos.y)){
+  y1_pos_txt <- y1_pretty[(length(y1_pretty) - 1)]
+  if (!is.null(text.pos.y)) {
     y1_pos_txt <- text.pos.y
     if (abs(text.pos.y) < 1.2) y1_pos_txt <- text.pos.y * (y1_max - y1_min) + y1_min
   }
@@ -537,9 +536,9 @@ plot_polder_scenario <- function(
       vjust = 1
     )
 
-  if (!is.null(h.lines)){
+  if (!is.null(h.lines)) {
     # id_hlines with 2 cols: V1, case
-    for (i in seq_along(h.lines)){
+    for (i in seq_along(h.lines)) {
       hline_label <- ifelse(is.null(names(h.lines[i])),
                             paste('V_', h.lines[[i]], sep = ""),
                             names(h.lines[i])
@@ -562,8 +561,8 @@ plot_polder_scenario <- function(
       check_overlap = TRUE
     )
   }
-  if (isTRUE(y2_axis)){
-    if (y2.scale != 0){
+  if (isTRUE(y2_axis)) {
+    if (y2.scale != 0) {
       g <- g +
         scale_y_continuous(
           breaks = y1_pretty,
@@ -588,7 +587,7 @@ plot_polder_scenario <- function(
   }
   #----graphic layout----
   y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
-  if (is.null(plot.title)){
+  if (is.null(plot.title)) {
     plot.title <- paste(str_extract(y1_label, 'Abfluss|Wasserstand'),
                         ' Ganglinien für Maßnahme: ', name,
                         '. Hochwasser: ', case_tbl$hwe[[1]],
@@ -599,7 +598,7 @@ plot_polder_scenario <- function(
       legend.position = 'bottom',
       text = element_text(size = text.size),
       axis.text.x = element_text(angle = text.x.angle)
-    )+
+    ) +
     scale_x_datetime(
       name = 'Zeit',
       date_breaks = date.break,
@@ -607,13 +606,13 @@ plot_polder_scenario <- function(
     ) + ylab(y1_label) +
     ggtitle(plot.title)
   #----adding delta line beneath the main graphic----
-  if (isTRUE(delta.line)){
+  if (isTRUE(delta.line)) {
     delta_data <- dcast(id_data, ts ~ get(compare.by),
                         value.var = 'Nach')
     delta_data[, `Delta an der Maßnahme` := get(cmp_vars[1]) - get(cmp_vars[2])]
     delta_data[, eval(cmp_vars[1]) := NULL]
     delta_data[, eval(cmp_vars[2]) := NULL]
-    if(!is.null(ref.mID)){
+    if(!is.null(ref.mID)) {
       delta_p1 <- dcast(id_data, ts ~ get(compare.by),
                         value.var = 'Bezugspegel')
       delta_p1[, eval(paste('Delta am ', ref.mID_name)) :=
@@ -622,7 +621,7 @@ plot_polder_scenario <- function(
       delta_p1[, eval(cmp_vars[2]) := NULL]
       delta_data <- merge(delta_data, delta_p1, by = 'ts',
                           sort = FALSE)
-      if(!is.null(ref.mID2)){
+      if(!is.null(ref.mID2)) {
         delta_p2 <- dcast(id_data, ts ~ get(compare.by),
                             value.var = 'Bezugspegel2')
         delta_p2[, eval(paste('Delta am ', ref.mID2_name)) :=
@@ -649,9 +648,9 @@ plot_polder_scenario <- function(
                          )
     if (param == 'waterlevel') delta_data[, value := round(value * 100, 1)]
     g2 <- ggplot(data = delta_data,
-                 aes(x = ts, y = value, linetype = Delta))+
+                 aes(x = ts, y = value, linetype = Delta)) +
       scale_x_datetime(name = 'Zeit', breaks = date.break,
-                       date_labels = date.label)+
+                       date_labels = date.label) +
       geom_line(size = 1) +
       theme_bw() +
       theme(

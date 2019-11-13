@@ -33,3 +33,29 @@ save_profile <- function(plot, filename = NULL,
   ggsave(filename = filename, plot = plot,
          device = device, width = width, height = height, dpi = dpi, ...)
 }
+
+
+
+#' Create new variable with suffix
+#'
+#' This function creates new variable with a suffix, get value from paste0
+#'
+#' @param ... List of variables
+#' @param suffix string as suffix
+#'
+#' @return nothing. Variables created in the global enviroment
+#' @examples
+#' cases = c('Case 1', 'Case 2')
+#' new_suffix(cases)
+#' @export
+new_suffix <- function(..., suffix = '_EreigOpt') {
+  f_args <- as.list(match.call())
+  for (i in seq_along(f_args)) {
+    if (i > 1) {
+      old_var <- eval(f_args[[i]])
+      new_var <- paste0(eval(f_args[i]), suffix)
+      cmd <- expr(!!ensym(new_var) <- paste0(!!old_var, '_EreigOpt'))
+      eval(cmd, envir = globalenv())
+    }
+  }
+}

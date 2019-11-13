@@ -315,14 +315,15 @@ get_control_info <- function(ct.id = NULL,
   )
   ct_info_tbl <- data.table(Parameter = names(ct_info_list),
                             Value = ct_info_list)
-  r.group <- c("Structure Information")
-  n.rgroup <- c(11) # Number of rows for "Structure information"
+  r_group <- c("Structure Information")
+  n_group <- nrow(ct_info_tbl) # Number of rows for "Structure information"
   if (isTRUE(trigger)) {
     trig_all <- str_match(
       ct_info_tbl[Parameter == 'Trigger_IDs', Value], 
       "'([^']+)' '([^']+)' '([^']+)' '([^']+)'"
     )[, 2:5]
     trig_all <- trig_all[trig_all != '-1']
+    trig_all <- trig_all[!is.na(trig_all)]
     if (length(trig_all) > 0) {
       trig_tbl <- rbindlist(lapply(trig_all, get_trigger_info,
                                    case.name = case.name, 
@@ -330,13 +331,14 @@ get_control_info <- function(ct.id = NULL,
                                    html = FALSE)
                             )
       ct_info_tbl <- rbind(ct_info_tbl, trig_tbl)
-      r.group <- c("Controller Information")
-      n.rgroup <- c(13) # Number of rows for "Controller information"
-      ct_info_tbl[, orig_line := .I - 1]
-      r.group <- c("Controller Information", paste('Trigger', trig_all))
-      n.rgroup <- c(ct_info_tbl[Parameter == 'Trigger_ID', orig_line], 
-                    nrow(ct_info_tbl)) 
-      n.rgroup <- n.rgroup - shift(n.rgroup, 1, fill = 0)
+      ct_info_tbl[, orig_line := .I]
+      r_group <- c("Controller Information")
+      n_group <- c(ct_info_tbl[Parameter == 'Trigger_ID', orig_line], nrow(ct_info_tbl))
+      r_group <- unlist(c("Structure Information", 
+                          ct_info_tbl[n_group[-length(n_group)], paste0(Parameter, ': ', Value)]
+      ))
+      n_group <- n_group - 1
+      n_group <- n_group - shift(n_group, 1, fill = 0)
       ct_info_tbl[, orig_line := NULL]
     }
   }
@@ -344,8 +346,8 @@ get_control_info <- function(ct.id = NULL,
     ct_info_tbl <- htmlTable::htmlTable(
       ct_info_tbl,
       align = 'l',
-      rgroup = r.group,
-      n.rgroup = n.rgroup,
+      rgroup = r_group,
+      n.rgroup = n_group,
       caption = paste(
         "Information table of the Controller:", ct.id),
       tfoot = paste('Case:', case.name)
@@ -390,15 +392,15 @@ get_struct_info <- function(
   str_id_tbl <- str_dat_tbl[id == s.id][1,]
   str_id_def <- str_def_tbl[def_ID == str_id_tbl$def_ID][1,]
   str_id_list <- list(
-    Struct_ID = s.id,
-    Struct_name = str_id_tbl$name,
-    Struct_type = .get_struct_type(str_id_def$def_ty),
-    "Crest_level" = str_id_def$cl,
-    "Crest_width" = str_id_def$cw,
+    "Structure name" = str_id_tbl$name,
+    "Structure ID" = s.id,
+    'Structure definition ID' = str_id_tbl$def_ID,
+    "Structure type" = .get_struct_type(str_id_def$def_ty),
+    "Crest level" = str_id_def$cl,
+    "Crest width" = str_id_def$cw,
     Controller = str_id_tbl$ca,
-    "Possible_flow_direction" = str_id_def$rt,
-    'Total_controllers' = 0L,
-    'Definition_ID' = str_id_tbl$def_ID
+    "Possible flow direction" = str_id_def$rt,
+    'Total controllers' = 0L
   )
   if (!is.na(str_id_tbl$cj)) {
     cj_list <- str_split(str_id_tbl$cj, ' ', simplify = TRUE)[1, ]
@@ -406,7 +408,7 @@ get_struct_info <- function(
     if (length(ct_id_list) > 0) {
       str_id_list$Total_controllers <- length(ct_id_list)
       # ct_id_tbl <- subset(ct_def_tbl, id %in% ct_id_list & !is.na(ct))
-      for (i in seq_along(ct_id_list)){
+      for (i in seq_along(ct_id_list)) {
         ct_name <- paste('Control', i, sep = "_")
         str_id_list[[ct_name]] <- ct_id_list[[i]]
       }
@@ -418,8 +420,8 @@ get_struct_info <- function(
     Parameter = names(str_id_list),
     Value = str_id_list
   )
-  r.group <- c("Structure Information")
-  n.rgroup <- c(11) # Number of rows for "Structure information"
+  r_group <- c("Structure Information")
+  n_group <- nrow(str_info_tbl) # Number of rows for "Structure information"
   if (isTRUE(control) & length(ct_id_list) > 0) {
     ct_tbl <- rbindlist(lapply(ct_id_list, get_control_info,
                         def.file = NULL, 
@@ -429,19 +431,22 @@ get_struct_info <- function(
                         trigger = trigger))
     str_info_tbl <- rbind(str_info_tbl, ct_tbl)
     # calculating number of rows for each Controller group
-    str_info_tbl[, orig_line := .I - 1]
-    r.group <- c("Structure Information", paste('Controller', ct_id_list))
-    n.rgroup <- c(str_info_tbl[Parameter == 'Control_ID', orig_line], 
-                 nrow(str_info_tbl)) 
-    n.rgroup <- n.rgroup - shift(n.rgroup, 1, fill = 0)
+    str_info_tbl[, orig_line := .I]
+    n_group <- c(str_info_tbl[Parameter == 'Control_ID' | Parameter == 'Trigger_ID'
+                              , orig_line])
+    r_group <- unlist(c("Structure Information", 
+                 str_info_tbl[n_group, paste0(Parameter, ': ', Value)]
+                 ))
+    n_group <- n_group - 1
+    n_group <- n_group - shift(n_group, 1, fill = 0)
     str_info_tbl[, orig_line := NULL]
   }
   if (isTRUE(html)) {
     str_info_tbl <- htmlTable::htmlTable(
       str_info_tbl,
       align = 'l',
-      rgroup = r.group,
-      n.rgroup = n.rgroup,
+      rgroup = r_group,
+      n.rgroup = n_group,
       caption = paste(
         "Information table of the structure:", s.id),
       tfoot = paste('Case:', case.name)

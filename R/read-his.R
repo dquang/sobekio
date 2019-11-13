@@ -213,7 +213,7 @@ his_from_list <- function(
   locs <- locdf[id.list, location]
   hisdf <- .his_df(his.file)
   # creating a mask for the matrix, to get only columns for the param
-  cols_mask <- par_int + par_int * (locs - 1)
+  cols_mask <- par_int + param_nr * (locs - 1)
   hisdf <- hisdf[, cols_mask]
   tsdf <- .his_time_df(his.file = his.file)
   df_out <- data.table(tsdf, hisdf)

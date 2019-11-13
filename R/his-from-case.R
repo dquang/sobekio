@@ -89,7 +89,7 @@ his_from_case <- function(
     id_list <- id_tbl[, 1]
     if (ncol(id_tbl) > 1) id.names <- id_tbl[, 2]
   }
-  n_case = length(case.list)
+  n_case <- length(case.list)
   # check SOBEK project
   sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
   if (is.na(sobek_cmt)) {

@@ -809,12 +809,7 @@ plot_longprofile <- function(
     data_tbl[get(compare.by) == cmp_vars[2], delta := NA]
     data_tbl[get(compare.by) == cmp_vars[2], delta_color := NA]
     data_tbl[is.na(scheitel), delta := NA]
-  } #else {
-  #   if (compare.by != group.by) {
-  #     lt.by <- compare.by
-  #     color.by <- group.by
-  #   }
-  # }
+  }
   #----add graphic----
   if (verbose) print('Preparing graphic...')
   if (!is.null(compare.by)) {
