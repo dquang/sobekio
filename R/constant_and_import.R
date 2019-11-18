@@ -7,7 +7,7 @@
 #' @importFrom purrr map_dbl map_int
 #' @import data.table
 #' @import grid
-#' @importFrom kableExtra kable kable_styling pack_rows add_header_above
+#' @importFrom kableExtra kable kable_styling pack_rows add_header_above cell_spec spec_popover
 #' @importFrom utils write.table
 #' @export
 exl_std <- c(

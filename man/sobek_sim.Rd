@@ -4,8 +4,13 @@
 \alias{sobek_sim}
 \title{Run Sobek Simulation for single case}
 \usage{
-sobek_sim(case.name = NULL, sobek.project = NULL, sobek.path = NULL,
-  overwrite = TRUE, clear.temp = TRUE)
+sobek_sim(
+  case.name = NULL,
+  sobek.project = NULL,
+  sobek.path = NULL,
+  overwrite = TRUE,
+  clear.temp = TRUE
+)
 }
 \arguments{
 \item{case.name}{Name of the Case}

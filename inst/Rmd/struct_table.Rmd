@@ -1,0 +1,27 @@
+---
+title:
+output:
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sobekio)
+library(kableExtra)
+```
+<script>
+$(document).ready(function(){
+    $('[data-toggle="popover"]').popover(); 
+});
+</script>
+
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+tble
+case.name
+sobek.project
+str_dat_tbl <- sobekio:::.get_all_struct(case.name, sobek.project, html = TRUE, tble = tble)
+str_dat_tbl %>%
+  kable(escape = FALSE) %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'))
+```

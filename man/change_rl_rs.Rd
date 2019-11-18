@@ -4,8 +4,14 @@
 \alias{change_rl_rs}
 \title{Change reference level of a cross section}
 \usage{
-change_rl_rs(id, case.name = NULL, sobek.project = NULL, rl.new = 0,
-  rs.new = rl.new + 10, profile.dat = NULL)
+change_rl_rs(
+  id,
+  case.name = NULL,
+  sobek.project = NULL,
+  rl.new = 0,
+  rs.new = rl.new + 10,
+  profile.dat = NULL
+)
 }
 \arguments{
 \item{id}{ID of cross section}

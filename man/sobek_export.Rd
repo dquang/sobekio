@@ -4,8 +4,7 @@
 \alias{sobek_export}
 \title{Export list of cases from a sobek project to another location}
 \usage{
-sobek_export(case.list, sobek.project, dest, copy.his = TRUE,
-  his.only = FALSE)
+sobek_export(case.list, sobek.project, dest, copy.his = TRUE, his.only = FALSE)
 }
 \arguments{
 \item{case.list}{Path to file with case list}

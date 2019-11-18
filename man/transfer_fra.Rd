@@ -6,9 +6,13 @@
 This function is to extract Main Model output at Frankfurt Osthafen
 and paste it as input to Rhein Model (boundary node '66')}
 \usage{
-transfer_fra(main.case = "", rhein.case = "",
+transfer_fra(
+  main.case = "",
+  rhein.case = "",
   main.prj = "d:/so21302/main2015.lit",
-  rhein.prj = "d:/so21302/rhein.lit", fra.id = "p_frankfurt_ost")
+  rhein.prj = "d:/so21302/rhein.lit",
+  fra.id = "p_frankfurt_ost"
+)
 }
 \arguments{
 \item{main.case}{Name of case in Main Model}

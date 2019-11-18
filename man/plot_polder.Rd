@@ -4,16 +4,40 @@
 \alias{plot_polder}
 \title{Plot hydrographs for a measure with comparing by scenario (zustand)}
 \usage{
-plot_polder(name = NULL, case.list = NULL, case.desc = case.list,
-  sobek.project = NULL, master.tbl = NULL, param = "discharge",
-  q.vor = TRUE, q.nach = TRUE, q.in = FALSE, q.out = FALSE,
-  w.canal = FALSE, ref.mID = NULL, y2.scale = 25, h.lines = NULL,
-  peak.nday = NULL, peak.pegel = FALSE, lt.by = "zustand",
-  compare.by = NULL, facet.by = "hwe", plot.title = NULL,
-  lt.name = "Linienart", color.name = "Farbe", text.pos.x = 0,
-  text.pos.y = 1, date.break = "3 days", date.label = "\%d.\%m.\%y",
-  text.size = 12, text.x.angle = 0L, text.box = TRUE,
-  polder.f = NULL, polder.z = NULL, verbose = TRUE)
+plot_polder(
+  name = NULL,
+  case.list = NULL,
+  case.desc = case.list,
+  sobek.project = NULL,
+  master.tbl = NULL,
+  param = "discharge",
+  q.vor = TRUE,
+  q.nach = TRUE,
+  q.in = FALSE,
+  q.out = FALSE,
+  w.canal = FALSE,
+  ref.mID = NULL,
+  y2.scale = 25,
+  h.lines = NULL,
+  peak.nday = NULL,
+  peak.pegel = FALSE,
+  lt.by = "zustand",
+  compare.by = NULL,
+  facet.by = "hwe",
+  plot.title = NULL,
+  lt.name = "Linienart",
+  color.name = "Farbe",
+  text.pos.x = 0,
+  text.pos.y = 1,
+  date.break = "3 days",
+  date.label = "\%d.\%m.\%y",
+  text.size = 12,
+  text.x.angle = 0L,
+  text.box = TRUE,
+  polder.f = NULL,
+  polder.z = NULL,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{name}{Name of the measure (with/without the measure)}

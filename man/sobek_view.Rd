@@ -4,8 +4,13 @@
 \alias{sobek_view}
 \title{Run Sobek Simulation for single case}
 \usage{
-sobek_view(case.name = NULL, sobek.project = NULL, sobek.path = NULL,
-  clear.temp = TRUE, external = TRUE)
+sobek_view(
+  case.name = NULL,
+  sobek.project = NULL,
+  sobek.path = NULL,
+  clear.temp = TRUE,
+  external = TRUE
+)
 }
 \arguments{
 \item{case.name}{Name of the Case}

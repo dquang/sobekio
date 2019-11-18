@@ -4,8 +4,14 @@
 \alias{his_from_file}
 \title{Export data for nodes/reaches using IDs from a file}
 \usage{
-his_from_file(his.file, id.file, param = 1L, f.header = FALSE,
-  f.sep = "\\t", f.comment = "#")
+his_from_file(
+  his.file,
+  id.file,
+  param = 1L,
+  f.header = FALSE,
+  f.sep = "\\t",
+  f.comment = "#"
+)
 }
 \arguments{
 \item{his.file}{Path to the .HIS file}

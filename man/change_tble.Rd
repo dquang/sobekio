@@ -4,8 +4,13 @@
 \alias{change_tble}
 \title{change table value of one id in the DAT file}
 \usage{
-change_tble(dat.file = NULL, output = dat.file, s.id = NULL,
-  tble = NULL, comments = NULL)
+change_tble(
+  dat.file = NULL,
+  output = dat.file,
+  s.id = NULL,
+  tble = NULL,
+  comments = NULL
+)
 }
 \arguments{
 \item{dat.file}{Path to .DAT file}

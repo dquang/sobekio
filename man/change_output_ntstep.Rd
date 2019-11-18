@@ -4,8 +4,7 @@
 \alias{change_output_ntstep}
 \title{This function change the output time steps}
 \usage{
-change_output_ntstep(case.list = NULL, sobek.project = NULL,
-  n.tstep = NULL)
+change_output_ntstep(case.list = NULL, sobek.project = NULL, n.tstep = NULL)
 }
 \arguments{
 \item{case.list}{List of cases to change}

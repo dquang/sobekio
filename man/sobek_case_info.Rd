@@ -4,8 +4,12 @@
 \alias{sobek_case_info}
 \title{Read .HIS information for a case}
 \usage{
-sobek_case_info(case.name = NULL, sobek.project = NULL,
-  his.type = NULL, info = NULL)
+sobek_case_info(
+  case.name = NULL,
+  sobek.project = NULL,
+  his.type = NULL,
+  info = NULL
+)
 }
 \arguments{
 \item{case.name}{Name of Sobek case}

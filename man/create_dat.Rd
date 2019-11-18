@@ -4,11 +4,19 @@
 \alias{create_dat}
 \title{Create Sobek Input}
 \usage{
-create_dat(id.file = "", data.file = "", bnd.header = NULL,
-  lat.header = NULL, factor = 1, bnd.out = NULL,
-  lat.out = sub("boundary.dat", "lateral.dat", bnd.out, ignore.case =
-  TRUE, fixed = TRUE), col.sep = "\\t", dec.char = ",",
-  output.case = NULL)
+create_dat(
+  id.file = "",
+  data.file = "",
+  bnd.header = NULL,
+  lat.header = NULL,
+  factor = 1,
+  bnd.out = NULL,
+  lat.out = sub("boundary.dat", "lateral.dat", bnd.out, ignore.case = TRUE, fixed =
+    TRUE),
+  col.sep = "\\t",
+  dec.char = ",",
+  output.case = NULL
+)
 }
 \arguments{
 \item{id.file}{Path to ID file}

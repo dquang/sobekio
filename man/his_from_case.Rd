@@ -4,10 +4,20 @@
 \alias{his_from_case}
 \title{Export data for nodes/reaches for multiple SOBEK Cases}
 \usage{
-his_from_case(case.list = NULL, sobek.project = NULL, param = 1,
-  verbose = TRUE, get.max = FALSE, get.abs.max = FALSE,
-  do.par = FALSE, f.comment = "#", f.header = FALSE,
-  id.names = NULL, f.sep = "\\t", ...)
+his_from_case(
+  case.list = NULL,
+  sobek.project = NULL,
+  param = 1,
+  verbose = TRUE,
+  get.max = FALSE,
+  get.abs.max = FALSE,
+  do.par = FALSE,
+  f.comment = "#",
+  f.header = FALSE,
+  id.names = NULL,
+  f.sep = "\\t",
+  ...
+)
 }
 \arguments{
 \item{case.list}{Path to the file containing SOBEK Cases to work with}
