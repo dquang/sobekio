@@ -78,7 +78,6 @@ sobek_sim <- function(case.name = NULL,
             to = wk_folder)
   sim_ini_f <- paste(system.file(package = 'sobekio'),
                      'simulate/simulate.ini', sep = '/')
-  # file.copy(from = sim_ini_f, to = wk_folder, overwrite = TRUE)
   sim_ini <- fread(sim_ini_f, sep = "\t", header = FALSE)
   sim_ini[, V1 := gsub('_PROGRAM_DIR_', sobek.path, V1, fixed = TRUE)]
   setwd(wk_folder)
@@ -98,9 +97,9 @@ sobek_sim <- function(case.name = NULL,
 
   system(command = cmd, wait = TRUE)
   so_res <- XML::xmlToList("simulate_log.xml")[[2]]
-  if (tolower(so_res[["Summary"]][["Succesfull"]]) == "false"){
+  if (tolower(so_res[["Summary"]][["Succesfull"]]) == "false") {
     print("Simulation was not successful")
-    if (so_res[["Summary"]][["ErrorSourceMsg"]]=="parsen"){
+    if (so_res[["Summary"]][["ErrorSourceMsg"]] == "parsen") {
       parsen_msg <- fread(file = paste(wk_folder, "parsen.msg", sep = "\\"),
                           blank.lines.skip = FALSE,
                           sep = "\n", header = FALSE)
@@ -176,7 +175,7 @@ sobek_sim <- function(case.name = NULL,
                      V1, fixed = TRUE)
             ]
       cdesc[V1 %like% "\\STRUCDIM.HIS",
-            V1:=gsub("\\#\\STRUCDIM.HIS",
+            V1 := gsub("\\#\\STRUCDIM.HIS",
                      paste("\\", c_number,"\\STRUCDIM.HIS", sep = ""),
                      V1, fixed = TRUE)
             ]
@@ -207,8 +206,6 @@ sobek_sim <- function(case.name = NULL,
             ]
       fwrite(cdesc, file = "casedesc.cmt", col.names = FALSE, row.names = FALSE,
              quote = FALSE)
-      # ask_cp <- readline("copy result back to the case folder? (y/n): ")
-
       if (overwrite) {
         # copy work folder back to case folder
         files_list <- list.files(".", recursive = TRUE, all.files = TRUE,
@@ -304,7 +301,7 @@ sobek_edit <- function(case.name = NULL,
                           full.names = TRUE,
                           pattern = "\\.[:alnum:]*",
                           no.. = TRUE)
-  for (i in cmt_files){
+  for (i in cmt_files) {
     f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
     f1[, V1 := gsub("_WORK_DIR_", wk_folder, V1, fixed = TRUE)]
     f1[, V1 := gsub("_PROGRAM_DIR_", sobek.path, V1, fixed = TRUE)]
@@ -312,17 +309,17 @@ sobek_edit <- function(case.name = NULL,
     fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE, col.names = FALSE)
   }
   setwd(cmt_folder)
-  if (!external){
+  if (!external) {
     #<FIXME: copy back only changed files!>
     cmd <- paste("cmd.exe /c ",
                  sobek.path,
                  "\\programs\\netter.exe ntrpluv.ini ",
                  '..\\WORK\\NETWORK.NTW',
                  sep = "")
-    if (interactive()){
+    if (interactive()) {
       print("Waiting for NETTER. DO NOT terminate R or run any other commands...")
       print("If you need to do something else with R, please open another session")
-    } else{
+    } else {
       cat("You are editing case:\n",
           clist[case_number == c_number, case_name],
           "\nPlease DO NOT CLOSE this windows manually.")
@@ -381,7 +378,7 @@ sobek_edit <- function(case.name = NULL,
                     ' /s /q', sep = '')
     }
     cmd.file <- data.table(
-      V1=list(
+      V1 = list(
         '@echo off',
         cmd0,
         paste('echo You are viewing case:',
@@ -519,7 +516,6 @@ sobek_view <- function(case.name = NULL,
                   "\\programs\\netter.exe ",
                   cmt_folder, '\\ntrpluvr.ini ',
                   cmt_folder, '\\netter1.ntc ',
-                  # c_folder, '\\network.ntw',
                   sep = "")
     cmd2 <- paste('cd ', sobek.path)
     cmd3 <- 'echo the temporary folder was not deleted!'
@@ -546,5 +542,49 @@ sobek_view <- function(case.name = NULL,
     cmd <- paste('cmd.exe /c ',  sobek.path, '\\', tmp_folder, '.cmd', sep = '')
     system(command = cmd, wait = FALSE, invisible = FALSE)
     print('If something went wrong with CMD, try the function again with option \'external = FALSE\'')
+  }
+}
+
+
+#' Parallel simulating for many cases
+#' 
+#' This function divides a list of cases n threads and simulate them parallely
+#' 
+#' @param case.list List of cases
+#' @param n Number of threads (Default number of core - 1)
+#' @param sobek.project Path to sobek project
+#' @param sobek.path Path to sobek installation folder
+#' @export
+par_sim_cases <- function(case.list, n = parallel::detectCores() - 1, 
+                          sobek.project, sobek.path) {
+  n_cores <- parallel::detectCores()
+  if (n > n_cores) {
+    cat('There are only ', n_cores, ' cores available')
+    cat('Do not set n more than this.')
+    stop('n > number of cores')
+  }
+  case.list <- unlist(case.list)
+  stopifnot(is.numeric(n))
+  cmd_header <- data.table(cmds = c('library(sobekio)', 
+                                    paste0("sobek.project <- '", sobek.project, "'"),
+                                    paste0("sobek.path <- '", sobek.path, "'")
+  ))
+  n_cases <- length(case.list)
+  if (n_cases < n) n <- n_cases
+  n_cases_per_thread <- ceiling(n_cases / n) # number of cases in one file
+  for (i in seq.int(n)) {
+    case_begin <- 1 + (i - 1) * n_cases_per_thread
+    case_end <- i * n_cases_per_thread
+    if (case_end > n_cases) case_end <- n_cases
+    cases_i <- case.list[case_begin:case_end]
+    files_i <- tempfile(pattern = 'r_sim', fileext = '.R')
+    cmd_i <- paste0("sobek_sim(case.name = '", cases_i, "', ", 
+                    'sobek.project = sobek.project, sobek.path = sobek.path)'
+    )
+    fwrite(cmd_header, file = files_i, col.names = FALSE, sep = '\n')
+    fwrite(list(cmd_i), file = files_i, col.names = FALSE, sep = '\n', append = TRUE)
+    r_script <- file.path(R.home(), 'bin/Rscript.exe')
+    cmd <- paste0(r_script, ' --vanilla "', files_i, '"')
+    system(command = cmd, wait = FALSE, invisible = FALSE)
   }
 }

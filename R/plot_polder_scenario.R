@@ -230,10 +230,6 @@ plot_polder_scenario <- function(
   if (isTRUE(verbose)) print('Preparing graphic...')
   einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
   auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
-  # for (j in c(einlass_cols, auslass_cols)) {
-  #   set(id_data, j = j, value = round(id_data[[j]], 0))
-  # }
-  # id_data[, eval(einlass_cols) := lapply(einlass_cols, round, 1) ]
   y2_axis <- isTRUE(q.in) | isTRUE(q.out) | (param == 'discharge' & isTRUE(w.canal))
   # in case there is a y2_axis
   #----processing y-axes limits----
@@ -263,13 +259,11 @@ plot_polder_scenario <- function(
       y2_length <- y2_max - y2_min
       y2.scale <- y1_length * 0.75 * 1000 / y2_length
       for (i in 0:3) {
-        # if (abs(y2.scale) > 1) y2.scale <- round(y2.scale)
         if (abs(y2.scale) > 10 ** i)
           y2.scale <- round(y2.scale, -i)
       }
       y2.scale <- y2.scale / 1000
       y2_shift <- y1_min - y2_min * y2.scale
-      # if (y1_max < y2_max * y2.scale + y2_shift)
     } else{
       y2_shift <- round(y1_min - y2_min * y2.scale, 2)
     }
@@ -435,8 +429,8 @@ plot_polder_scenario <- function(
   g$labels$linetype <- lt.name
   #----calculating Max Volume----
   if (isTRUE(verbose)) print('Calculating volume...')
-  if(!is.null(polder.f)) {
-    if(is.null(polder.z)) {
+  if (!is.null(polder.f)) {
+    if (is.null(polder.z)) {
       id_data[, H_innen_max := max(W_innen, na.rm = TRUE) -
                 min(W_innen, na.rm = TRUE), by = case
               ]
@@ -455,13 +449,10 @@ plot_polder_scenario <- function(
   }
   #----annotating max value----
   if (isTRUE(verbose)) print('Adding text box...')
-  # print(einlass_cols)
-  # if (isTRUE(q.in)){
   for (i in einlass_cols) {
     einlass_max_col <- paste(i, 'Max', sep = '_')
     id_data[, eval(einlass_max_col) := max(get(i), na.rm = TRUE)]
   }
-  # }
   id_data[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
   # finding the locations on x-axis for the annotated text
   # get length of x_axis, then get text.pos of it
@@ -469,13 +460,12 @@ plot_polder_scenario <- function(
   id_data[, ts_min := shift(ts, n = floor(text.pos.x*N),
                             fill = NA, type = 'lead'),
           by = case]
-  if(!is.null(h.lines)){
+  if (!is.null(h.lines)){
     id_hlines <- id_data[, min(ts), by = case]
   }
   id_data_nrow <- id_data[, min(ts_min, na.rm = TRUE), by = case]
   colnames(id_data_nrow) <- c('case', 'ts')
   id_max <- merge(id_data_nrow, id_data, by = c('ts', 'case'), sort = FALSE)
-  # id_max[, Q_in_max := round(Q_in_max)]
   id_max[, W_in_max := round(W_in_max, 2)]
   id_max[, label := '']
   case_has_max <- id_max[W_in_max == max(W_in_max, na.rm = TRUE), case]
@@ -537,7 +527,6 @@ plot_polder_scenario <- function(
     )
 
   if (!is.null(h.lines)) {
-    # id_hlines with 2 cols: V1, case
     for (i in seq_along(h.lines)) {
       hline_label <- ifelse(is.null(names(h.lines[i])),
                             paste('V_', h.lines[[i]], sep = ""),
@@ -579,8 +568,6 @@ plot_polder_scenario <- function(
           breaks = y1_pretty,
           sec.axis =
             sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
-                     # breaks = y2_pretty,
-                     # labels = round(y2_pretty, 2),
                      name = y2_name)
         )
     }

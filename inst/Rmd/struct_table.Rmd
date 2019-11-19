@@ -1,13 +1,18 @@
 ---
-title:
+title: 'Table of structure information'
 output:
-  html_document
+  html_document:
+    self_contained: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(sobekio)
 library(kableExtra)
+
+tble
+case.name
+sobek.project
 ```
 <script>
 $(document).ready(function(){
@@ -17,11 +22,12 @@ $(document).ready(function(){
 
 
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
-tble
-case.name
-sobek.project
 str_dat_tbl <- sobekio:::.get_all_struct(case.name, sobek.project, html = TRUE, tble = tble)
 str_dat_tbl %>%
-  kable(escape = FALSE) %>%
-  kable_styling(bootstrap_options = c('striped', 'hover'))
+  kable(escape = FALSE,
+        caption = paste('Case:', case.name, '<br>', 'Project: ',
+                        sobek.project),
+        ) %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'),
+                fixed_thead = TRUE)
 ```

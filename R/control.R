@@ -363,9 +363,6 @@ get_control_popover <- function(ct.id = NULL,
     '<strong>Trigger IDs: </strong>' = ct_tg_gi,
     '<strong>dValue/dt: </strong>' = ct_id_tbl$mc
   )
-  if (isTRUE(tble)) {
-    ct_info_list[['<strong>Controller table (max 10 rows):</strong>']] <- ''
-  }
   ct_info_tbl <- data.table(Parameter = names(ct_info_list),
                             Value = ct_info_list)
   if (isTRUE(tble)) {
@@ -374,11 +371,21 @@ get_control_popover <- function(ct.id = NULL,
     ct_tble[, V1 := str_replace_all(V1, "'", "")]
     ct_tble[, V1 := str_replace(V1, ";", " ")]
     colnames(ct_tble) <- 'Value'
-    # diplay only max. 10 rows
-    nrow_tble <- min(10, nrow(ct_tble))
-    ct_tble <- ct_tble[1:nrow_tble,]
-    ct_tble[, Parameter := c(rep('', nrow_tble))]
-    ct_info_tbl <- rbind(ct_info_tbl, ct_tble)
+    nrow_tble <- nrow(ct_tble)
+    if (nrow_tble > 0) {
+      max_row <- 10 # diplay only max. 10 rows
+      if (nrow_tble > max_row) {
+        ct_info_list[['<strong>Controller table (first 10 rows):</strong>']] <- ''
+      } else {
+        ct_info_list[['<strong>Controller table:</strong>']] <- ''
+      }
+      max_row <- min(max_row, nrow_tble)
+      ct_tble <- ct_tble[1:max_row, ]
+      ct_tble[, Parameter := c(rep('', max_row))]
+      ct_info_tbl <- data.table(Parameter = names(ct_info_list),
+                                Value = ct_info_list)
+      ct_info_tbl <- rbind(ct_info_tbl, ct_tble)
+    }
   }
   r_group <- c("Structure Information")
   n_group <- nrow(ct_info_tbl) # Number of rows for "Structure information"
@@ -453,7 +460,7 @@ get_control_tbl <- function(
       ct_id_list <- gsub("'", "", cj_list[!grepl("'-1'", cj_list)])
     } else {
       stop('structure with ID: ', s.id, 
-           " not found. May be you want to use ct.id = '", s.id, "' instead?")
+           " not found. Maybe you want to use ct.id = '", s.id, "' instead?")
     }
   } else {
     ct_id_list <- ct.id
@@ -469,9 +476,13 @@ get_control_tbl <- function(
         if (nrow(ct_name_tbl) > 0) {
           ct_name_tbl[, c('V2', 'V3', 'V4') := 
                         tstrsplit(str_trim(V1), split = ' ')]
-          ct_name_tbl[, ts := as.POSIXct(V2, tz = 'GMT',
+          ts_chk <- grepl("^'\\d{4}/\\d{2}/\\d{2}", ct_name_tbl$V2[1])[1]
+          if (ts_chk) {
+            ct_name_tbl[, ts := as.POSIXct(V2, tz = 'GMT',
                                          format = "'%Y/%m/%d;%H:%M:%S'")]
-          ct_name_tbl[is.na(ts), ts := NA_real_]
+          } else {
+            ct_name_tbl[, ts := as.double(V2)]
+          }
           ct_name_tbl[, value := as.double(V3)]
           ct_name_tbl <- ct_name_tbl[, c('ts', 'value')]
         }
@@ -483,6 +494,83 @@ get_control_tbl <- function(
   }
 
   return(ct_tble_list)
+}
+
+#' Change controlling table for a controller
+#' 
+#' @param tble New control table
+#' @param ct.id Controller ID
+#' @param ct.def Path to control.def file (or given by case.name and sobek.project)
+#' @param case.name Sobek case name
+#' @param sobek.project Path to sobek project
+#' @export
+#' @examples
+#' \dontrun{
+#' guns_ctl_tbl <- get_control_tbl(
+#'   ct.id = 'guntersblum_ab',
+#'   case.name = 'NurRhein_ZPK_HW1988_Mittel_Nur_Eich_EreigOpt',
+#'   sobek.project = 'd:/so21302/rhein.lit'
+#' )
+#' # change value
+#' guns_ctl_tbl[, value := value + 0.0001]
+#' change_control_tbl <- function(
+#'   tble = guns_ctl_tbl,
+#'   ct.id = 'guntersblum_ab',
+#'   case.name = 'NurRhein_ZPK_HW1988_Mittel_Nur_Eich_EreigOpt',
+#'   sobek.project = 'd:/so21302/rhein.lit'
+#' )
+#' }
+change_control_tbl <- function(
+  tble,
+  ct.id,
+  ct.def = NULL,
+  case.name = NULL,
+  sobek.project = NULL
+) {
+  tble <- tble[, 1:2]
+  colnames(tble) <- c('ts', 'value')
+  nrow_tble <- nrow(tble)
+  tble[, value := as.numeric(value)]
+  tble <- tble[!is.na(value)]
+  if (nrow_tble != nrow(tble)) stop('tble has wrong values/format')
+  ts_class <- class(tble$ts)[1]
+  if (grepl('numeric', ts_class)) {
+    tble[, tble_line := paste(ts, value, '<')]
+  } else if (grepl('POSIX', ts_class)) {
+    tble[, tble_line := paste0(
+      format(ts, format = "'%Y/%m/%d;%H:%M:%S' "),
+      value,
+      ' <'
+      )
+      ]
+  } else {
+    stop('tble has wrong format')
+  }
+  if (is.null(ct.def)) {
+    stopifnot(!is.null(case.name) || !is.null(sobek.project))
+    ct.def <- get_file_path(
+      case.name = case.name,
+      sobek.project = sobek.project,
+      type = 'control.def'
+    )
+  }
+  ct_def_tbl <- .get_control_def(ct.def)
+  nrow_def <- nrow(ct_def_tbl)
+  ct_tbl <- ct_def_tbl[id == ct.id]
+  if (nrow(ct_tbl) == 0) {
+    stop('control ID not found: ', ct.id)
+  }
+  tble_begin <- ct_tbl[grepl('TBLE', V1), org_line_nr]
+  tble_end <- ct_tbl[grepl('tble', V1), org_line_nr]
+  stopifnot(length(tble_begin) == 1 & length(tble_end) == 1)
+  fwrite(ct_def_tbl[1:tble_begin, c('V1')], file = ct.def,
+         sep = '\n', col.names = FALSE)
+  fwrite(tble[, c('tble_line')], file = ct.def,
+         append = TRUE,
+         sep = '\n', col.names = FALSE)
+  fwrite(ct_def_tbl[tble_end:nrow_def, c('V1')], file = ct.def,
+         append = TRUE,
+         sep = '\n', col.names = FALSE)
 }
 
 
@@ -596,16 +684,59 @@ get_struct_info <- function(
 #' @param html Default TRUE. Export a html table
 #' @return a data.table or htmlTable
 #' @export
+#' @examples
+#' \dontrun{
+#' case_name <- 'NurRhein_ZPK_HW1988_Mittel'
+#' so_prj <- 'd:/so21302/rhein.lit'
+#' get_all_struct(
+#'   case.name = case_name,
+#'   sobek.project = so_prj,
+#'   html = FALSE,
+#'   output = 'd:/users/YourNameHere/desktop'
+#'   ) # output will be file with name struct_info_tbl_xxx.xlsx to desktop
+#'}
 get_all_struct <- function(
   case.name = NULL,
   sobek.project = NULL,
   html = TRUE,
-  tble = TRUE
+  tble = TRUE,
+  output = NULL
 ) {
+    html <- isTRUE(html)
+    tble <- isTRUE(tble)
     sobek.project <- str_replace_all(sobek.project, '\\\\', '/')
+    if (!is.null(output)) {
+      folder_name <- dirname(output)
+      file_name <- basename(output)
+      folder_chk <- file_test('-d', output)
+      if (folder_chk) {
+        # output was given as a path to an existing folder
+        file_out <- tempfile(pattern = 'struct_info_tbl_', 
+                             tmpdir = output, 
+                             fileext = ifelse(html, '.html', '.xlsx')
+                             )
+      } else {
+        # output was given as a path to a file
+        folder_chk <- file_test('-d', folder_name)
+        if (!folder_chk) stop('output path does not exist')
+        file_ext <- str_extract(file_name, '\\..+$')
+        if (is.na(file_ext)) {
+          file_name <- paste0(file_name, ifelse(html, '.html', '.xlsx'))
+        }
+        file_out <- file.path(folder_name, file_name)
+      }
+    }
     str_dat_tbl <-
-      .get_all_struct(case.name = case.name, sobek.project = sobek.project)
-    if (!isTRUE(html)) {
+      .get_all_struct(case.name = case.name, sobek.project = sobek.project, 
+                      tble = tble)
+    if (!html) {
+      if (!is.null(output)) {
+        # write output to excel file
+        xlsx_wb <- createWorkbook()
+        xlsx_sheet <- createSheet(xlsx_wb, sheetName = 'struct_info_tbl')
+        addDataFrame(str_dat_tbl, xlsx_sheet)
+        saveWorkbook(xlsx_wb, file = file_out)
+      }
       return(str_dat_tbl)
     } else {
       rmd_f <- system.file('Rmd/struct_table.Rmd', package = 'sobekio')
@@ -627,6 +758,11 @@ get_all_struct <- function(
       html_tmp <- str_replace(rmd_tmp, 'Rmd$', 'html')
       rmarkdown::render(rmd_tmp, output_format = 'html_document', 
                         output_file = html_tmp)
+      if (!is.null(output)) {
+        file.copy(from = html_tmp, to = file_out)
+        print(paste('and copied to:', file_out))
+        html_tmp <- file_out
+      }
       browseURL(html_tmp)
       invisible(str_dat_tbl)
   }
@@ -699,7 +835,7 @@ get_all_struct <- function(
   colnames(str_dat_tbl) <- str_cols_names
   setorder(str_dat_tbl, ID)
   
-  if (isTRUE(html)) {
+  if (html) {
     ct_names <- grep("Controller \\d", 
                      colnames(str_dat_tbl), value = TRUE)
     for (i in ct_names) {
@@ -711,13 +847,15 @@ get_all_struct <- function(
         html = TRUE,
         tble = tble
       )
-      str_dat_tbl[[i]] <- cell_spec(str_dat_tbl[[i]],
-                                    popover = spec_popover2(
-                                      content = ct_hover,
-                                      title = NULL,
-                                      html = TRUE,
-                                      position = 'left'
-                                    ))
+      str_dat_tbl[[i]] <- cell_spec(
+        str_dat_tbl[[i]],
+        popover = spec_popover2(
+          content = ct_hover,
+          title = '<strong>Controller Information</strong>',
+          html = TRUE,
+          position = 'left'
+        )
+      )
     }
   }
   return(str_dat_tbl)
@@ -981,7 +1119,7 @@ delete_trigger_by_ids <- function(
 }
 
 
-# modified from kableExtra, adding html = TRUE
+# modified from kableExtra, added html = TRUE
 #' @export
 spec_popover2 <-
   function(content = NULL,
@@ -992,7 +1130,7 @@ spec_popover2 <-
   {
     trigger <- match.arg(trigger, c("hover", "click", "focus",
                                     "manual"), several.ok = TRUE)
-    html <- ifelse(isTRUE(html), '"true"', '"false"')
+    html <- ifelse(html, '"true"', '"false"')
     position <- match.arg(position,
                           c("bottom", "top", "left",
                             "right", "auto"),

@@ -507,14 +507,14 @@ plot_longprofile <- function(
   case.desc = case.list,
   sobek.project = NULL,
   param = 'discharge',
-  lt.by = 'zustand',
-  color.by = 'vgf',
-  compare.by = NULL,
-  cmp.sort = FALSE,
+  compare.by = 'zustand',
   group.by = compare.by,
+  lt.by = compare.by,
+  color.by = group.by,
   delta.lt = compare.by,
   color.name = 'Farbe',
   lt.name = 'Linienart',
+  cmp.sort = FALSE,
   color.nrow = 2,
   lt.nrow = 2,
   shape.nrow = 2,
@@ -552,6 +552,9 @@ plot_longprofile <- function(
   verbose = TRUE,
   do.par = FALSE
 ){
+  # must evaluate lt.by and color.by to avoid problem with ggplot
+  eval(lt.by)
+  eval(color.by)
   # preparing parameters--------------------------------------------------------
   param <- tolower(param)
   if (!isTRUE(dband)) dband.label <- FALSE
@@ -589,7 +592,6 @@ plot_longprofile <- function(
                                     )
                                     ]
       group.by <- "group__by"
-      # grp_vars <- unique(case_tbl[, get(group.by)])
     }
     grp_vars <- unique(case_tbl[, get(group.by)])
   }
@@ -952,7 +954,7 @@ plot_longprofile <- function(
           sec_axis(
             trans = ~ (. - y2_shift) / y2.scale,
             breaks = y2_pretty,
-            labels = round(y2_pretty, round_nr),
+            labels = format(round(y2_pretty, round_nr), nsmall = round_nr),
             name = y2_name
           )
       )
