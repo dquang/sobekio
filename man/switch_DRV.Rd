@@ -4,7 +4,7 @@
 \alias{switch_DRV}
 \title{Change profile definitions for DRV}
 \usage{
-switch_DRV(case.name, sobek.project, drv.name = NULL, status = "mit", f.tbl)
+switch_DRV(case.name, sobek.project, drv.name = NULL, status, f.tbl)
 }
 \arguments{
 \item{f.tbl}{Path to profile definition table}

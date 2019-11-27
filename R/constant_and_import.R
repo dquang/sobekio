@@ -2,7 +2,7 @@
 #' Standard colors in Excel
 #' @import stringr
 #' @import ggplot2
-#' @importFrom xlsx createWorkbook createSheet addDataFrame saveWorkbook
+#' @importFrom xlsx createWorkbook createSheet addDataFrame saveWorkbook autoSizeColumn createRow createCell Font Alignment addMergedRegion setCellStyle
 #' @importFrom stringi stri_conv
 #' @importFrom dplyr %>% select starts_with near filter
 #' @importFrom purrr map_dbl map_int

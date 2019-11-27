@@ -29,7 +29,7 @@ check_fra <- function(
   q_fra_main$case <- NULL
   colnames(q_fra_main) <- c('ts', 'FRA vom Main')
   max_cmp_row <- q_fra_main[,.N]
-  if (isTRUE(check.dat)){
+  if (isTRUE(check.dat)) {
     q_fra_rhein <- get_data_from_id(
       dat.file = get_file_path(
         case.name = rhein.case,
@@ -38,7 +38,7 @@ check_fra <- function(
       ),
       s.id = '66'
     )
-    q_fra_rhein[, `66`:= as.numeric(`66`)]
+    q_fra_rhein[, `66` := as.numeric(`66`)]
   } else{
     q_fra_rhein <- his_from_case(
       case.list = rhein.case,
@@ -53,13 +53,13 @@ check_fra <- function(
   colnames(q_fra_rhein) <- c('ts', 'FRA im Rhein')
   qt <- merge(q_fra_main, q_fra_rhein, by = 'ts')
   qt <- melt(qt, id.vars = 'ts')
-  if (isTRUE(print.plot)){
+  if (isTRUE(print.plot)) {
     g <- ggplot(qt, aes(x = ts, y = value,
                         color = variable,
                         linetype = variable)
     ) +
       scale_x_datetime() + geom_line(size = 1) +
-      theme(legend.position = 'bottom')+
+      theme(legend.position = 'bottom') +
       ggtitle(paste('Comparing Frankfurt-Ost: \n', main.case, 'vs', rhein.case))
     print(g)
   }
@@ -67,9 +67,11 @@ check_fra <- function(
   invisible(list(q_fra_rhein, q_fra_main))
 }
 
+
 #' Checking Worms Input
 #' @param case.name Case from Rhein Model
-#' @param zustand Colname for gettting data from LUBW from the worms.tbl
+#' @param zustand Scenario for this case
+#' @param suffix Extra part of the data column ('zeit', 'regl', 'ereig'...)
 #' @param sobek.project Rhein Project folder
 #' @param worms.tbl Table of Womrs values
 #' @param check.dat Default = FALSE. That means it checks model output vs column in the worms.tbl by default. Set this parameter to TRUE to compare worms.tbl with boundary.dat
@@ -80,6 +82,9 @@ check_worms <- function(
   case.name,
   case.desc = case.name,
   zustand = NULL,
+  zielpegel = NULL,
+  vgf = NULL,
+  suffix = '.*',
   sobek.project = so_prj,
   worms.tbl = lubw,
   check.dat = FALSE,
@@ -87,19 +92,27 @@ check_worms <- function(
   lubw.code = lubw_code,
   mid = 'p_worms'
 ){
-  # if zustand was not given, try to differ it from case.name
+  case_desc <- parse_case(case.desc = case.desc, orig.name = case.name)
   if (is.null(zustand)) {
-    zustand_chk <- map(lubw.code$pat, grepl, x = case.desc)
-    zustand_pos = which(zustand_chk == TRUE)
-    if (length(zustand_pos) > 1) {
-      print('There are more than two \'zustand\' possible for this case: ')
-      print(lubw.code$colname[zustand_pos])
-      stop('Too many \'zustand\' possible. Try again!')
-    }
-    print(paste('tried with zustand =', lubw.code$colname[zustand_pos]))
-    zustand <- lubw.code$colname[zustand_pos]
+    zustand <- match.arg(case_desc$zustand[1], lubw_code$zustand)
   }
-  qt_lubw <- worms.tbl[, .SD, .SDcols = c('ts', zustand)]
+  if (is.null(zielpegel)) {
+    zielpegel <- match.arg(case_desc$zielpegel[1], toupper(lubw_code$zielpegel))
+  } 
+  if (is.null(vgf)) {
+    vgf <- match.arg(case_desc$vgf[1], lubw_code$vgf)
+  }
+  case_pat <- paste(zustand, zielpegel, vgf, sep = '_')
+  data_col <- lubw_code[case_name %in% case_pat, colname]
+  if (length(data_col) == 0) {
+    stop('There is no data column for this case: ', case.name)
+  } else if (length(data_col) > 1) {
+    data_col <- grep(suffix, data_col, value = TRUE)
+    if (length(data_col) != 1) {
+      stop('Too many data columns for this case: ', case.name, '. Forgot suffix?')
+    }
+  }
+  qt_lubw <- worms.tbl[, .SD, .SDcols = c('ts', data_col)]
   colnames(qt_lubw) <- c('ts', 'Worms_LUBW')
   if (isTRUE(check.dat)) {
   # reading from boundary.dat
@@ -116,16 +129,13 @@ check_worms <- function(
     setkey(qt_dat, ts)
     testthat::expect_equal(qt_lubw, qt_dat)
     return(TRUE)
-    #invisible(list(qt_lubw, qt_dat))
   } else {
     qt_lubw[, hwe := year(ts)][hwe == 2002, hwe := 2003]
     qt_mod <- his_from_case(case.list = case.name, sobek.project = sobek.project,
                             mID = mid, param = 'discharge')
-    # qt_mod[, hwe := year(ts)][hwe == 2002, hwe := 2003]
     qt <- merge(qt_mod, qt_lubw, by = 'ts')
     qt_cond <- all(near(qt$Worms_LUBW, qt[[mid]], 0.1))
     stopifnot(qt_cond)
-    #invisible(qt)
     return(TRUE)
   }
 }

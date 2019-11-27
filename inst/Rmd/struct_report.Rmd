@@ -1,0 +1,127 @@
+---
+title: "Table of Structures and Controllers"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: false
+    self_contained: true
+---
+
+```{r setup, message=FALSE, warning=FALSE, include=FALSE}
+library(sobekio)
+library(kableExtra)
+library(data.table)
+options(knitr.kable.NA = '')
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+st.list
+case.list
+case.desc
+sobek.project
+tble
+```
+
+
+<script>
+$(document).ready(function(){
+    $('[data-toggle="popover"]').popover(); 
+});
+</script>
+
+# Input information
+
+List of cases:
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+cat(case.list, sep = "\n")
+```
+
+Case naming:
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+cat(case.desc, sep = "\n")
+```
+
+Sobek Project: `r sobek.project`
+
+# Table of structures
+
+```{r str.tbl, message=TRUE, warning=TRUE, include=FALSE}
+str_tbl_html_list <- list()
+for (i in seq_along(case.list)) {
+  tmp <- sobekio:::.get_all_struct(case.list[[i]], sobek.project,
+                                           html = TRUE, tble = tble)
+  tmp$case <- case.desc[[i]]
+  str_tbl_html_list[[i]] <- tmp
+  }
+str_tbl_html <- rbindlist(str_tbl_html_list)
+str_tbl_html <- str_tbl_html[ID %in% st.list]
+col_names <- colnames(str_tbl_html)
+col_names <- c(col_names[c(length(col_names), 1)], col_names[-c(1, length(col_names))])
+setorder(str_tbl_html, ID, case)
+setcolorder(str_tbl_html, col_names)
+```
+
+```{r str.tbl.html, echo=FALSE, message=TRUE, warning=TRUE}
+str_tbl_html %>%
+  kable(escape = FALSE) %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'),
+                fixed_thead = TRUE)
+```
+
+# Table of controllers
+
+```{r ctr.tbl, message=TRUE, warning=TRUE, include=FALSE}
+str_tbl_list <- list()
+for (i in seq_along(case.list)) {
+  tmp <- sobekio:::.get_all_struct(case.list[[i]], sobek.project,
+                                           html = FALSE, tble = tble)
+  tmp$case <- case.desc[[i]]
+  str_tbl_list[[i]] <- tmp
+}
+str_tbl <- rbindlist(str_tbl_list)
+str_tbl <- str_tbl[ID %in% st.list]
+str_ctr_tbl <-
+  melt(str_tbl[, c('ID',
+                   'Controller 1',
+                   'Controller 2',
+                   'Controller 3',
+                   'Controller 4',
+                   'case')],
+       id.vars = c('ID', 'case'),
+       value.name = 'ctr_id'
+       )
+ctr_tbl_html_list <- list()
+for (i in seq_along(case.list)) {
+  tmp <- sobekio:::.get_all_control(case.name = case.list[[i]], 
+                                    sobek.project = sobek.project,
+                                           html = TRUE, tble = tble)
+  tmp$case <- case.desc[[i]]
+  ctr_tbl_html_list[[i]] <- tmp
+  }
+ctr_tbl_html <- rbindlist(ctr_tbl_html_list)
+ctr_tbl_html <- ctr_tbl_html[ID %in% str_ctr_tbl$ctr_id]
+col_names <- colnames(ctr_tbl_html)
+col_names <- c(col_names[c(length(col_names), 1)], col_names[-c(1, length(col_names))])
+setorder(ctr_tbl_html, case, ID)
+setcolorder(ctr_tbl_html, col_names)
+```
+
+```{r ctr.tbl.html, echo=FALSE, message=TRUE, warning=TRUE}
+case_grp_tbl <- ctr_tbl_html[, c('case')][, orig_id := .I]
+case_grp_tbl[, orig_id := .I]
+ctr_tbl_html <- ctr_tbl_html %>%
+  kable(escape = FALSE) %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'),
+                fixed_thead = TRUE)
+for (i in seq_along(case.desc)) {
+  case_begin <- min(case_grp_tbl[case == case.desc[i], orig_id])
+  case_end <- max(case_grp_tbl[case == case.desc[i], orig_id])
+  ctr_tbl_html <- ctr_tbl_html %>%
+    pack_rows(paste0('Case: ', case.desc[i]), case_begin, case_end)
+}
+
+ctr_tbl_html
+```

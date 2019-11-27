@@ -3,7 +3,8 @@
 #' @param case.list List of cases
 #' @param case.desc Correct (according to case naming standard in NHWSP) version of case.list, it will be used for legend
 #' @param sobek.project Path to sobek project
-#' @param param 'Waterlevel' or 'Discharge'
+#' @param param 'waterlevel', 'discharge', or 'both'. 
+#' If both, two graphics will be first procedured and then arrange vertically together
 #' @param q.in Logical. Should discharge through the inlet be plotted?
 #' @param q.out Logical. Should discharge through the outlet be plotted?
 #' @param w.canal Logical. Should Wt line inside the measure be plotted?
@@ -76,8 +77,40 @@ plot_polder_scenario <- function(
   #----checking input----
   # there should be only two cases
   stopifnot(length(unlist(case.list)) == 2)
-  param = tolower(param)
-  stopifnot(param %in% c('discharge', 'waterlevel'))
+  f_args <- as.list(match.call())
+  param <- match.arg(param, c('discharge', 'waterlevel', 'both'))
+  if (param == 'both') {
+    if (length(y2.scale) > 1) {
+      y2.scale_wt <- y2.scale[[1]]
+      y2.scale_qt <- y2.scale[[2]]
+    } else {
+      y2.scale_wt <- y2.scale_qt <- y2.scale
+    }
+    if (length(y2.tick1) > 1) {
+      y2.tick1_wt <- y2.tick1[[1]]
+      y2.tick1_qt <- y2.tick1[[2]]
+    } else {
+      y2.tick1_wt <- y2.tick1_qt <- y2.scale
+    }
+    cat('working with waterlevel \n')
+    f_args$param <- 'waterlevel'
+    f_args$y2.scale <- y2.scale_wt
+    f_args$y2.tick1 <- y2.tick1_wt
+    g_wt <- do.call(plot_polder_scenario, f_args)
+    f_args$param <- 'discharge'
+    f_args$y2.scale <- y2.scale_qt
+    f_args$y2.tick1 <- y2.tick1_qt
+    cat('working with discharge \n')
+    q_wt <- do.call(plot_polder_scenario, f_args)
+    g <- cowplot::plot_grid(g_wt, q_wt, ncol = 1, 
+                       rel_heights = 1,
+                       align = 'v', axis = 'l')
+    return(g)
+  } else {
+    # in case users gave y2.scale or y2.tick1 more than one values
+    y2.scale <- y2.scale[[1]]
+    y2.tick1 <- y2.tick1[[1]]
+  }
   stopifnot(!c(is.null(name), is.null(case.list), is.null(master.tbl),
                is.null(sobek.project)
   ))
@@ -577,8 +610,8 @@ plot_polder_scenario <- function(
   if (is.null(plot.title)) {
     plot.title <- paste(str_extract(y1_label, 'Abfluss|Wasserstand'),
                         ' Ganglinien für Maßnahme: ', name,
-                        '. Hochwasser: ', case_tbl$hwe[[1]],
-                        sep = '')
+                        '. Hochwasser: ', case_tbl$hwe[[1]], ' ',
+                        case_tbl$vgf[[1]], sep = '')
   }
   g <- g + theme_bw() +
     theme(

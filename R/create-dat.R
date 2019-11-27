@@ -608,3 +608,48 @@ transfer_fra <- function(
                                     main.case))
 
 }
+
+
+#' Change Worms timeseries based on case naming
+#' @param case.list List of case
+#' @param zustand Scenario
+#' @param ereig Ereignis Optimierung?
+#' @param sobek.project Default 'd:/so21302/rhein.lit'
+#' @export
+change_worms <- function(
+  case.list = NULL,
+  zustand,
+  ereig,
+  sobek.project = so_prj
+) {
+  stopifnot(ereig %in% c(TRUE, FALSE))
+  zustand <- match.arg(zustand, choices = c(
+    'nur_rhein', 'nur_polder', 'nur_nf', 
+    'nur_drv', 'nur_nf', 'bezug', 'plan', 'hist'
+  ))
+  for (i in case.list) {
+    i_lower <- str_to_lower(i)
+    dta_zp <- str_extract(i_lower, 'zpk|zpw|zp0')
+    dta_vgf <- str_extract(i_lower, 'mittel|selten|vgf1')
+    if (ereig) {
+      dta_col <- paste(dta_zp, zustand, dta_vgf, 'ereig', sep = '_')
+    } else {
+      dta_col <- paste(dta_zp, zustand, dta_vgf, sep = '_')
+    }
+    chk_vgf1 <- isTRUE(dta_vgf == 'vgf1')
+    if (chk_vgf1) {
+      dta = lubw_vgf1[, .SD, .SDcols = c('ts', dta_col)]
+      stopifnot(nrow(dta) == 13514)
+    } else {
+      dta = lubw[, .SD, .SDcols = c('ts', dta_col)]
+      stopifnot(nrow(dta) == 1489)
+    }
+    change_tble(
+      dat.file = get_file_path(case.name = i, 
+                               sobek.project = sobek.project, type = 'bnd.dat'),
+      s.id = '17',
+      tble = dta,
+      comments = paste('LUBW:', dta_col)
+    )
+  }
+}

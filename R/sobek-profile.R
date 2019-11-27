@@ -6,13 +6,14 @@
 #' @return Result will be written directly to the profile.dat
 #' @export
 switch_DRV <- function(case.name, sobek.project, drv.name = NULL,
-                       status = "mit", f.tbl){
-  if (!is.data.table(f.tbl)){
+                       status, f.tbl){
+  if (!is.data.table(f.tbl)) {
     def.tbl <- fread(f.tbl, sep = "\t", header = T, quote = "")
-  } else{
+  } else {
     def.tbl <- copy(f.tbl)
   }
   stopifnot(drv.name %in% def.tbl$DRV)
+  status <- match.arg(status, c('mit', 'ohne', 'with', 'without'))
   case_folder <- dirname(get_file_path(case.name = case.name,
                                        sobek.project = sobek.project,
                                        type = 'node'))
