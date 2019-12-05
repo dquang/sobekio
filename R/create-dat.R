@@ -79,11 +79,14 @@ extract_header <- function(
 get_bnd_tbl <- function(
   bnd.file
 ) {
-  bnd_tbl <- fread(bnd.file, sep = "\n", encoding = 'Latin-1', header = FALSE)
+  bnd_tbl <- fread(bnd.file, sep = "\n",
+                   strip.white = FALSE,
+                   encoding = 'Latin-1',
+                   header = FALSE)
   # removing comment lines
   bnd_tbl <- bnd_tbl[substr(V1, 1, 1) != '*']
   # insert original line ID
-  bnd_tbl[, org_line_nr := .I]
+  bnd_tbl[, orig_line_nr := .I]
   id_tbl <- bnd_tbl[grepl(" id '([^']*)'", V1)]
   id_tbl[, id := str_match(V1, " id '([^']*)'")[, 2]]
   id_tbl[, sobek_module := str_match(V1, "(^[^ ]+) id")[, 2]]
@@ -93,7 +96,7 @@ get_bnd_tbl <- function(
   id_tbl$bnd_var <- str_mt[, 3]
   id_tbl$bnd_ts <- str_mt[, 4]
   # merging info back to bnd_tbl
-  bnd_tbl <- merge(bnd_tbl, id_tbl[, -c('V1')], by = 'org_line_nr', all.x = TRUE)
+  bnd_tbl <- merge(bnd_tbl, id_tbl[, -c('V1')], by = 'orig_line_nr', all.x = TRUE)
   # assign same id for its lines
   bnd_tbl[, id := id[1], by = .(cumsum(!is.na(id)))]
   
@@ -108,18 +111,20 @@ get_bnd_tbl <- function(
 get_lat_tbl <- function(
   lat.file
 ) {
-  lat_tbl <- fread(lat.file, sep = "\n", encoding = 'Latin-1', header = FALSE)
+  lat_tbl <- fread(lat.file, sep = "\n",                    
+                   strip.white = FALSE,
+                   encoding = 'Latin-1', header = FALSE)
   # removing comment lines
   lat_tbl <- lat_tbl[substr(V1, 1, 1) != '*']
   # insert original line ID
-  lat_tbl[, org_line_nr := .I]
+  lat_tbl[, orig_line_nr := .I]
   id_tbl <- lat_tbl[grepl(" id '([^']*)'", V1)]
   id_tbl[, id := str_match(V1, " id '([^']*)'")[, 2]]
   id_tbl[, sobek_module := str_match(V1, "(^[^ ]+) id")[, 2]]
   id_tbl[, type := str_match(V1, " id '.* lt (-*\\d) dc lt")[, 2]]
   id_tbl[, dt := str_match(V1, " id '.* (dc lt \\d{1,2}) ")[, 2]]
   # merging info back to lat_tbl
-  lat_tbl <- merge(lat_tbl, id_tbl[, -c('V1')], by = 'org_line_nr', all.x = TRUE)
+  lat_tbl <- merge(lat_tbl, id_tbl[, -c('V1')], by = 'orig_line_nr', all.x = TRUE)
   # assign same id for its lines
   lat_tbl[, id := id[1], by = .(cumsum(!is.na(id)))]
   
@@ -150,6 +155,7 @@ get_lat_tbl <- function(
 #' @param output Output folder
 #' @param col.sep Column seperator of ID & Input Data files. Default TAB.
 #' @param dec.char Decimal character of ID & Input Data files. Default ","
+#' @export
 create_bnd_file <- function(
   out.case = NULL,
   out.project = NULL,
@@ -158,8 +164,8 @@ create_bnd_file <- function(
   data.tbl = NULL,
   in.bnd = NULL,
   in.lat = NULL,
-  in.case = NULL,
-  in.project = NULL,
+  in.case = out.case,
+  in.project = out.project,
   output = '.',
   col.sep = '\t',
   dec.char = ','
@@ -179,15 +185,23 @@ create_bnd_file <- function(
   # check data.tbl
   stopifnot(!is.null(data.tbl))
   if (!is.data.frame(data.tbl)) {
-    data_fcheck <- is.character(data.tbl) && length(data.tbl)
+    data_fcheck <- is.character(data.tbl) && length(data.tbl) == 1
     if (isTRUE(data_fcheck)) {
       stopifnot(file.exists(data.tbl))
     } else {
       stop('data.tbl must be given as path to file or a data.frame (data.table)')
     }
     data_file <- data.tbl
-    input_data <- fread(data.tbl, dec = dec.char, sep = col.sep, header = TRUE,
-                        blank.lines.skip = TRUE)
+    input_data <-
+      fread(
+        data.tbl,
+        dec = dec.char,
+        sep = col.sep,
+        strip.white = FALSE,
+        encoding = 'Latin-1',
+        header = TRUE,
+        blank.lines.skip = TRUE
+      )
   } else {
     data_file <- paste(f_args$data.tbl)
     input_data <- as.data.table(data.tbl)
@@ -209,7 +223,10 @@ create_bnd_file <- function(
   if (!is.null(id.tbl)) {
     if (is.character(id.tbl) && length(id.tbl) == 1) {
       stopifnot(file.exists(id.tbl))
-      id_tbl <- fread(id.tbl, sep = col.sep, dec = dec.char, header = TRUE,
+      id_tbl <- fread(id.tbl, sep = col.sep,
+                      strip.white = FALSE,
+                      encoding = 'Latin-1',
+                      dec = dec.char, header = TRUE,
                       blank.lines.skip = TRUE)
     } else {
       stopifnot(is.data.frame(id.tbl))
@@ -231,7 +248,7 @@ create_bnd_file <- function(
     if (isTRUE(factor == 'from_id')) stop("if factor = 'from_id' then id.tbl must be given")
   }
   # reading boundary and lateral templates
-  if (is.null(in.bnd) | is.null(in.lat)) {
+  if (is.null(in.bnd) && is.null(in.lat)) {
     if (is.null(in.case) | is.null(in.project)) {
       stop('Not enough information for boundary and lateral template files')
     }
@@ -243,11 +260,13 @@ create_bnd_file <- function(
       lat.file = get_file_path(case.name = in.case, sobek.project = in.project,
                                type = 'lat.dat')
     )
+  } else if (is.null(in.bnd) | is.null(in.lat)) {
+    stop('in.bnd and in.lat must be given together')
   } else {
     bnd_tbl <- get_bnd_tbl(bnd.file = in.bnd)
     lat_tbl <- get_lat_tbl(lat.file = in.lat)
-  } 
-  bnd_header_ids <- bnd_tbl[bnd_var != 'dt']$id
+  }
+  bnd_header_ids <- bnd_tbl[grepl(" id '[^ ]*' ", V1)]$id
   bnd_dt_ids <- bnd_tbl[bnd_var == 'dt']$id
   bnd_header <- bnd_tbl[id %in% bnd_header_ids, c('V1')]
   lat_header_ids <- lat_tbl[dt == 'dc lt 0']$id
@@ -456,8 +475,12 @@ create_dat <- function(id.file = "",
   options(OutDec = ".")
   on.exit(options(OutDec = outDec))
   node_id     <- fread(file = id.file, header = FALSE,
+                       strip.white = FALSE,
+                       encoding = 'Latin-1',
                        sep = col.sep, dec = dec.char)
   input_data  <- fread(file = data.file, header = TRUE,
+                       strip.white = FALSE,
+                       encoding = 'Latin-1',
                        sep = col.sep, dec = dec.char)
   colnames(input_data)[1:2] <- c("date", "time")
   input_data[, date := format(as.Date(date,
@@ -471,9 +494,13 @@ create_dat <- function(id.file = "",
              ]
   input_data <- input_data[order(date, time, decreasing = F), ]
   bnd_h       <- fread(file = bnd.header, header = FALSE,
+                       strip.white = FALSE,
+                       encoding = 'Latin-1',
   										 sep = "\n", quote = ""
   										 )
   lat_h       <- fread(file = lat.header, header = FALSE,
+                       strip.white = FALSE,
+                       encoding = 'Latin-1',
   										 sep = "\n", quote = ""
   										 )
   # start writing boundary.dat with basic input information
@@ -613,35 +640,35 @@ transfer_fra <- function(
 #' Change Worms timeseries based on case naming
 #' @param case.list List of case
 #' @param zustand Scenario
-#' @param ereig Ereignis Optimierung?
+#' @param suffix Which type of data: ereig, zeit, regl, or '' (empty)
 #' @param sobek.project Default 'd:/so21302/rhein.lit'
 #' @export
 change_worms <- function(
   case.list = NULL,
   zustand,
-  ereig,
-  sobek.project = so_prj
+  suffix = '',
+  sobek.project = so_prj,
+  lubw.code = lubw_code,
+  lubw.ms = lubw,
+  lubw.vgf1 = lubw_vgf1
 ) {
-  stopifnot(ereig %in% c(TRUE, FALSE))
-  zustand <- match.arg(zustand, choices = c(
-    'nur_rhein', 'nur_polder', 'nur_nf', 
-    'nur_drv', 'nur_nf', 'bezug', 'plan', 'hist'
-  ))
+  if (!missing(suffix)) suffix <- match.arg(suffix, c('ereig', 'zeit', 'regl'))
+  zustand <- match.arg(zustand, choices = unique(lubw.code$zustand_data))
   for (i in case.list) {
     i_lower <- str_to_lower(i)
     dta_zp <- str_extract(i_lower, 'zpk|zpw|zp0')
     dta_vgf <- str_extract(i_lower, 'mittel|selten|vgf1')
-    if (ereig) {
-      dta_col <- paste(dta_zp, zustand, dta_vgf, 'ereig', sep = '_')
+    if (suffix != '') {
+      dta_col <- paste(dta_zp, zustand, dta_vgf, suffix, sep = '_')
     } else {
       dta_col <- paste(dta_zp, zustand, dta_vgf, sep = '_')
     }
     chk_vgf1 <- isTRUE(dta_vgf == 'vgf1')
     if (chk_vgf1) {
-      dta = lubw_vgf1[, .SD, .SDcols = c('ts', dta_col)]
+      dta = lubw.vgf1[, .SD, .SDcols = c('ts', dta_col)]
       stopifnot(nrow(dta) == 13514)
     } else {
-      dta = lubw[, .SD, .SDcols = c('ts', dta_col)]
+      dta = lubw.ms[, .SD, .SDcols = c('ts', dta_col)]
       stopifnot(nrow(dta) == 1489)
     }
     change_tble(

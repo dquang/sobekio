@@ -240,3 +240,98 @@ delete_trigger_by_ids <- function(
   }
 }
 
+
+#' Transfer a trigger from one case to another
+#' 
+#' This function copies the definition of a trigger in the trigger.def from one case to the other case. Conflict IDs with be changed
+#' 
+#' @param from Name of ogirinal case
+#' @param to Name of destination case 
+#' @param tg.ids IDs of the triggers
+#' @param sobek.project Path to sobek project
+#' @export
+transfer_trigger <- function(
+  from,
+  to,
+  tg.ids,
+  sobek.project
+) {
+  trig_def_from_file <- get_file_path(case.name = from, 
+                                      sobek.project = sobek.project,
+                                      type = 'trigger.def')
+  trig_def_to_file <- get_file_path(case.name = to, 
+                                    sobek.project = sobek.project,
+                                    type = 'trigger.def')
+  trig_tbl_to_file <- get_file_path(case.name = to, 
+                                    sobek.project = sobek.project,
+                                    type = 'trigger.tbl')
+  trig_tbl_to <- fread(trig_tbl_to_file, sep = '\n', header = FALSE, 
+                    strip.white = FALSE)
+  trig_tbl_to[, index := str_match(V1, '^ * (\\d+) ')[,2]]
+  trig_tbl_to_maxid <- as.integer(trig_tbl_to[, max(index, na.rm = TRUE)])
+  trig_def_from <- .get_trigger_def(trig_def_from_file)
+  trig_def_to <- .get_trigger_def(trig_def_to_file)
+  trig_ids_to <- unique(trig_def_to$id)
+  trig_nms_to <- unique(trig_def_to$nm)
+  trig_def_new_list <- list(trig_def_to[, c('V1')])
+  tg_ids_list <- vector()
+  tg_nms_list <- vector()
+  tg_indexes_list <- vector()
+  for (i in seq_along(tg.ids)) {
+    trig_id_from <- tg.ids[i]
+    trig_from <- trig_def_from[id == trig_id_from]
+    trig_id_to <- trig_id_from
+    trig_nm_from <- trig_from[1, nm]
+    trig_nm_to <- trig_nm_from
+    if (trig_id_from %in% trig_ids_to) {
+      while (trig_id_to %in% trig_ids_to) {
+        trig_id_to <- paste0(trig_id_to, '_', basename(tempfile(pattern = '')))
+      }
+    }
+    if (trig_nm_from %in% trig_nms_to) {
+      while (trig_nm_to %in% trig_nms_to) {
+        trig_nm_to <- paste0(trig_nm_to, '_', basename(tempfile(pattern = '')))
+      }
+      trig_from[1, V1 := str_replace(V1, paste0("nm '", trig_nm_from), 
+                                     paste0("nm '", trig_nm_to))
+                ]
+    }
+    # storing this new name list to return
+    tg_ids_list[i] <- trig_id_to
+    tg_nms_list[i] <- trig_nm_to
+    tg_indexes_list[i] <- i + trig_tbl_to_maxid
+    trig_ids_to <- c(trig_ids_to, trig_id_to)
+    trig_nms_to <- c(trig_nms_to, trig_nm_to)
+    trig_def_new_list[[i + 1]] <- trig_from[, c('V1')]
+    
+  }
+  trig_def_new <- rbindlist(trig_def_new_list)
+  trig_tbl_new <- data.table(
+    V1 = paste(
+      stri_pad_left(tg_indexes_list, width = 19),
+      stri_pad_right(tg_ids_list, width = 40),
+      stri_pad_right(tg_nms_list, width = 40),
+      sep = '  ') # two spaces
+  )
+  trig_tbl_new <- rbind(trig_tbl_to[, c('V1')], trig_tbl_new)
+  # backup
+  file.copy(trig_def_to_file, paste0(trig_def_to_file, '.BAK'), overwrite = TRUE)
+  file.copy(trig_tbl_to_file, paste0(trig_tbl_to_file, '.BAK'), overwrite = TRUE)
+  fwrite(
+    trig_def_new,
+    file = trig_def_to_file,
+    col.names = FALSE,
+    row.names = FALSE,
+    quote = FALSE,
+    sep = "\n"
+  )
+  fwrite(
+    trig_tbl_new,
+    file = trig_tbl_to_file,
+    col.names = FALSE,
+    row.names = FALSE,
+    quote = FALSE,
+    sep = "\n"
+  )
+  return(data.table(id_new = tg_ids_list, nm_new = tg_nms_list))
+}

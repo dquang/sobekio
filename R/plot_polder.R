@@ -32,11 +32,11 @@
 #' @return A ggplot2 graphic
 #' @export
 plot_polder <- function(
-  name = NULL,
-  case.list = NULL,
+  name,
+  case.list,
   case.desc = case.list,
-  sobek.project = NULL,
-  master.tbl = NULL,
+  sobek.project,
+  master.tbl,
   param = 'discharge',
   q.vor = TRUE,
   q.nach = TRUE,
@@ -63,18 +63,15 @@ plot_polder <- function(
   text.box = TRUE,
   polder.f = NULL,
   polder.z = NULL,
-  verbose = TRUE){
+  verbose = TRUE) {
 
-  if (!is.null(compare.by)){
+  if (!is.null(compare.by)) {
     print("'compare.by' is depreciated, please use 'lt.by' instead ")
     lt.by <- compare.by
   }
   # check input
   param = tolower(param)
   stopifnot(param %in% c('discharge', 'waterlevel'))
-  stopifnot(!c(is.null(name), is.null(case.list), is.null(master.tbl),
-               is.null(sobek.project)
-  ))
   #----get id_data----
   if (isTRUE(verbose)) print('Reading data at the measure...')
   id_data <- get_polder_data(
@@ -134,7 +131,7 @@ plot_polder <- function(
     id_data <- merge(id_data, ref_mID, by = c('ts', 'case'))
   }
   #---- limiting data to the peak value----
-  if (!is.null(peak.nday)){
+  if (!is.null(peak.nday)) {
     stopifnot(is.numeric(peak.nday))
     if (isTRUE(peak.pegel) & !is.null(ref.mID)){
       id_data[, peak_value := max(Bezugspegel), by = case]
@@ -152,10 +149,6 @@ plot_polder <- function(
                                     'peak_ts_min', 'peak_ts_max')
                        ]
   }
-  # #----adding delta line beneath the main graphic----
-  # if (isTRUE(delta.line)){
-  #   id_data[, delta := Nach - Vor]
-  # }
   #-----preparing plot-----
   if (isTRUE(verbose)) print('Preparing graphic...')
   y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
@@ -208,7 +201,7 @@ plot_polder <- function(
         ),
         size = 1)
     }
-    if (isTRUE(w.canal)){
+    if (isTRUE(w.canal)) {
       q.in <- FALSE
       y2_min <- min(id_data$W_innen, na.rm = TRUE)
       if (y2_max - y2_min > 10) {

@@ -74,7 +74,7 @@ check_fra <- function(
 #' @param suffix Extra part of the data column ('zeit', 'regl', 'ereig'...)
 #' @param sobek.project Rhein Project folder
 #' @param worms.tbl Table of Womrs values
-#' @param check.dat Default = FALSE. That means it checks model output vs column in the worms.tbl by default. Set this parameter to TRUE to compare worms.tbl with boundary.dat
+#' @param check Default 'both'
 #' @param worms.id Worms ID in boundary.dat, default 17
 #' @param mid Worms of pegel Worms in Sobek, for getting result from model. Default 'p_worms'
 #' @export
@@ -87,21 +87,19 @@ check_worms <- function(
   suffix = '.*',
   sobek.project = so_prj,
   worms.tbl = lubw,
-  check.dat = FALSE,
+  check = 'both',
   worms.id = '17',
   lubw.code = lubw_code,
   mid = 'p_worms'
 ){
+  check <- match.arg(check, c('dat', 'mod', 'both'))
   case_desc <- parse_case(case.desc = case.desc, orig.name = case.name)
-  if (is.null(zustand)) {
-    zustand <- match.arg(case_desc$zustand[1], lubw_code$zustand)
-  }
-  if (is.null(zielpegel)) {
-    zielpegel <- match.arg(case_desc$zielpegel[1], toupper(lubw_code$zielpegel))
-  } 
-  if (is.null(vgf)) {
-    vgf <- match.arg(case_desc$vgf[1], lubw_code$vgf)
-  }
+  if (is.null(zustand)) zustand <- case_desc$zustand[1]
+  if (is.null(zielpegel)) zielpegel <- case_desc$zielpegel[1]
+  if (is.null(vgf)) vgf <- case_desc$vgf[1]
+  zustand <- match.arg(zustand, unique(lubw_code$zustand))
+  zielpegel <- match.arg(zielpegel, unique(toupper(lubw_code$zielpegel)))
+  vgf <- match.arg(vgf, unique(lubw_code$vgf))
   case_pat <- paste(zustand, zielpegel, vgf, sep = '_')
   data_col <- lubw_code[case_name %in% case_pat, colname]
   if (length(data_col) == 0) {
@@ -114,7 +112,9 @@ check_worms <- function(
   }
   qt_lubw <- worms.tbl[, .SD, .SDcols = c('ts', data_col)]
   colnames(qt_lubw) <- c('ts', 'Worms_LUBW')
-  if (isTRUE(check.dat)) {
+  
+  if (check == 'dat') {
+    
   # reading from boundary.dat
     qt_dat <- get_data_from_id(
       dat.file = get_file_path(
@@ -124,18 +124,41 @@ check_worms <- function(
       ),
       s.id = worms.id
     )
-    colnames(qt_dat) <- c('ts', 'Worms_LUBW')
-    qt_dat[, Worms_LUBW := as.numeric(Worms_LUBW)]
-    setkey(qt_dat, ts)
-    testthat::expect_equal(qt_lubw, qt_dat)
-    return(TRUE)
-  } else {
-    qt_lubw[, hwe := year(ts)][hwe == 2002, hwe := 2003]
+    colnames(qt_dat) <- c('ts', 'Worms_LUBW_DAT')
+    qt_dat[, Worms_LUBW_DAT := as.numeric(Worms_LUBW_DAT)]
+    qt <- merge(qt_lubw, qt_dat, by = 'ts')
+    qt_cond <- all(near(qt$Worms_LUBW, qt$Worms_LUBW_DAT, 0.1))
+    if (!qt_cond) stop('Worms input is not same as ', data_col)
+    
+  } else if (check == 'mod') {
+    
     qt_mod <- his_from_case(case.list = case.name, sobek.project = sobek.project,
                             mID = mid, param = 'discharge')
     qt <- merge(qt_mod, qt_lubw, by = 'ts')
     qt_cond <- all(near(qt$Worms_LUBW, qt[[mid]], 0.1))
-    stopifnot(qt_cond)
-    return(TRUE)
+    if (!qt_cond) stop('Worms input is not same as Worms output from model')
+    
+  } else {
+    
+    qt_dat <- get_data_from_id(
+      dat.file = get_file_path(
+        case.name = case.name,
+        sobek.project = sobek.project,
+        type = 'bnd.dat'
+      ),
+      s.id = worms.id
+    )
+    colnames(qt_dat) <- c('ts', 'Worms_LUBW_DAT')
+    qt_dat[, Worms_LUBW_DAT := as.numeric(Worms_LUBW_DAT)]
+    qt <- merge(qt_lubw, qt_dat, by = 'ts')
+    qt_cond <- all(near(qt$Worms_LUBW, qt$Worms_LUBW_DAT, 0.1))
+    if (!qt_cond) stop('Worms input is not same as ', data_col)
+    qt_mod <- his_from_case(case.list = case.name, sobek.project = sobek.project,
+                            mID = mid, param = 'discharge')
+    qt <- merge(qt_mod, qt_lubw, by = 'ts')
+    qt_cond <- all(near(qt$Worms_LUBW, qt[[mid]], 0.1))
+    if (!qt_cond) stop('Worms input is not same as Worms output from model')
   }
+  
+  return(TRUE)
 }

@@ -55,7 +55,7 @@ plot_polder_scenario <- function(
   h.lines = NULL,
   peak.nday = NULL,
   peak.pegel = FALSE,
-  delta.pegel = FALSE,
+  delta.pegel = TRUE,
   delta.measure = TRUE,
   delta.line = FALSE,
   rel.heights = c(2, 0.7),
@@ -78,6 +78,8 @@ plot_polder_scenario <- function(
   # there should be only two cases
   stopifnot(length(unlist(case.list)) == 2)
   f_args <- as.list(match.call())
+  # to avoid q.out assigning to function name, this could be error from match.call
+  f_args$q.out <- q.out 
   param <- match.arg(param, c('discharge', 'waterlevel', 'both'))
   if (param == 'both') {
     if (length(y2.scale) > 1) {
@@ -92,7 +94,7 @@ plot_polder_scenario <- function(
     } else {
       y2.tick1_wt <- y2.tick1_qt <- y2.scale
     }
-    cat('working with waterlevel \n')
+    if (verbose) cat('working with waterlevel \n')
     f_args$param <- 'waterlevel'
     f_args$y2.scale <- y2.scale_wt
     f_args$y2.tick1 <- y2.tick1_wt
@@ -100,7 +102,7 @@ plot_polder_scenario <- function(
     f_args$param <- 'discharge'
     f_args$y2.scale <- y2.scale_qt
     f_args$y2.tick1 <- y2.tick1_qt
-    cat('working with discharge \n')
+    if (verbose) cat('working with discharge \n')
     q_wt <- do.call(plot_polder_scenario, f_args)
     g <- cowplot::plot_grid(g_wt, q_wt, ncol = 1, 
                        rel_heights = 1,

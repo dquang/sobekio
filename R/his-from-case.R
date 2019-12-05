@@ -53,7 +53,7 @@ his_from_case <- function(
   id_args <- list(...)
   stopifnot(!is.null(case.list) & !is.null(sobek.project))
   id_type <- names(f_args$...)
-  # processing case.list
+  # processing case.list file
   if (is.character(case.list) && length(case.list) == 1 && file.exists(case.list)) {
     # reading case.list
     clist <- read.table(
@@ -100,6 +100,8 @@ his_from_case <- function(
                                   header = FALSE,
                                   sep = " ",
                                   quote = "'",
+                                  strip.white = FALSE,
+                                  encoding = 'Latin-1',
                                   stringsAsFactors = FALSE,
                                   blank.lines.skip = TRUE,
                                   colClasses = c('character', 'character'),
@@ -139,9 +141,7 @@ his_from_case <- function(
     clist[, case_folder := paste(sobek.project, case_number, sep = "/")]
     clist[, his_file := file_path(name = his_fname, path = case_folder)]
   } else {
-    clist[, his_file := paste(sobek.project,
-                              case_number, his_fname, sep = "/")
-          ]
+    clist[, his_file := paste(sobek.project,case_number, his_fname, sep = "/")]
   }
 
   if (isTRUE(do.par)) {

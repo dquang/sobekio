@@ -144,6 +144,8 @@ create_case <- function(
     header = FALSE,
     sep = " ",
     quote = "'",
+    strip.white = FALSE,
+    encoding = 'Latin-1',
     stringsAsFactors = FALSE,
     blank.lines.skip = TRUE,
     col.names = c("case_number", "case_name")
@@ -275,6 +277,8 @@ create_case <- function(
     )
     c_reg <- data.table::fread(file = fc_reg,
                                header = FALSE,
+                               strip.white = FALSE,
+                               encoding = 'Latin-1',
                                sep = "\n")
     n_files <- as.integer(c_reg$V1[1])
     case_flist <- list.files(path = paste(sobek.project, new_folder, sep = "/"),
@@ -305,6 +309,7 @@ create_case <- function(
   }
 }
 
+
 #' This function change the output time steps
 #' @param case.list List of cases to change
 #' @param sobek.project Path to Sobek project
@@ -318,7 +323,7 @@ change_output_ntstep <- function(
   n.tstep <- as.integer(n.tstep)
   if (!is.integer(n.tstep)) stop("n.tstep must be an integer")
   if (!is.vector(case.list)) stop('case.list must be a vector/list')
-  for (i in unlist(case.list)){
+  for (i in unlist(case.list)) {
     sfile <- get_file_path(case.name = i,
                            sobek.project = sobek.project,
                            type = 'setting')
@@ -375,6 +380,8 @@ change_case_info <- function(
     header = FALSE,
     sep = " ",
     quote = "'",
+    strip.white = FALSE,
+    encoding = 'Latin-1',
     stringsAsFactors = FALSE,
     blank.lines.skip = TRUE,
     col.names = c("case_number", "case_name")
@@ -490,6 +497,87 @@ change_case_info <- function(
       col.names = FALSE,
       row.names = FALSE,
       sep = ""
+    )
+  }
+}
+
+
+buil_case_list <- function(
+  sobek.project
+) {
+  cmt_f <- file.path(sobek.project, 'caselist.cmt')
+  case_folder_list <- list.files(sobek.project, full.names = TRUE, 
+                                 pattern = "\\d$", recursive = FALSE)[-1]
+  case_names <- vector()
+  for (i in seq_along(case_folder_list)) {
+    cmt_f <- file.path(case_folder_list[[i]], 'casedesc.cmt')
+    if (file.exists(cmt_f)) {
+      cmt <- fread(file = cmt_f, 
+                   strip.white = FALSE,
+                   encoding = 'Latin-1',
+                   header = FALSE, sep = '\n', nrows = 1)[1]
+      cmt <- sub('^#', '', cmt)
+    } else {
+      cmt <- paste0('Unknown_case_name', i)
+    }
+    case_names[i] <- cmt
+  }
+}
+
+
+#' Create new cases with new boundary.dat and lateral.dat from one old case
+#' 
+#' This function tries to find VGF and HWE in new case names. An error with  be raised if there is no correct information found.
+#' 
+#' @param old.name Name of the template case
+#' @param new.name Names of the new cases
+#' @param hwe.tbl Table of HWE (hwe, begin, end)
+#' @param sobek.project Path to sobek.project
+#' @param new.desc New case description, must be same length as new.name
+#' @param id.file Path to ID file
+#' @param data.file Path to data file
+#' @param bnd.header Path to boundary header
+#' @param lat.header Path to lateral header
+#' @export
+create_case_vgf <- function(
+  old.name,
+  new.name,
+  hwe.tbl = hwe_tbl,
+  sobek.project,
+  new.desc = new.name,
+  id.file,
+  data.file,
+  bnd.header,
+  lat.header
+) {
+  for (i in seq_along(new.name)) {
+    vgf <- str_match_all(new.name[i], '_(\\d{4})_')
+    if (length(vgf) > 1 | is.na(vgf[[1]][2])) {
+      stop('Wrong format with VGF for case: ', new.name[i])
+    }
+    vgf <- as.numeric(vgf[[1]][2]) / 1000
+    hwe_year <- str_match(new.name[i], '_HW(\\d{4})_')[, 2]
+    if (is.na(hwe_year)) {
+      stop('Wrong format with HWE for case: ', new.name[i])
+    }
+    new_begin <- hwe.tbl[hwe == hwe_year, begin]
+    new_end <- hwe.tbl[hwe == hwe_year, end]
+    create_case(
+      old.name = old.name,
+      new.name = new.name[i],
+      sobek.project = sobek.project,
+      new.desc = new.desc[i],
+      new.begin = new_begin,
+      new.end = new_end
+    )
+    # create dat
+    create_dat(
+      id.file = id.file,
+      data.file = data.file,
+      bnd.header = bnd.header,
+      lat.header = lat.header,
+      factor = vgf,
+      output.case = c(new.name[i], sobek.project)
     )
   }
 }

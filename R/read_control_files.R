@@ -3,7 +3,10 @@
 # orig_line_nr is original line number, this serves any changing later
 # this function get definition table of triggers (trigger.def)
 .get_trigger_def <- function(trigger.def.f = NULL){
-  trig_def <- fread(trigger.def.f, sep = "\n", header = FALSE, encoding = 'Latin-1')
+  trig_def <- fread(trigger.def.f, sep = "\n", 
+                    strip.white = FALSE,
+                    encoding = 'Latin-1',
+                    header = FALSE)
   str_mt <-  str_match(trig_def$V1,
                        "TRGR id '([^']*)' nm '([^']*)'")
   trig_def$id <- str_mt[, 2]
@@ -31,7 +34,10 @@
 # orig_line_nr is original line number, this serves any changing later
 # this function get the table of structures (struct.dat)
 .get_struct_dat <- function(struct.dat.f = NULL){
-  str_tbl <- fread(struct.dat.f , sep = "\n", header = FALSE, encoding = 'Latin-1')
+  str_tbl <- fread(struct.dat.f ,
+                   strip.white = FALSE,
+                   encoding = 'Latin-1',
+                   sep = "\n", header = FALSE)
   str_tbl[, orig_line_nr := .I]
   # get id, name, definitionID
   str_mt <- str_match(
@@ -56,7 +62,9 @@
 #----reading table of structure difinitions (with def_ID)-----
 # this function get definition table of structures (struct.def)
 .get_struct_def <- function(struct.def.f = NULL){
-  str_def <- fread(struct.def.f , sep = "\n", header = FALSE, encoding = 'Latin-1')
+  str_def <- fread(struct.def.f , 
+                   strip.white = FALSE,
+                   sep = "\n", header = FALSE, encoding = 'Latin-1')
   str_def[, orig_line_nr := .I]
   # get the description lines only
   str_def_tbl <- str_def[grepl("^STDS id", V1)]
@@ -83,8 +91,10 @@
 #----reading control.def----
 # this function get definition table of controllers (control.def)
 .get_control_def <- function(control.def.f = NULL){
-  ct_def <- fread(control.def.f, sep = "\n", header = FALSE, encoding = 'Latin-1')
-  ct_def[, org_line_nr := .I]
+  ct_def <- fread(control.def.f, sep = "\n", header = FALSE,
+                  strip.white = FALSE,
+                  encoding = 'Latin-1')
+  ct_def[, orig_line_nr := .I]
   ct_tbl <- ct_def[grepl('^CNTL id .*', V1)]
   # id of the controller
   ct_tbl[, id := str_match(V1, "CNTL id '([^']*)'")[,2]]
@@ -102,7 +112,10 @@
   ct_tbl[, ta := str_match(V1, " ta (\\d \\d \\d \\d) ")[,2]]
   ct_tbl[is.na(ta), ta := str_match(V1, " ta (\\d) ")[,2]]
   # id of triggers
-  ct_tbl[, gi := str_match(V1, " gi ('.+') ao ")[,2]]
+  ct_tbl[, gi := 
+           str_match(V1, " gi ('[^ ]*' '[^ ]*' '[^ ]*' '[^ ]*') ")[,2]]
+  ct_tbl[is.na(gi), gi := 
+           str_match(V1, " gi ('[^ ]*') ")[,2]]
   # and (=1) or (=0) relation when using more triggers
   ct_tbl[, ao := str_match(V1, " ao (\\d \\d \\d \\d)")[,2]]
   # dValue / dt
@@ -116,7 +129,7 @@
   # id of measurement node
   ct_tbl[, ml := str_match(V1, " ml '([^']*)' ")[,2]]
   ct_tbl$V1 <- NULL
-  ct_def <- merge(ct_def, ct_tbl, by = 'org_line_nr', all.x = TRUE)
+  ct_def <- merge(ct_def, ct_tbl, by = 'orig_line_nr', all.x = TRUE)
   ct_def[, id := id[1], .(cumsum(!is.na(id)))]
   
   return(ct_def)

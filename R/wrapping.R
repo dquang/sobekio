@@ -54,7 +54,7 @@ new_suffix <- function(..., suffix = '_EreigOpt') {
     if (i > 1) {
       old_var <- eval(f_args[[i]])
       new_var <- paste0(eval(f_args[i]), suffix)
-      cmd <- expr(!!ensym(new_var) <- paste0(!!old_var, '_EreigOpt'))
+      cmd <- expr(!!ensym(new_var) <- paste0(!!old_var, suffix))
       eval(cmd, envir = globalenv())
     }
   }

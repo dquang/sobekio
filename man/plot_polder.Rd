@@ -5,11 +5,11 @@
 \title{Plot hydrographs for a measure with comparing by scenario (zustand)}
 \usage{
 plot_polder(
-  name = NULL,
-  case.list = NULL,
+  name,
+  case.list,
   case.desc = case.list,
-  sobek.project = NULL,
-  master.tbl = NULL,
+  sobek.project,
+  master.tbl,
   param = "discharge",
   q.vor = TRUE,
   q.nach = TRUE,

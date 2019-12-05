@@ -142,15 +142,18 @@
   hia_file <- paste(substr(his.file, start = 1, stop = nchar(his.file) - 4),
                     ".HIA", sep = "")
   if (file.exists(hia_file)) {
-    hia_dt <- fread(file = hia_file,
-                                sep = "\n",
-                                header = FALSE,
-                                col.names = "V1",
-                                na.strings = "",
-                                data.table = TRUE,
-                                encoding = "UTF-8",
-                                blank.lines.skip = TRUE,
-                                quote = "")
+    hia_dt <- fread(
+      file = hia_file,
+      sep = "\n",
+      header = FALSE,
+      col.names = "V1",
+      na.strings = "",
+      data.table = TRUE,
+      strip.white = FALSE,
+      encoding = 'Latin-1',
+      blank.lines.skip = TRUE,
+      quote = ""
+    )
     # remove blank lines
     hia_dt <- na.omit(hia_dt)
     # check if there is a Long Parameters Section

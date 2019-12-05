@@ -1,13 +1,13 @@
 DLF1.0
 [Flow Module: Levels and Flows]
-FILE "\_CASE_DIR_SHORT_\CALCPNT.HIS"      LAYER " " TYPE node VAR 1 HISLOC 2                 = Results at Nodes
-FILE "\_CASE_DIR_SHORT_\REACHSEG.HIS"     LAYER " " TYPE reachgridvirtual VAR 1 HISLOC 2     = Results at Reach Segments
-FILE "\_CASE_DIR_SHORT_\RSEGSUB.HIS"      LAYER " " TYPE reachgridvirtual VAR 1 HISLOC 2     = Results at Sub Sections
-FILE "\_CASE_DIR_SHORT_\QLAT.HIS"         LAYER " " TYPE network VAR 1 HISLOC 2 LINKSEP "l_" = Lateral Flows
-FILE "\_CASE_DIR_SHORT_\STRUC.HIS"        LAYER " " TYPE network VAR 1 HISLOC 2 LINKSEP "l_" = Results at Structures and Extra Resistances
-FILE "\_CASE_DIR_SHORT_\MEASSTAT.HIS"     LAYER " " TYPE network VAR 1 HISLOC 2              = Results at Measurement Stations
-FILE "\_CASE_DIR_SHORT_\FLOWANAL.HIS"    LAYER " " TYPE reachgridvirtual VAR 6 HISLOC 2     = Simulation Info at the Reach Segments
+FILE "_CASE_DIR_\CALCPNT.HIS"      LAYER " " TYPE node VAR 1 HISLOC 2                 = Results at Nodes
+FILE "_CASE_DIR_\REACHSEG.HIS"     LAYER " " TYPE reachgridvirtual VAR 1 HISLOC 2     = Results at Reach Segments
+FILE "_CASE_DIR_\RSEGSUB.HIS"      LAYER " " TYPE reachgridvirtual VAR 1 HISLOC 2     = Results at Sub Sections
+FILE "_CASE_DIR_\QLAT.HIS"         LAYER " " TYPE network VAR 1 HISLOC 2 LINKSEP "l_" = Lateral Flows
+FILE "_CASE_DIR_\STRUC.HIS"        LAYER " " TYPE network VAR 1 HISLOC 2 LINKSEP "l_" = Results at Structures and Extra Resistances
+FILE "_CASE_DIR_\MEASSTAT.HIS"     LAYER " " TYPE network VAR 1 HISLOC 2              = Results at Measurement Stations
+FILE "_CASE_DIR_\FLOWANAL.HIS"    LAYER " " TYPE reachgridvirtual VAR 6 HISLOC 2     = Simulation Info at the Reach Segments
 [Flow Module: Dimensions]
-FILE "\_CASE_DIR_SHORT_\CALCDIM.HIS"      LAYER " " TYPE node VAR 1 HISLOC 2                 = Nodes
-FILE "\_CASE_DIR_SHORT_\REACHDIM.HIS"     LAYER " " TYPE reachgridvirtual VAR 1 HISLOC 2     = Reach Segments
-FILE "\_CASE_DIR_SHORT_\STRUCDIM.HIS"     LAYER " " TYPE network VAR 1 HISLOC 2 LINKSEP "l_" = Structures
+FILE "_CASE_DIR_\CALCDIM.HIS"      LAYER " " TYPE node VAR 1 HISLOC 2                 = Nodes
+FILE "_CASE_DIR_\REACHDIM.HIS"     LAYER " " TYPE reachgridvirtual VAR 1 HISLOC 2     = Reach Segments
+FILE "_CASE_DIR_\STRUCDIM.HIS"     LAYER " " TYPE network VAR 1 HISLOC 2 LINKSEP "l_" = Structures

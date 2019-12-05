@@ -101,6 +101,7 @@ get_file_path <- function(case.name = NULL,
     quote = "'",
     stringsAsFactors = FALSE,
     blank.lines.skip = TRUE,
+    strip.white = FALSE,
     col.names = c("case_number", "case_name")
   )
   sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]

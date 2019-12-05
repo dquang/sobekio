@@ -34,6 +34,7 @@
 #' @param hqs Adding HQ Statistic points to the graphic
 #' @param verbose Print some messages if TRUE
 #' @param do.par If TRUE, parallel computing will be executed
+#' @param ts.trim.left Default NULL. Number of days from the begining of simulation time to remove from timeseries (useful to remove "cold start period")
 #' @return a ggplot2 graphic
 #' @export
 plot_drv <- function(
@@ -50,7 +51,7 @@ plot_drv <- function(
   group.by = compare.by,
   color.name = 'Farbe',
   lt.name = 'Linienart',
-  delta = TRUE,
+  delta = FALSE,
   delta.lt = compare.by,
   reverse.x = FALSE,
   x.lab = 'Lage (KM)',
@@ -74,8 +75,10 @@ plot_drv <- function(
   man.colors = NULL,
   hqs = NULL,
   verbose = TRUE,
-  do.par = FALSE
+  do.par = FALSE,
+  ts.trim.left = NULL
 ){
+  if (!is.null(ts.trim.left)) stopifnot(is.numeric(ts.trim.left))
   # preparing parameters--------------------------------------------------------
   param <- tolower(param)
   stopifnot(is.numeric(to.upstream) & is.numeric(to.downstream))
@@ -143,7 +146,8 @@ plot_drv <- function(
                            to.downstream = to.downstream,
                            get.max = TRUE,
                            do.par = do.par,
-                           verbose = verbose)
+                           verbose = verbose,
+                           ts.trim.left = ts.trim.left)
   data_tbl <- merge(data_tbl, case_tbl, by = 'case', sort = FALSE)
   # data_tbl[, besonderheit := gsub('DRV_', '', besonderheit)]
   drv_begin_tick <- master.tbl[
@@ -440,7 +444,7 @@ plot_drv <- function(
     )
   }
   if (verbose) {
-    print(paste('y2_shift =', y2_shift, 'and y2.scale =', y2.scale))
+    if (delta) print(paste('y2_shift =', y2_shift, 'and y2.scale =', y2.scale))
     print("done.") 
   }
   return(g)
@@ -497,6 +501,7 @@ plot_drv <- function(
 #' @param input.data Take the input.data instead of reading it from sobek.project
 #' @param verbose Print some messages if TRUE
 #' @param do.par If TRUE, parallel computing will be executed
+#' @param ts.trim.left Default NULL. Number of days from the begining of simulation time to remove from timeseries (useful to remove "cold start period")
 #' @return a ggplot2 graphic
 #' @export
 plot_longprofile <- function(
@@ -550,11 +555,13 @@ plot_longprofile <- function(
   keep.data = FALSE,
   input.data = NULL,
   verbose = TRUE,
-  do.par = FALSE
+  do.par = FALSE,
+  ts.trim.left = NULL
 ){
   # must evaluate lt.by and color.by to avoid problem with ggplot
   eval(lt.by)
   eval(color.by)
+  if (!is.null(ts.trim.left)) stopifnot(is.numeric(ts.trim.left))
   # preparing parameters--------------------------------------------------------
   param <- tolower(param)
   if (!isTRUE(dband)) dband.label <- FALSE
@@ -630,7 +637,8 @@ plot_longprofile <- function(
       sobek.project = sobek.project,
       master.tbl = master.tbl,
       verbose = verbose,
-      do.par = do.par
+      do.par = do.par,
+      ts.trim.left = ts.trim.left
     )
     if (isTRUE(keep.data)) {
       dta <- copy(data_tbl)

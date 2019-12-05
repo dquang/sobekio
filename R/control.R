@@ -396,7 +396,7 @@ change_control_tbl <- function(
   }
   if (!is.null(dvalue.dt)) {
     stopifnot(is.numeric(as.numeric(dvalue.dt)))
-    id_line <- ct_tbl[1, org_line_nr]
+    id_line <- ct_tbl[1, orig_line_nr]
     old_dvalue_dt <- ct_def_tbl[id_line, 
                                str_match(V1, ' mc (\\d+\\.*\\d*) ')[, 2]]
     ct_def_tbl[id_line, V1 := str_replace(V1, ' mc \\d+\\.*\\d* ',
@@ -405,8 +405,8 @@ change_control_tbl <- function(
     cat('Old dValue/dt: ', old_dvalue_dt, '. Replaced by: ', dvalue.dt, '\n',
         sep = '')
   }
-  tble_begin <- ct_tbl[grepl('TBLE', V1), org_line_nr]
-  tble_end <- ct_tbl[grepl('tble', V1), org_line_nr]
+  tble_begin <- ct_tbl[grepl('TBLE', V1), orig_line_nr]
+  tble_end <- ct_tbl[grepl('tble', V1), orig_line_nr]
   stopifnot(length(tble_begin) == 1 & length(tble_end) == 1)
   fwrite(ct_def_tbl[1:tble_begin, c('V1')], file = ct.def,
          sep = '\n', col.names = FALSE)
@@ -416,6 +416,170 @@ change_control_tbl <- function(
   fwrite(ct_def_tbl[tble_end:nrow_def, c('V1')], file = ct.def,
          append = TRUE,
          sep = '\n', col.names = FALSE)
+}
+
+
+#' Transfer a controller from one case to another
+#' 
+#' This function copies the definition of a controller in the control.def from one case, and paste/replace the controller with same id in the other case. By using this method, all information will be copied (for ex. included dValue/dt)
+#' 
+#' @param from Name of ogirinal case
+#' @param to Name of destination case 
+#' @param ct.id ID of the controller
+#' @param sobek.project Path to sobek project
+#' @param overwrite Logical, default FASLE, if TRUE the definition of the controller will be overwrite. Be carefull with this option
+#' @export
+transfer_controller <- function(
+  from,
+  to,
+  ct.ids,
+  sobek.project,
+  overwrite = FALSE,
+  write.def = FALSE
+) {
+  # reading definition files
+  ctr_def_from_file <- get_file_path(case.name = from, 
+                                     sobek.project = sobek.project,
+                                     type = 'control.def')
+  ctr_def_to_file <- get_file_path(case.name = to, 
+                                     sobek.project = sobek.project,
+                                     type = 'control.def')
+  # trig_def_from_file <- get_file_path(case.name = from, 
+  #                                    sobek.project = sobek.project,
+  #                                    type = 'trigger.def')
+  # trig_def_to_file <- get_file_path(case.name = to, 
+  #                                  sobek.project = sobek.project,
+  #                                  type = 'trigger.def')
+  ctr_def_from <- .get_control_def(ctr_def_from_file)
+  ctr_def_to <- .get_control_def(ctr_def_to_file)
+  ctr_def_to_nms <- ctr_def_to[, unique(name)]
+  ctr_def_to_ids <- ctr_def_to[, unique(id)]
+  ct_nm_to_list <- vector()
+  ct_id_to_list <- vector()
+  ct_nm_from_list <- vector()
+  i = 1
+  for (ct.id in ct.ids) {
+    # table of control difinition for ct.id
+    ctrid_from <- ctr_def_from[id == ct.id]
+    ct_nm_from <- ctrid_from[1, name]
+    trig_chk <- isTRUE(ctrid_from$ta[[1]] == '0 0 0 0')
+    if (!trig_chk) stop('This function is not yet supported for controllers with triggers')
+    # ctrid_from_ta <- ctrid_from$ta[[1]]
+    # if (trig_chk) {
+    #   trig_def_from <- .get_trigger_def(trig_def_from_file)
+    #   trig_def_to <- .get_trigger_def(trig_def_to_file)
+    # }
+    if (nrow(ctrid_from) == 0) {
+      stop('Controller with ID ', ct.id, ' is not found in case: ', from)
+    }
+    if (isTRUE(overwrite)) {
+      ctrid_to <- ctr_def_to[id == ct.id]
+      ct_nm_to <- ctrid_to[1, name]
+      # because overwrite == TRUE, we overwrite the ID
+      # We want to transfer also the old name to the new def file
+      # If there is a naming conflict, we have to solve it
+      if (ct_nm_to != ct_nm_from) {
+        ct_nm_to <- ct_nm_from
+        while (ct_nm_to %in% ctr_def_to_nms) {
+          ct_nm_to <- paste(ct_nm_from,
+                            substr(basename(tempfile(
+                              pattern = '', fileext = ''
+                            )), 1, 6),
+                            sep = '_')
+        }
+        ctrid_from[, V1 := str_replace(
+          V1,
+          paste0(" nm '", ct_nm_from),
+          paste0(" nm '", ct_nm_to)
+          
+        )]
+      }
+      if (nrow(ctrid_to) > 0) {
+        if (ctrid_to$ct[[1]] != ctrid_from$ct[[1]]) {
+          warning('Controller with id: ', ct.id, 
+                  'has different types in the given cases')
+        }
+        ctrid_to_begin <- ctrid_to[, min(orig_line_nr)]
+        ctrid_to_end <- ctrid_to[, max(orig_line_nr)]
+        # it is ok with an empty data.table
+        ctr_def_to <- rbind(ctr_def_to[orig_line_nr < ctrid_to_begin, c('V1')],
+                            ctrid_from[, c('V1')],
+                            ctr_def_to[orig_line_nr > ctrid_to_end, c('V1')])
+      } else {
+        # if nrow(ctrid_to) == 0, there is nothing to remove
+        ctr_def_to <- rbind(ctr_def_to[, c('V1')], ctrid_from[, c('V1')])
+      }
+    } else {
+      ct_id_to <- ct.id
+      while (ct_id_to %in% ctr_def_to_ids) {
+        ct_id_to <- paste(ct.id,
+                          substr(basename(tempfile(
+                            pattern = '', fileext = ''
+                          )), 1, 6),
+                          sep = '_')
+      }
+      ct_nm_to <- ct_nm_from
+      while (ct_nm_to %in% ctr_def_to_nms) {
+        ct_nm_to <- paste(ct_nm_from,
+                          substr(basename(tempfile(
+                            pattern = '', fileext = ''
+                          )), 1, 6),
+                          sep = '_')
+      }
+      # rename id and name of the controller
+      ctrid_from[, V1 := str_replace(
+        V1,
+        paste0(" id '", ct.id),
+        paste0(" id '", ct_id_to)
+        
+      )]
+      ctrid_from[, V1 := str_replace(
+        V1,
+        paste0(" nm '", ct_nm_from),
+        paste0(" nm '", ct_nm_to)
+        
+      )]
+      ctr_def_to <- rbind(ctr_def_to[, c('V1')], ctrid_from[, c('V1')])
+    }
+    ctr_def_to_nms <- c(ctr_def_to_nms, ct_nm_to)
+    ctr_def_to_ids <- c(ctr_def_to_ids, ct_id_to)
+    ct_id_to_list[i] <- ct_id_to
+    ct_nm_to_list[i] <- ct_nm_to
+    ct_nm_from_list[i] <- ct_nm_from
+    i <- i + 1
+  }
+  if (write.def) {
+    fwrite(
+      ctr_def_to,
+      file = get_file_path(
+        case.name = to,
+        sobek.project = sobek.project,
+        type = 'control.def'
+      ),
+      col.names = FALSE,
+      row.names = FALSE,
+      quote = FALSE,
+      sep = "\n"
+    )
+    invisible(
+      data.table(
+        orig_id = ct.ids,
+        orig_name = ct_nm_from_list,
+        new_id = ct_id_to_list,
+        new_name = ct_nm_to_list
+      )
+    )
+  } else {
+    return(list(
+      def_to = ctr_def_to,
+      ct_tbl = data.table(
+        orig_id = ct.ids,
+        orig_name = ct_nm_from_list,
+        new_id = ct_id_to_list,
+        new_name = ct_nm_to_list
+      )
+    ))
+  }
 }
 
 

@@ -190,6 +190,7 @@ get_segment_id_tbl <- function(
 #' @param get.max Should maximal value return or whole time series? Default only max value.
 #' @param verbose Should some message be displayed?
 #' @param do.par If TRUE, parallel computing will be executed
+#' @param ts.trim.left Default NULL. Number of days from the begining of simulation time to remove from timeseries (useful to remove "cold start period")
 #' @return a data.table
 #' @export
 get_segment_data <- function(
@@ -203,7 +204,8 @@ get_segment_data <- function(
   get.max = TRUE,
   master.tbl = NULL,
   verbose = TRUE,
-  do.par = FALSE
+  do.par = FALSE,
+  ts.trim.left = NULL
 ){
   param <- tolower(param)
   id_tbl <- get_segment_id_tbl(
@@ -318,6 +320,11 @@ get_segment_data <- function(
                      ]
       }
     }
+  }
+  if (!is.null(ts.trim.left)) {
+    segment_data[, ts_left := min(ts, na.rm = TRUE) + 
+                   ts.trim.left * 3600 * 24, by = case]
+    segment_data <- segment_data[ts >= ts_left]
   }
   if (isTRUE(get.max)) {
     if (isTRUE(verbose)) print('Calculating max values....')
@@ -688,6 +695,7 @@ get_polder_volume2 <- function(
 #' @param master.tbl Master table
 #' @param verbose Should some message be displayed?
 #' @param do.par If TRUE, parallel computing will be executed
+#' @param ts.trim.left Default NULL. Number of days from the begining of simulation time to remove from timeseries (useful to remove "cold start period")
 #' @return a data.table
 #' @export
 get_drv_data <- function(
@@ -701,7 +709,8 @@ get_drv_data <- function(
   get.max = TRUE,
   master.tbl = NULL,
   verbose = TRUE,
-  do.par = FALSE
+  do.par = FALSE,
+  ts.trim.left = NULL
 ){
   param <- tolower(param)
   stopifnot(is.numeric(to.upstream) & is.numeric(to.downstream))
@@ -815,6 +824,11 @@ get_drv_data <- function(
                      ]
       }
     }
+  }
+  if (!is.null(ts.trim.left)) {
+    drv_data[, ts_left := min(ts, na.rm = TRUE) + 
+                   ts.trim.left * 3600 * 24, by = case]
+    drv_data <- drv_data[ts >= ts_left]
   }
   if (isTRUE(get.max)) {
     drv_data <- drv_data[, lapply(.SD, max, na.rm = TRUE),

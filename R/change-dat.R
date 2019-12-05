@@ -12,6 +12,8 @@ get_data_from_id <- function(dat.file = NULL,
                    sep = "\n",
                    header = FALSE,
                    data.table = TRUE,
+                   strip.white = FALSE,
+                   encoding = 'Latin-1',
                    dec = ".",
                    quote = ""
                    )
@@ -72,6 +74,8 @@ set_q_const <- function(dat.file = NULL,
   if (!file.exists(dat.file)) stop(dat.file, " file does not exist!")
   lat_dat <- fread(file = dat.file,
                    sep = "\n",
+                   strip.white = FALSE,
+                   encoding = 'Latin-1',
                    header = FALSE,
                    data.table = TRUE,
                    quote = ""
@@ -149,6 +153,8 @@ change_tble <- function(dat.file = NULL,
   if (!file.exists(dat.file)) stop(dat.file, " file does not exist!")
   lat_dat <- fread(file = dat.file,
                    sep = "\n",
+                   strip.white = FALSE,
+                   encoding = 'Latin-1',
                    header = FALSE,
                    data.table = TRUE,
                    quote = ""

@@ -44,7 +44,8 @@ sobek_sim <- function(case.name = NULL,
   # on.exit(unlink(paste(sobek.path, wk_folder, sep ="/"), recursive = TRUE))
   prj_files <- dir(sobek.project, full.names = TRUE)
   prj_files <- prj_files[!grepl("/[0-9]{1,}$", prj_files)]
-  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|/NEWSTART|\\.his$", prj_files, ignore.case = TRUE)]
+  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|/NEWSTART|\\.his$", 
+                                prj_files, ignore.case = TRUE)]
   # prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = TRUE)]
   file.copy(from = prj_files,
             overwrite = TRUE,
@@ -94,7 +95,6 @@ sobek_sim <- function(case.name = NULL,
        "\nPlease DO NOT CLOSE this windows until the simulation has been done."
       )
   }
-
   system(command = cmd, wait = TRUE)
   so_res <- XML::xmlToList("simulate_log.xml")[[2]]
   if (tolower(so_res[["Summary"]][["Succesfull"]]) == "false") {
@@ -273,10 +273,10 @@ sobek_edit <- function(case.name = NULL,
   setwd(sobek.path)
   tmp_folder <- format(Sys.time(), format = "%d%m%Y_%H%M%S")
   tmp_folder <- paste(tmp_folder, floor(runif(1, 1, 10000)), sep = '_')
-  tmp_folder <- paste(sobek.path, tmp_folder, sep = "\\")
+  tmp_folder <- file.path(sobek.path, tmp_folder)
   wk_folder_del <- tmp_folder
   dir.create(tmp_folder)
-  prj_files <- dir(sobek.project, full.names = TRUE, recursive = TRUE)
+  prj_files <- dir(sobek.project, full.names = TRUE)
   prj_files <- prj_files[!grepl("[\\/][0-9]{1,}", prj_files,
                                 ignore.case = TRUE)]
   # for editing, the folder NEWSTART and RESTART are not needed
@@ -286,8 +286,8 @@ sobek_edit <- function(case.name = NULL,
             to = tmp_folder,
             overwrite = TRUE,
             recursive = TRUE)
-  cmt_folder <- paste(tmp_folder, "CMTWORK", sep = "\\")
-  wk_folder <- paste(tmp_folder, "WORK", sep = "\\")
+  cmt_folder <- file.path(tmp_folder, "CMTWORK")
+  wk_folder <- file.path(tmp_folder, "WORK")
   if (!dir.exists(wk_folder)) dir.create(wk_folder)
   if (!dir.exists(cmt_folder)) dir.create(cmt_folder)
   # copy case folder to work folder
@@ -301,6 +301,7 @@ sobek_edit <- function(case.name = NULL,
                           full.names = TRUE,
                           pattern = "\\.[:alnum:]*",
                           no.. = TRUE)
+  # FIXME: find and copy "fixed" folder
   for (i in cmt_files) {
     f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
     f1[, V1 := gsub("_WORK_DIR_", wk_folder, V1, fixed = TRUE)]
@@ -317,8 +318,8 @@ sobek_edit <- function(case.name = NULL,
                  '..\\WORK\\NETWORK.NTW',
                  sep = "")
     if (interactive()) {
-      print("Waiting for NETTER. DO NOT terminate R or run any other commands...")
-      print("If you need to do something else with R, please open another session")
+      cat("Waiting for NETTER. DO NOT terminate R or run any other commands...\n")
+      cat("If you need to do something else with R, please open another session\n")
     } else {
       cat("You are editing case:\n",
           clist[case_number == c_number, case_name],
@@ -327,7 +328,7 @@ sobek_edit <- function(case.name = NULL,
     system(command = cmd, wait = TRUE)
     # removing temp. data
     setwd(tmp_folder)
-    print('Copy files back to case folder...')
+    cat('Copy files back to case folder...\n')
     file.copy(from = list.files("WORK",
                                 all.files = TRUE,
                                 recursive = TRUE,
@@ -340,7 +341,7 @@ sobek_edit <- function(case.name = NULL,
               to = paste(sobek.project, 'FIXED', sep = "\\"),
               overwrite = TRUE)
     if (clear.temp) {
-      print('Clearing temporary files...')
+      cat('Clearing temporary files...')
       unlink(wk_folder_del, recursive = TRUE)
     }
   } else {
@@ -356,14 +357,14 @@ sobek_edit <- function(case.name = NULL,
                  '\\NETWORK.NTW',
                  sep = "")
     # copy work folder back to the case folder, only newer files will be copied
-    cmd11 <- paste("call xcopy /Q /C /Y /E /H /R",
+    cmd11 <- paste("call xcopy /C /Y /E /H /R",
                   wk_folder,
                   # '\\*.* ',
                   c_folder,
                   # '\\',
                   sep = " ")
     # copy fixed folder back to the fixed folder, only newer files will be copied
-    cmd12 <- paste("call xcopy /Q /C /Y /E /H /R ",
+    cmd12 <- paste("call xcopy /C /Y /E /H /R",
                    tmp_folder,
                    '\\FIXED ',
                    sobek.project,
@@ -457,16 +458,10 @@ sobek_view <- function(case.name = NULL,
                                  'result_view/WORK', sep = '/'),
                            full.names = TRUE,
                            no.. = TRUE)
-  c_folder_short <- str_replace(c_folder, '^[:alpha:]{1,}:[\\\\/]*', '')
-  sobek.project_short <- str_replace(sobek.project, '^[:alpha:]{1,}:[\\\\/]*', '')
-  sobek.path_short <- str_replace(sobek.path, '^[:alpha:]{1,}:[\\\\/]*', '')
   for (i in cmt_files) {
     f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
-    f1[, V1 := gsub("_CASE_DIR_SHORT_",  c_folder_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_CASE_DIR_", c_folder, V1, fixed = TRUE)]
-    f1[, V1 := gsub("_PROGRAM_DIR_SHORT_",  sobek.path_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_PROGRAM_DIR_", sobek.path,  V1, fixed = TRUE)]
-    f1[, V1 := gsub("_PROJECT_DIR_SHORT_", sobek.project_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_PROJECT_DIR_", sobek.project, V1, fixed = TRUE)]
     f2 <- paste(cmt_folder, basename(i), sep = "\\")
     fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE,
@@ -474,11 +469,8 @@ sobek_view <- function(case.name = NULL,
   }
   for (i in work_files) {
     f1 <- fread(file = i, sep = "\n", quote = "", header = FALSE)
-    f1[, V1 := gsub("_CASE_DIR_SHORT_",  c_folder_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_CASE_DIR_", c_folder, V1, fixed = TRUE)]
-    f1[, V1 := gsub("_PROGRAM_DIR_SHORT_",  sobek.path_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_PROGRAM_DIR_", sobek.path,  V1, fixed = TRUE)]
-    f1[, V1 := gsub("_PROJECT_DIR_SHORT_", sobek.project_short, V1, fixed = TRUE)]
     f1[, V1 := gsub("_PROJECT_DIR_", sobek.project, V1, fixed = TRUE)]
     f2 <- paste(work_folder, basename(i), sep = "\\")
     fwrite(x = f1, file = f2, quote = FALSE, row.names = FALSE,
@@ -551,12 +543,14 @@ sobek_view <- function(case.name = NULL,
 #' This function divides a list of cases n threads and simulate them parallely
 #' 
 #' @param case.list List of cases
-#' @param n Number of threads (Default number of core - 1)
 #' @param sobek.project Path to sobek project
 #' @param sobek.path Path to sobek installation folder
+#' @param n Number of threads (Default 2)
+#' @param wait Number of seconds to wait before starting simulation on other cores
+#' This parameter is to avoid sobek to start too quick and cause error
 #' @export
-par_sim_cases <- function(case.list, n = parallel::detectCores() - 1, 
-                          sobek.project, sobek.path) {
+par_sim_cases <- function(case.list, sobek.project, sobek.path, 
+                          n = 2, wait = 2) {
   n_cores <- parallel::detectCores()
   if (n > n_cores) {
     cat('There are only ', n_cores, ' cores available')
@@ -564,11 +558,17 @@ par_sim_cases <- function(case.list, n = parallel::detectCores() - 1,
     stop('n > number of cores')
   }
   case.list <- unlist(case.list)
-  stopifnot(is.numeric(n))
-  cmd_header <- data.table(cmds = c('library(sobekio)', 
-                                    paste0("sobek.project <- '", sobek.project, "'"),
-                                    paste0("sobek.path <- '", sobek.path, "'")
+  cmd_header <- data.table(cmds = c(
+    'library(sobekio)',
+    paste0("sobek.project <- '", sobek.project, "'"),
+    paste0("sobek.path <- '", sobek.path, "'")
   ))
+  cmd_footer <- data.table(
+    cmds = c(
+      "cat('Please check if all cases were simulated. Then press Enter to exit...\\n')",
+      "invisible(scan('stdin', character(), nlines = 1, quiet = TRUE))"
+    )
+  )
   n_cases <- length(case.list)
   if (n_cases < n) n <- n_cases
   n_cases_per_thread <- ceiling(n_cases / n) # number of cases in one file
@@ -582,9 +582,16 @@ par_sim_cases <- function(case.list, n = parallel::detectCores() - 1,
                     'sobek.project = sobek.project, sobek.path = sobek.path)'
     )
     fwrite(cmd_header, file = files_i, col.names = FALSE, sep = '\n')
-    fwrite(list(cmd_i), file = files_i, col.names = FALSE, sep = '\n', append = TRUE)
+    fwrite(list(cmd_i), file = files_i, col.names = FALSE, sep = '\n', 
+           append = TRUE)
+    fwrite(cmd_footer, file = files_i, col.names = FALSE, sep = '\n', 
+           append = TRUE)
     r_script <- file.path(R.home(), 'bin/Rscript.exe')
     cmd <- paste0(r_script, ' --vanilla "', files_i, '"')
     system(command = cmd, wait = FALSE, invisible = FALSE)
+    if (i > 1) {
+      cat('Wait for some seconds before starting next R session')
+      Sys.sleep(wait)
+    }
   }
 }

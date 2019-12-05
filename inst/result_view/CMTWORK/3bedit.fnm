@@ -37,11 +37,11 @@ UseFormat=0
 [RR-Topography layer]
 NrOfFiles=4
 config=net/cpt/dat/brdat
-net=\_CASE_DIR_SHORT_\NETWORK.TP
-cpt=\_CASE_DIR_SHORT_\NETWORK.CP
-dat=\_CASE_DIR_SHORT_\3B_NOD.TP
-brdat=\_CASE_DIR_SHORT_\3B_LINK.TP
-rfdat=\_CASE_DIR_SHORT_\3BRUNOFF.TP
+net=_CASE_DIR_\NETWORK.TP
+cpt=_CASE_DIR_\NETWORK.CP
+dat=_CASE_DIR_\3B_NOD.TP
+brdat=_CASE_DIR_\3B_LINK.TP
+rfdat=_CASE_DIR_\3BRUNOFF.TP
 
 [RR-Paved area layer]
 NrOfFiles=4
@@ -49,14 +49,14 @@ mainfile=dat
 connectionfile=sd-sto,dw-dwa,qc-tab
 ; here the connection to the files are mentioned
 ;
-dat=\_CASE_DIR_SHORT_\PAVED.3B
+dat=_CASE_DIR_\PAVED.3B
 ; search token in dat
 TokenDAT=PAVE
-sto=\_CASE_DIR_SHORT_\PAVED.STO
+sto=_CASE_DIR_\PAVED.STO
 TokenSTO=STDF
-dwa=\_CASE_DIR_SHORT_\PAVED.DWA
+dwa=_CASE_DIR_\PAVED.DWA
 TokenDWA=DWA
-tab=\_CASE_DIR_SHORT_\PAVED.TBL
+tab=_CASE_DIR_\PAVED.TBL
 TokenTAB=QC_T
 
 [RR-Unpaved area layer]
@@ -64,23 +64,23 @@ NrOfFiles=9
 config=dat/sto/alf/inf/sep/tab/obc/ocf/sct
 mainfile=dat
 connectionfile=sd-sto,ad-alf,sp-sep,ic-inf,ig-tab,su-sct
-dat=\_CASE_DIR_SHORT_\UNPAVED.3B
+dat=_CASE_DIR_\UNPAVED.3B
 TokenDAT=UNPV
-sto=\_CASE_DIR_SHORT_\UNPAVED.STO
+sto=_CASE_DIR_\UNPAVED.STO
 TokenSTO=STDF
-alf=\_CASE_DIR_SHORT_\UNPAVED.ALF
+alf=_CASE_DIR_\UNPAVED.ALF
 TokenALF=ALFA
-inf=\_CASE_DIR_SHORT_\UNPAVED.INF
+inf=_CASE_DIR_\UNPAVED.INF
 TokenINF=INFC
-sep=\_CASE_DIR_SHORT_\UNPAVED.SEP
+sep=_CASE_DIR_\UNPAVED.SEP
 TokenSEP=SEEP
-tab=\_CASE_DIR_SHORT_\UNPAVED.TBL
+tab=_CASE_DIR_\UNPAVED.TBL
 TokenTAB=IG_T
-sct=\_CASE_DIR_SHORT_\UNPAVED.TBL
+sct=_CASE_DIR_\UNPAVED.TBL
 TokenSCT=SC_T
-obc=\_PROGRAM_DIR_SHORT_\fixed\3b\bergcoef
-obcap=\_PROGRAM_DIR_SHORT_\fixed\3b\bergcoef.cap
-ocf=\_PROGRAM_DIR_SHORT_\fixed\3b\cropfact
+obc=_PROGRAM_DIR_\fixed\3b\bergcoef
+obcap=_PROGRAM_DIR_\fixed\3b\bergcoef.cap
+ocf=_PROGRAM_DIR_\fixed\3b\cropfact
 TokenH0Tab=H0_T
 
 [RR-Greenhouse layer]
@@ -88,44 +88,44 @@ NrOfFiles=7
 config=dat/dak/sil/tab/kk/ki/kg
 mainfile=dat
 connectionfile=sd-dak,si-sil
-dat=\_CASE_DIR_SHORT_\GREENHSE.3B
+dat=_CASE_DIR_\GREENHSE.3B
 TokenDAT=GRHS
-dak=\_CASE_DIR_SHORT_\GREENHSE.RF
+dak=_CASE_DIR_\GREENHSE.RF
 TokenDAK=STDF
-sil=\_CASE_DIR_SHORT_\GREENHSE.SIL
+sil=_CASE_DIR_\GREENHSE.SIL
 TokenSIL=SILO
-tab=\_CASE_DIR_SHORT_\GREENHSE.TBL
-kk=\_PROGRAM_DIR_SHORT_\fixed\3b\kasklass
-ki=\_PROGRAM_DIR_SHORT_\fixed\3b\kasinit
-kg=\_PROGRAM_DIR_SHORT_\fixed\3b\kasgebr
+tab=_CASE_DIR_\GREENHSE.TBL
+kk=_PROGRAM_DIR_\fixed\3b\kasklass
+ki=_PROGRAM_DIR_\fixed\3b\kasinit
+kg=_PROGRAM_DIR_\fixed\3b\kasgebr
 
 [RR-Open water layer]
 NrOfFiles=4
 config=dat/sep/tab/ocf
 mainfile=dat
 connectionfile=sp-sep,tl-tab
-dat=\_CASE_DIR_SHORT_\OPENWATE.3B
+dat=_CASE_DIR_\OPENWATE.3B
 TokenDAT=OPWA
-sep=\_CASE_DIR_SHORT_\OPENWATE.SEP
+sep=_CASE_DIR_\OPENWATE.SEP
 TokenSEP=SEEP
-tab=\_CASE_DIR_SHORT_\OPENWATE.TBL
+tab=_CASE_DIR_\OPENWATE.TBL
 TokenTAB=OW_T
-ocf=\_PROGRAM_DIR_SHORT_\fixed\3b\crop_ow
+ocf=_PROGRAM_DIR_\fixed\3b\crop_ow
 
 [RR-Structure layer]
 NrOfFiles=4
 config=dat/def/con/tab
 mainfile=dat
 connectionfile=dd-def,cj-con,gs-set,ws-set
-dat=\_CASE_DIR_SHORT_\STRUCT3B.DAT
+dat=_CASE_DIR_\STRUCT3B.DAT
 TokenDAT=STRU
-def=\_CASE_DIR_SHORT_\STRUCT3B.DEF
+def=_CASE_DIR_\STRUCT3B.DEF
 TokenDef=STDS
-con=\_CASE_DIR_SHORT_\CONTR3B.DEF
+con=_CASE_DIR_\CONTR3B.DEF
 TokenCON=CNTL
-tab=\_CASE_DIR_SHORT_\STRUCT3B.TBL
+tab=_CASE_DIR_\STRUCT3B.TBL
 TokenTAB=SWLV
-set=\_CASE_DIR_SHORT_\STRUCT3B.TBL
+set=_CASE_DIR_\STRUCT3B.TBL
 TokenSET=INST
 
 [RR-Boundary layer]
@@ -133,11 +133,11 @@ NrOfFiles=3
 config=dat/tab/sbk
 mainfile=dat
 connectionfile=bl-tab
-dat=\_CASE_DIR_SHORT_\BOUND3B.3B
+dat=_CASE_DIR_\BOUND3B.3B
 TokenDAT=BOUN
-tab=\_CASE_DIR_SHORT_\BOUND3B.TBL
+tab=_CASE_DIR_\BOUND3B.TBL
 TokenTAB=BN_T
-sbk=\_CASE_DIR_SHORT_\SBK_LOC.RTC
+sbk=_CASE_DIR_\SBK_LOC.RTC
 TokenSBK=SBKO
 
 [RR-Industry layer]
@@ -145,11 +145,11 @@ NrOfFiles=3
 config=dat/dis/dem
 mainfile=dat
 connectionfile=ds-dis, dm-dem
-dat=\_CASE_DIR_SHORT_\INDUSTRY.3B
+dat=_CASE_DIR_\INDUSTRY.3B
 TokenDAT=INDU
-dis=\_CASE_DIR_SHORT_\INDUSTRY.TBL
+dis=_CASE_DIR_\INDUSTRY.TBL
 TokenDIS=DISC
-dem=\_CASE_DIR_SHORT_\INDUSTRY.TBL
+dem=_CASE_DIR_\INDUSTRY.TBL
 TokenDEM=DEMD
 
 [RR-NWRW layer]
@@ -157,11 +157,11 @@ NrOfFiles=3
 config=dat/dwa/alg
 mainfile=dat
 connectionfile=dw-dwa
-dat=\_CASE_DIR_SHORT_\PLUVIUS.3B
+dat=_CASE_DIR_\PLUVIUS.3B
 TokenDAT=NWRW
-dwa=\_CASE_DIR_SHORT_\PLUVIUS.DWA
+dwa=_CASE_DIR_\PLUVIUS.DWA
 TokenDWA=DWA
-alg=\_CASE_DIR_SHORT_\PLUVIUS.ALG
+alg=_CASE_DIR_\PLUVIUS.ALG
 TokenALG=PLVG
 TokenSPAREA=PLVA
 TokenGRAREA=PLGR
@@ -171,9 +171,9 @@ NrOfFiles=2
 config=dat/tab
 mainfile=dat
 connectionfile=tb-tab
-dat=\_CASE_DIR_SHORT_\WWTP.3B
+dat=_CASE_DIR_\WWTP.3B
 TokenDAT=WWTP
-tab=\_CASE_DIR_SHORT_\WWTP.TBL
+tab=_CASE_DIR_\WWTP.TBL
 TokenTAB=MEAS
 
 [RR-Sacramento layer]
@@ -184,17 +184,17 @@ TokenCAP=CAPS
 TokenUH=UNIH
 TokenOTH=OPAR
 mainfile=dat
-dat=\_CASE_DIR_SHORT_\SACRMNTO.3B
-oth=\_CASE_DIR_SHORT_\SACRMNTO.3B
-uh=\_CASE_DIR_SHORT_\SACRMNTO.3B
-cap=\_CASE_DIR_SHORT_\SACRMNTO.3B
+dat=_CASE_DIR_\SACRMNTO.3B
+oth=_CASE_DIR_\SACRMNTO.3B
+uh=_CASE_DIR_\SACRMNTO.3B
+cap=_CASE_DIR_\SACRMNTO.3B
 
 [RR-External Runoff layer]
 NrOfFiles=1
 config=dat
 TokenDAT=EXTR
 mainfile=dat
-dat=\_CASE_DIR_SHORT_\SACRMNTO.3B
+dat=_CASE_DIR_\SACRMNTO.3B
 
 [RR-HBV layer]
 NrOfFiles=5
@@ -205,18 +205,18 @@ TokenSOIL=SOIL
 TokenFLOW=FLOW
 TokenHINI=HINI
 mainfile=dat
-dat=\_CASE_DIR_SHORT_\SACRMNTO.3B
-snow=\_CASE_DIR_SHORT_\SACRMNTO.3B
-soil=\_CASE_DIR_SHORT_\SACRMNTO.3B
-flow=\_CASE_DIR_SHORT_\SACRMNTO.3B
-hini=\_CASE_DIR_SHORT_\SACRMNTO.3B
+dat=_CASE_DIR_\SACRMNTO.3B
+snow=_CASE_DIR_\SACRMNTO.3B
+soil=_CASE_DIR_\SACRMNTO.3B
+flow=_CASE_DIR_\SACRMNTO.3B
+hini=_CASE_DIR_\SACRMNTO.3B
 
 [RR-SCS layer]
 NrOfFiles=1
 config=dat
 TokenDAT=SCS
 mainfile=dat
-dat=\_CASE_DIR_SHORT_\SACRMNTO.3B
+dat=_CASE_DIR_\SACRMNTO.3B
 
 [RR-NAM layer]
 NrOfFiles=5
@@ -226,10 +226,10 @@ TokenCAPA=NAMC
 TokenRUNO=NAMR
 TokenNINI=NAMI
 mainfile=dat
-dat=\_CASE_DIR_SHORT_\SACRMNTO.3B
-capa=\_CASE_DIR_SHORT_\SACRMNTO.3B
-runo=\_CASE_DIR_SHORT_\SACRMNTO.3B
-nini=\_CASE_DIR_SHORT_\SACRMNTO.3B
+dat=_CASE_DIR_\SACRMNTO.3B
+capa=_CASE_DIR_\SACRMNTO.3B
+runo=_CASE_DIR_\SACRMNTO.3B
+nini=_CASE_DIR_\SACRMNTO.3B
 
 [RR-Routing layer]
 NrOfFiles=2
@@ -237,17 +237,17 @@ config=dat/def
 TokenDAT=ROUT
 TokenDEF=RDEF
 mainfile=dat
-dat=\_CASE_DIR_SHORT_\3B_ROUT.3B
-def=\_CASE_DIR_SHORT_\3B_ROUT.3B
+dat=_CASE_DIR_\3B_ROUT.3B
+def=_CASE_DIR_\3B_ROUT.3B
 
 [3B-Control layer]
 NrOfFiles=3
 config=cnt/rai/evp/def
 cnt=..\WORK\DELFT_3B.INI
-rai=\_PROGRAM_DIR_SHORT_\FIXED\STNBUI07.BUI
-evp=\_PROGRAM_DIR_SHORT_\FIXED\3B\EVAPOR.GEM
-tmp=\_PROGRAM_DIR_SHORT_\FIXED\STNBUI07.TMP
-rnf=\_PROGRAM_DIR_SHORT_\FIXED\STNBUI07.RNF
+rai=_PROGRAM_DIR_\FIXED\STNBUI07.BUI
+evp=_PROGRAM_DIR_\FIXED\3B\EVAPOR.GEM
+tmp=_PROGRAM_DIR_\FIXED\STNBUI07.TMP
+rnf=_PROGRAM_DIR_\FIXED\STNBUI07.RNF
 def=_PROGRAM_DIR_\fixed\3bedit.def
 
 [Switches]
