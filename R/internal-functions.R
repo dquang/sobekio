@@ -259,10 +259,10 @@ file_path <- function(name = NULL, path = NULL, f_tbl = NULL) {
                          include.dirs = FALSE,
                          full.names = TRUE, recursive = FALSE,
                          no.. = TRUE)
-    f_name_list <- list.files(path = path, all.files = TRUE, 
+    f_name_list <- toupper(list.files(path = path, all.files = TRUE, 
                               include.dirs = FALSE,
                               full.names = FALSE, recursive = FALSE,
-                              no.. = TRUE) %>% toupper()
+                              no.. = TRUE))
     f_tbl <- data.table(cs_path = f_list, f_name_upper = f_name_list)
   }
   ret <- f_tbl[f_name_upper == toupper(name), cs_path]

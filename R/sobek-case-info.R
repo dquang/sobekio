@@ -128,7 +128,7 @@ get_file_path <- function(case.name = NULL,
                      type # if type is not one of the keywords, returns itself.
                      )
   his_file <- file_path(name = his_file, 
-                        path = paste(sobek.project, case_number, sep = '/')
+                        path = file.path(sobek.project, case_number)
                         )
   return(his_file)
 }

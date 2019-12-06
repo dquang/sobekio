@@ -75,7 +75,8 @@ get_struct_info <- function(
                             )
     }
   }
-  str_info_tbl <- filter_at(str_info_tbl, vars(case.desc), any_vars(!is.na(.))) %>%
+  str_info_tbl <- filter_at(str_info_tbl, 
+                            vars(case.desc), any_vars(!is.na(.))) %>%
     as.data.table()
   str_info_tbl[is.na(Parameter), Parameter := '']
   if (html) {
@@ -233,7 +234,7 @@ get_struct_info <- function(
     }
   }
   if (na.rm) str_info_tbl <- str_info_tbl[!is.na(Value)]
-  if (isTRUE(html)) {
+  if (html) {
       str_info_tbl <- htmlTable::htmlTable(
         str_info_tbl,
         align = 'l',
@@ -746,6 +747,8 @@ transfer_struct <- function(
   str_dat_to <- .get_struct_dat(str_dat_to_file)
   str_def_to <- .get_struct_def(str_def_to_file)
   strid_dat_from <- str_dat_from[id == st.id]
+  strid_def_id_from <- strid_dat_from$def_ID[[1]]
+  strid_def_from <- str_def_from[def_ID == strid_def_id_from]
   if (nrow(strid_dat_from) == 0) {
     stop('Structure with ID ', st.id, ' is not found in case: ', from)
   }
@@ -769,8 +772,19 @@ transfer_struct <- function(
     }
     ctr_ids_from <- paste(ctr_ids_from, collapse = ' ')
     strid_dat_from[, V1 := str_replace(V1, cj, ctr_ids_from)]
+  } else {
+    # remove controllers from strid_dat_from
+    strid_dat_from[, V1 := str_replace(V1, ' ca \\d \\d \\d \\d ',
+                                       ' ca 0 0 0 0 ')]
+    strid_dat_from[, V1 := str_replace(V1, 
+                                       " cj '[^']+' '[^']+' '[^']+' '[^']+' ", 
+                                       " cj '-1' '-1' '-1' '-1' ")]
+    strid_dat_from[, V1 := str_replace(V1, ' ca \\d ',' ca 0 ')]
+    strid_dat_from[, V1 := str_replace(V1, " cj '[^']+' ", " cj '-1' ")]
+    strid_def_from[grepl("STDS id '", V1), 
+                   V1 := str_replace(V1, " cw \\d*\\.*\\d* ", " cw 0 ")
+                   ]
   }
-  strid_def_id_from <- strid_dat_from$def_ID[[1]]
   str_name_from <- strid_dat_from$name[[1]]
   if (nchar(str_name_from) > 1) {
     str_name_to <- str_name_from
@@ -821,18 +835,6 @@ transfer_struct <- function(
     paste0(" dd '", strid_def_id_from),
     paste0(" dd '", strid_def_id_to)
   )]
-  # remove controllers from strid_dat_from. Otherwise Controllers and Triggers
-  # must be move along and check conflict with the new file.
-  # for now, it is not supported
-  strid_dat_from[, V1 := str_replace(V1, ' ca \\d \\d \\d \\d ',' ca 0 0 0 0 ')]
-  strid_dat_from[, V1 := str_replace(V1, 
-                                     " cj '[^']+' '[^']+' '[^']+' '[^']+' ", 
-                                     " cj '-1' '-1' '-1' '-1' ")]
-  strid_dat_from[, V1 := str_replace(V1, ' ca \\d ',' ca 0 ')]
-  strid_dat_from[, V1 := str_replace(V1, " cj '[^']+' ", " cj '-1' ")]
-  strid_def_from[grepl("STDS id '", V1), 
-                 V1 := str_replace(V1, " cw \\d*\\.*\\d* ", " cw 0 ")
-                 ]
   # Transfer struct in dat file-----
   # definition line of destination struct.dat will be replaced
   nrow_dat_to <- nrow(strid_dat_to)

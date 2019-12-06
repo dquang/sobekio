@@ -12,6 +12,7 @@
 #' @param f.header Logical. Has id.file header?
 #' @param f.comment Comment character of the files. Default "#"
 #' @param id.names Character vector for naming the IDs. Default NULL
+#' @param case.desc For renaming case.list
 #' @param ... This accept only one parameter in syntax of ID_TYPE = ID_LIST.
 #' ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID...
 #' ID_LIST is a character vector.
@@ -46,6 +47,7 @@ his_from_case <- function(
   f.header = FALSE,
   id.names = NULL,
   f.sep = "\t",
+  case.desc = NULL,
   ...
   ) {
   if (isTRUE(get.abs.max)) get.max <- FALSE
@@ -74,7 +76,14 @@ his_from_case <- function(
     } else {
         stop("case.list must be a path to file or a character vector")
       }
-    }
+  }
+  if (!is.null(case.desc)) {
+    stopifnot(length(case.desc) == length(case.list))
+    clist$case_desc <- case.desc
+  }
+  if (!'case_desc' %in% colnames(clist)) {
+    clist[, case_desc := case_name]
+  } 
   id_list <- id_args[[id_type]]
   if (length(id_list) == 1 && file.exists(id_list)) {
     id_tbl <- read.table(
@@ -136,20 +145,15 @@ his_from_case <- function(
     SHID = 'GSEDHIS.HIS',
     paste0(id_type, '.HIS') # take id_type as file prefix
   )
-  if (Sys.info()[['sysname']] != 'Windows') {
-    # for system with case-sensitive file naming
-    clist[, case_folder := paste(sobek.project, case_number, sep = "/")]
-    clist[, his_file := file_path(name = his_fname, path = case_folder)]
-  } else {
-    clist[, his_file := paste(sobek.project,case_number, his_fname, sep = "/")]
-  }
-
+  clist[, case_folder := file.path(sobek.project, case_number)]
+  clist$his_file <- sapply(clist$case_folder, 
+                           function(x) file_path(name = his_fname, path = x))
   if (isTRUE(do.par)) {
     # parallel computing here
     doParallel::registerDoParallel(parallel::detectCores() - 1)
     `%dopar%` <- foreach::`%dopar%`
     result <- foreach::foreach(i = 1:n_case, .combine = rbind) %dopar% {
-      this_case_name <- clist$case_name[[i]]
+      this_case_name <- clist$case_desc[[i]]
       this_case_hfile <- clist$his_file[[i]]
       his_data <- his_from_list(
         his.file = this_case_hfile, id.list = id_list, param = param
@@ -162,7 +166,7 @@ his_from_case <- function(
     # if case.name found in the caselist.cmt
     result_list <- list(rep(NA, n_case))
     for (i in 1:n_case) {
-      this_case_name <- clist$case_name[[i]]
+      this_case_name <- clist$case_desc[[i]]
       this_case_hfile <- clist$his_file[[i]]
       his_data <- his_from_list(
         his.file = this_case_hfile, id.list = id_list, param = param

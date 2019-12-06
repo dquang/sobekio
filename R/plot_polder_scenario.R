@@ -60,6 +60,7 @@ plot_polder_scenario <- function(
   delta.line = FALSE,
   rel.heights = c(2, 0.7),
   compare.by = 'zustand',
+  group.by = compare.by,
   cmp.sort = FALSE,
   plot.title = NULL,
   lt.name = 'Linienart',

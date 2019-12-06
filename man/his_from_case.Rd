@@ -16,6 +16,7 @@ his_from_case(
   f.header = FALSE,
   id.names = NULL,
   f.sep = "\\t",
+  case.desc = NULL,
   ...
 )
 }
@@ -40,6 +41,8 @@ If get.abs.max and get.max both are TRUE, the absolute max will return}
 \item{id.names}{Character vector for naming the IDs. Default NULL}
 
 \item{f.sep}{Seperator of the id.file, default = 'TAB'}
+
+\item{case.desc}{For renaming case.list}
 
 \item{...}{This accept only one parameter in syntax of ID_TYPE = ID_LIST.
 ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID...

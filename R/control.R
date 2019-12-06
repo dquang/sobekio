@@ -119,6 +119,11 @@ get_control_info <- function(ct.id = NULL,
       "'([^']+)' '([^']+)' '([^']+)' '([^']+)'"
     )[1, 2:5] %>% sort()
     trig_all[is.na(trig_all)] <- "'-1'"
+    if (length(trig_all) < 4) {
+      for (i in seq.int(length(trig_all) + 1, 4, 1)) {
+        trig_all[i] <- "'-1'"
+      }
+    }
     trig_tbl <- rbindlist(lapply(trig_all, get_trigger_info,
                                  tg.tbl = tg.tbl,
                                  case.name = case.name, 
