@@ -97,10 +97,12 @@ plot_polder_scenario <- function(
     }
     if (verbose) cat('working with waterlevel \n')
     f_args$param <- 'waterlevel'
+    param <- 'waterlevel'
     f_args$y2.scale <- y2.scale_wt
     f_args$y2.tick1 <- y2.tick1_wt
     g_wt <- do.call(plot_polder_scenario, f_args)
     f_args$param <- 'discharge'
+    param <- 'discharge'
     f_args$y2.scale <- y2.scale_qt
     f_args$y2.tick1 <- y2.tick1_qt
     if (verbose) cat('working with discharge \n')
@@ -209,6 +211,7 @@ plot_polder_scenario <- function(
         )
         names(ref_mID_args)[3] <- ref.mID2_type
         ref_mID2 <- do.call(his_from_case, ref_mID_args)
+        
       } else{
         ref_mID2 <- his_from_case(
           case.list = case.list,
@@ -263,7 +266,7 @@ plot_polder_scenario <- function(
     }
   }
   #-----preparing plot-----
-  if (isTRUE(verbose)) print('Preparing graphic...')
+  if (isTRUE(verbose)) cat('Preparing graphic...\n')
   einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
   auslass_cols <- grep('Auslass', colnames(id_data), value = TRUE)
   y2_axis <- isTRUE(q.in) | isTRUE(q.out) | (param == 'discharge' & isTRUE(w.canal))

@@ -5,28 +5,27 @@
 #' @export
 parse_case <- function(case.desc, orig.name = case.desc, stringAsFactors = FALSE){
   stopifnot(length(case.desc) == length(orig.name))
-  case_str <- str_match(case.desc, "^([^_]+)_([^_]+)_([^_]+)_([^_]+)(.*)$")
-  if (ncol(case_str) < 5 | ncol(case_str) > 6) {
-    stop('case name: ', case, ' has wrong format')
-  }
-  result <- data.table(
+  case_tbl <- data.table(
     case = orig.name,
-    case_desc = case_str[, 1],
-    zustand = case_str[, 2],
-    zielpegel = case_str[, 3],
-    hwe = case_str[, 4],
-    vgf = case_str[, 5],
-    notiz = case_str[, 6]
+    case_desc = case.desc
   )
-  if (isTRUE(stringAsFactors)){
-    id_levels <- seq_along(result$zustand)
-    f_levels <- purrr::map2(result$zustand, id_levels, paste, sep = "_")
-    result$zustand  <- factor(result$zustand,
+  case_tbl[, zustand := str_match(case.desc, '^([^_]+)')[, 2]]
+  case_tbl[, zielpegel := str_match(case.desc, '^[^_]+_([^_]+)_')[, 2]]
+  case_tbl[, hwe := str_match(case.desc, '^[^_]+_[^_]+_([^_]+)_')[, 2]]
+  case_tbl[, vgf := str_match(case.desc, '^[^_]+_[^_]+_[^_]+_([^_]+)')[, 2]]
+  case_tbl[, notiz := str_match(case.desc, '^[^_]+_[^_]+_[^_]+_[^_]+_([^_]+)')[, 2]]
+  if (any(is.na(case_tbl[, c('zustand', 'zielpegel', 'hwe', 'vgf')]))) {
+    stop("At least one of case description has wrong format")
+  }
+  if (isTRUE(stringAsFactors)) {
+    id_levels <- seq_along(case_tbl$zustand)
+    f_levels <- purrr::map2(case_tbl$zustand, id_levels, paste, sep = "_")
+    case_tbl$zustand  <- factor(case_tbl$zustand,
                               levels = f_levels,
-                              labels = result$zustand,
+                              labels = case_tbl$zustand,
                               ordered = TRUE)
   }
-  return(result)
+  return(case_tbl)
 }
 
 

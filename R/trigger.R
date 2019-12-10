@@ -335,3 +335,55 @@ transfer_trigger <- function(
   )
   return(data.table(id_new = tg_ids_list, nm_new = tg_nms_list))
 }
+
+
+#' Get information table for one trigger
+#'
+#' This function read important information of a trigger from the project case.
+#'
+#' @param t.id Id of the trigger
+#' @param case.name Name of the case
+#' @param sobek.project Path to Sobek project
+#' @param html If TRUE, return a html table
+#'
+#' @return a data.table or a html.table
+#' @export
+get_trigger_info_old <- function(t.id, case.name, sobek.project, html = TRUE) {
+  t_file <- get_file_path(case.name, sobek.project, type = 'trigger')
+  trig_def <- .get_trigger_def(t_file)[id == t.id]
+  t_type <- switch(trig_def[1, ty],
+                   '0' = 'time',
+                   '1' = 'hydraulic',
+                   '2' = 'combined')
+  t_par <- switch(trig_def[1, tp],
+                  '0' = 'waterlevel at branch location',
+                  '1' = 'head difference over structure',
+                  '2' = 'discharge at branch location',
+                  '3' = 'gate lower edge level',
+                  '4' = 'crest level',
+                  '6' = 'crest width',
+                  '6' = 'waterlevel in retention area',
+                  '7' = 'pressure difference over structure'
+  )
+  trig_tbl <- data.table(
+    Parameter = list(
+      'Trigger_ID', 'Trigger_name', 'Trigger_type', 'Trigger_parameter', 
+      'Trigger_measurement', 'Trigger_tble'
+    ),
+    Value = list(
+      trig_def[1, id], trig_def[1, nm], t_type, t_par, trig_def[1, ml],
+      paste(trig_def[grepl(" <$", V1), V1], collapse = "<br>")
+    )
+  )
+  
+  if (isTRUE(html)) {
+    trig_tbl <- htmlTable::htmlTable(
+      trig_tbl,
+      align = 'l',
+      caption = paste(
+        "Information table of the Trigger:", t.id),
+      tfoot = paste('Case:', case.name)
+    )
+  }
+  return(trig_tbl)
+}

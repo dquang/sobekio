@@ -560,12 +560,12 @@ get_all_struct <- function(
 #'
 #' Turn off Weir(s) / Weir(s) by deactivate all controllers and set crest width to 0
 #'
-#' @param struct Name(s) of the (River) Weir(s)
+#' @param st.id Name(s) of the (River) Weir(s)
 #' @param case Case name
 #' @param sobek.project Path to sobek project
 #' @export
 set_struct_off <- function(
-  struct = NULL,
+  st.id = NULL,
   case.name = NULL,
   sobek.project = NULL) {
   struct.dat.f <- get_file_path(case.name = case.name, 
@@ -577,17 +577,17 @@ set_struct_off <- function(
   struct_dat <- .get_struct_dat(struct.dat.f)
   struct_def <- .get_struct_def(struct.def.f)
   for (i in seq_along(struct)) {
-    struct_def_id <- struct_dat[id == struct[[i]], def_ID]
+    struct_def_id <- struct_dat[id == st.id[[i]], def_ID]
     # deactivate all controllers, prevent time controllers open the structure
     ca_match_patt <- " ca \\d \\d \\d \\d "
     cj_match_patt <- " cj '[^']+' '[^']+' '[^']+' '[^']+' "
     # for structure with 4 controllers
-    struct_dat[id == struct[[i]], 
+    struct_dat[id == st.id[[i]], 
                V1 := str_replace(V1, ca_match_patt, ' ca 0 0 0 0 ')]
-    struct_dat[id == struct[[i]], 
+    struct_dat[id == st.id[[i]], 
                V1 := str_replace(V1, cj_match_patt, " cj '-1' '-1' '-1' '-1' ")]
     # for structure with 1 controllers
-    struct_dat[id == struct[[i]], 
+    struct_dat[id == st.id[[i]], 
                V1 := str_replace(V1, ' ca \\d ', 'ca 0 ')]
     struct_dat[id == struct[[i]], 
                V1 := str_replace(V1, " cj '[^']+' " ," cj '-1' ")]
@@ -609,14 +609,14 @@ set_struct_off <- function(
 #'
 #' Turn on one River Weir / Weir by activate related controllers and set its  characters
 #'
-#' @param struct Name(s) of the (River) Weir(s)
+#' @param st.id Name(s) of the (River) Weir(s)
 #' @param cw Struct Crest Width
 #' @param ct Struct controller ID(s), ex. c("##114", "##112")
 #' @param case Case name
 #' @param sobek.project Path to sobek project
 #' @export
 set_struct_on <- function(
-  struct = NULL,
+  st.id = NULL,
   cw = NULL,
   ct = NULL,
   cl = NULL,
@@ -637,7 +637,7 @@ set_struct_on <- function(
   control_list <- control_def[grepl(" id '.*' ", V1), id]
   struct_dat <- .get_struct_dat(struct.dat.f)
   struct_def <- .get_struct_def(struct.def.f)
-  struct_def_id <- struct_dat[id == struct, def_ID]
+  struct_def_id <- struct_dat[id == st.id, def_ID]
   struct_type <- struct_def[def_ID == struct_def_id, def_ty][[1]]
   if (!is.null(ct)) {
     ct <- unlist(ct)
@@ -670,9 +670,9 @@ set_struct_on <- function(
       ca_rep_patt <- c(" ca 1 ")
       cj_rep_patt <- paste(" cj '", ct[[1]], "' ")
     }
-    struct_dat[id == struct, 
+    struct_dat[id == st.id, 
                V1 := str_replace(V1, ca_match_patt, ca_rep_patt)]
-    struct_dat[id == struct, 
+    struct_dat[id == st.id, 
                V1 := str_replace(V1, cj_match_patt, cj_rep_patt)]
   }
   # change crest-width to cw

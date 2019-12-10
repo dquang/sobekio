@@ -449,12 +449,6 @@ transfer_controller <- function(
   ctr_def_to_file <- get_file_path(case.name = to, 
                                      sobek.project = sobek.project,
                                      type = 'control.def')
-  # trig_def_from_file <- get_file_path(case.name = from, 
-  #                                    sobek.project = sobek.project,
-  #                                    type = 'trigger.def')
-  # trig_def_to_file <- get_file_path(case.name = to, 
-  #                                  sobek.project = sobek.project,
-  #                                  type = 'trigger.def')
   ctr_def_from <- .get_control_def(ctr_def_from_file)
   ctr_def_to <- .get_control_def(ctr_def_to_file)
   ctr_def_to_nms <- ctr_def_to[, unique(name)]
