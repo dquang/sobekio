@@ -13,6 +13,7 @@
 #' @param f.comment Comment character of the files. Default "#"
 #' @param id.names Character vector for naming the IDs. Default NULL
 #' @param case.desc For renaming case.list
+#' @param id.type Type of ID, overwrite the ID_TYPE in ...
 #' @param ... This accept only one parameter in syntax of ID_TYPE = ID_LIST.
 #' ID_TYPE is one of wID, qID, mID, lID (latID), sID, pID, tID...
 #' ID_LIST is a character vector.
@@ -48,13 +49,18 @@ his_from_case <- function(
   id.names = NULL,
   f.sep = "\t",
   case.desc = NULL,
+  id.type = NULL,
   ...
   ) {
   if (isTRUE(get.abs.max)) get.max <- FALSE
   f_args <- as.list(match.call(expand.dots = FALSE))
   id_args <- list(...)
   stopifnot(!is.null(case.list) & !is.null(sobek.project))
-  id_type <- names(f_args$...)
+  if (!is.null(id.type)) {
+    id_type <- id.type
+  } else {
+    id_type <- names(f_args$...)
+  }
   # processing case.list file
   if (is.character(case.list) && length(case.list) == 1 && file.exists(case.list)) {
     # reading case.list
@@ -84,7 +90,7 @@ his_from_case <- function(
   if (!'case_desc' %in% colnames(clist)) {
     clist[, case_desc := case_name]
   } 
-  id_list <- id_args[[id_type]]
+  id_list <- unlist(id_args, use.names = FALSE)
   if (length(id_list) == 1 && file.exists(id_list)) {
     id_tbl <- read.table(
       file = id_list,

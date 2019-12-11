@@ -13,13 +13,13 @@ parse_case <- function(case.desc, orig.name = case.desc, stringAsFactors = FALSE
   case_tbl[, zielpegel := str_match(case.desc, '^[^_]+_([^_]+)_')[, 2]]
   case_tbl[, hwe := str_match(case.desc, '^[^_]+_[^_]+_([^_]+)_')[, 2]]
   case_tbl[, vgf := str_match(case.desc, '^[^_]+_[^_]+_[^_]+_([^_]+)')[, 2]]
-  case_tbl[, notiz := str_match(case.desc, '^[^_]+_[^_]+_[^_]+_[^_]+_([^_]+)')[, 2]]
+  case_tbl[, notiz := str_match(case.desc, '^[^_]+_[^_]+_[^_]+_[^_]+_(.+)')[, 2]]
   if (any(is.na(case_tbl[, c('zustand', 'zielpegel', 'hwe', 'vgf')]))) {
-    stop("At least one of case description has wrong format")
+    stop('At least one of case description has wrong format')
   }
   if (isTRUE(stringAsFactors)) {
     id_levels <- seq_along(case_tbl$zustand)
-    f_levels <- purrr::map2(case_tbl$zustand, id_levels, paste, sep = "_")
+    f_levels <- purrr::map2(case_tbl$zustand, id_levels, paste, sep = '_')
     case_tbl$zustand  <- factor(case_tbl$zustand,
                               levels = f_levels,
                               labels = case_tbl$zustand,
@@ -50,15 +50,15 @@ get_id_tbl <- function(
   
   if (drv == 'auto') {
     str_mt <- str_match(id_tbl$besonderheit,
-                            paste('(^.+)_', name, sep = "")
+                            paste('(^.+)_', name, sep = '')
                             )
     measure_type <- toupper(unique(str_mt[,2]))
       # warning('Type of the measure is not unique: ', measure_type)
     drv <- ifelse('DRV' %in% measure_type, TRUE, FALSE)
   }
   if (isTRUE(drv)) {
-    drv_begin <- id_tbl[grepl(".+_Begin", besonderheit), km][[1]]
-    drv_end <- id_tbl[grepl(".+_End", besonderheit), km][[1]]
+    drv_begin <- id_tbl[grepl('.+_Begin', besonderheit), km][[1]]
+    drv_end <- id_tbl[grepl('.+_End', besonderheit), km][[1]]
     if (drv_begin < drv_end){
       drv_begin <- drv_begin - to.upstream
       drv_end <- drv_end + to.downstream
@@ -67,18 +67,18 @@ get_id_tbl <- function(
       drv_end <- drv_end - to.downstream
     }
     km_range <- sort(c(drv_begin, drv_end))
-    drv_river <- id_tbl[grepl(".+_Begin", besonderheit), river][[1]]
+    drv_river <- id_tbl[grepl('.+_Begin', besonderheit), river][[1]]
     id_tbl <- master.tbl[river == drv_river &
                            km >= km_range[1] &
                            km <= km_range[2]]
   }
-  stopifnot(nrow(id_tbl) > 1)
+  if (nrow(id_tbl) == 0) stop('Found no IDs for name: ', name, ' in the master.tbl')
   # creating new columns based on case name
   for (i in seq_along(case.desc)) {
-    col_n <- paste('case_desc', i, sep = "_")
+    col_n <- paste('case_desc', i, sep = '_')
     id_tbl[, eval(col_n) := case.desc[[i]]]
   }
-  measure_vars <- paste('case_desc', seq_along(case.desc), sep = "_")
+  measure_vars <- paste('case_desc', seq_along(case.desc), sep = '_')
   id_tbl <- melt(id_tbl, measure.vars = measure_vars,
                  value.name = 'case_desc', sort = FALSE)
   id_tbl$variable <- NULL
@@ -139,11 +139,11 @@ get_segment_id_tbl <- function(
                        ]
   stopifnot(nrow(id_tbl) > 1)
   # creating new columns based on case name
-  for (i in seq_along(case.desc)){
-    col_n <- paste('case_desc', i, sep = "_")
+  for (i in seq_along(case.desc)) {
+    col_n <- paste('case_desc', i, sep = '_')
     id_tbl[, eval(col_n) := case.desc[[i]]]
   }
-  measure_vars <- paste('case_desc', seq_along(case.desc), sep = "_")
+  measure_vars <- paste('case_desc', seq_along(case.desc), sep = '_')
   id_tbl <- melt(id_tbl, measure.vars = measure_vars,
                  value.name = 'case_desc', sort = FALSE)
   id_tbl$variable <- NULL
@@ -226,7 +226,7 @@ get_segment_data <- function(
       km_dup = wid[duplicated(km), km]
       if (length(km_dup) > 0) {
         warning('There are more than one wIDs for the same KM at KM(s): ', 
-                paste(km_dup, collapse = ", "),
+                paste(km_dup, collapse = ', '),
                 '. These KM(s) will be remove out of the graphic')
         id_tbl <- id_tbl[!km %in% km_dup]
       }
@@ -328,7 +328,7 @@ get_segment_data <- function(
   if (isTRUE(get.max)) {
     if (isTRUE(verbose)) print('Calculating max values....')
     segment_data <- segment_data[, lapply(.SD, max, na.rm = TRUE),
-                         .SDcols = -c("ts"), by = case] %>%
+                         .SDcols = -c('ts'), by = case] %>%
       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
     # removing ID_F that were aggregated to the first ID_F at the duplicated KM
     if (param == 'discharge') {
@@ -372,7 +372,7 @@ get_polder_data <- function(
   name = NULL,
   case.list = NULL,
   case.desc = case.list,
-  param = NULL,
+  param,
   sobek.project = NULL,
   w.canal = TRUE,
   volume = TRUE,
@@ -391,12 +391,12 @@ get_polder_data <- function(
   )
 
   if (param == 'discharge') {
-    id.tbl <- id.tbl[!grepl('w', ID_TYPE) | grepl("Innen", besonderheit)]
+    id.tbl <- id.tbl[!grepl('w', ID_TYPE) | grepl('Innen', besonderheit)]
   } else{
-    id.tbl <- id.tbl[!grepl('q', ID_TYPE) | grepl("Einlass|Auslass", besonderheit)]
+    id.tbl <- id.tbl[!grepl('q', ID_TYPE) | grepl('Einlass|Auslass', besonderheit)]
   }
   id.tbl[, col_name := str_match(besonderheit,
-                      ".+_(Einlass[^;]*|Auslass[^;]*|Nach|Vor|Innen)")[,2]]
+                      '.+_(Einlass[^;]*|Auslass[^;]*|Nach|Vor|Innen)')[,2]]
   # get results for each case
   id_data_list <- list()
   for (i in seq_along(case.list)) {
@@ -486,7 +486,7 @@ get_polder_data <- function(
                              grepl('mID', ID_TYPE)
                            ]
     }
-    id_ein[, col_name := str_match(besonderheit, ".+_(Einlass[^;]*)")[, 2]]
+    id_ein[, col_name := str_match(besonderheit, '.+_(Einlass[^;]*)')[, 2]]
     id_aus <- id_tbl_tmp[grepl('.+_Auslass', besonderheit) &
                            grepl('qID|sID', ID_TYPE)
                          ]
@@ -495,7 +495,7 @@ get_polder_data <- function(
                              grepl('mID', ID_TYPE)
                            ]
     }
-    id_aus[, col_name := str_match(besonderheit, ".+_(Auslass[^;]*)")[, 2]]
+    id_aus[, col_name := str_match(besonderheit, '.+_(Auslass[^;]*)')[, 2]]
     # check if all Einlass, Auslass besonderheit are different
     stopifnot(unique(id_ein$besonderheit) == id_ein$besonderheit)
     stopifnot(unique(id_aus$besonderheit) == id_aus$besonderheit)
@@ -568,12 +568,12 @@ get_polder_data <- function(
     #---- get Waterlevel Innen----
     if (isTRUE(w.canal)) {
       id_mitte <- id_tbl_tmp[col_name == 'Innen' &
-                               grepl("mID|wID", ID_TYPE)][1]
+                               grepl('mID|wID', ID_TYPE)][1]
       id_mitte_args <- list(
         case.list = case.list[[i]],
         sobek.project = sobek.project,
         id_mitte_type = id_mitte$ID_F,
-        param = "waterlevel",
+        param = 'waterlevel',
         verbose = FALSE
       )
       names(id_mitte_args)[3] <- id_mitte$ID_TYPE
@@ -612,17 +612,17 @@ get_polder_data <- function(
 #' @return a data.table
 #' @export
 get_polder_volume <- function(
-  name = NULL,
-  case.list = NULL,
+  name,
+  case.list,
   case.desc = case.list,
-  sobek.project = NULL,
+  sobek.project,
   master.tbl
 ){
   # get results for each case
   id_tbl <- get_id_tbl(name = name, case.list = case.list,
                         case.desc = case.desc, master.tbl = master.tbl
   )
-  id_vol <- id_tbl[grepl(".*_Vol", besonderheit) & ID_TYPE == 'wID']
+  id_vol <- id_tbl[grepl('.*_Vol', besonderheit) & ID_TYPE == 'wID']
   id_data_list <- list()
   for (i in seq_along(case.list)) {
     id_tbl_tmp <- id_vol[case == case.list[i]]
@@ -630,7 +630,7 @@ get_polder_volume <- function(
       id_vol_args <- list(case.list = case.list[[i]],
                           sobek.project = sobek.project,
                           wID = id_vol$ID_F,
-                          param = "Volume",
+                          param = 'Volume',
                           verbose = FALSE)
       id_data_tmp <- do.call(his_from_case, id_vol_args)
       id_data_tmp <- id_data_tmp[, rowSums(.SD, na.rm = TRUE), by = case,
@@ -638,7 +638,7 @@ get_polder_volume <- function(
       id_data_tmp <- id_data_tmp[, round(max(V1)/10^6, 2), by = case]
       colnames(id_data_tmp) <- c('case', 'Volume_max')
     } else{
-      id_data_tmp <- data.table(case = case.list[[i]], Volume_max = "k.A.")
+      id_data_tmp <- data.table(case = case.list[[i]], Volume_max = 'k.A.')
     }
     id_data_list[[i]] <- id_data_tmp
   }
@@ -659,7 +659,7 @@ get_polder_volume2 <- function(
   id_tbl <- get_id_tbl(name = name, case.list = case.list,
                        case.desc = case.desc, master.tbl = master.tbl
   )
-  id_vol <- id_tbl[grepl(".*_Vol", besonderheit) & ID_TYPE == 'wID']
+  id_vol <- id_tbl[grepl('.*_Vol', besonderheit) & ID_TYPE == 'wID']
   id_data_list <- list()
   for (i in seq_along(case.list)) {
     id_tbl_tmp <- id_vol[case == case.list[i]]
@@ -667,7 +667,7 @@ get_polder_volume2 <- function(
       id_vol_args <- list(case.list = case.list[[i]],
                           sobek.project = sobek.project,
                           wID = id_vol$ID_F,
-                          param = "Volume",
+                          param = 'Volume',
                           verbose = FALSE)
       id_data_tmp <- do.call(his_from_case, id_vol_args)
       id_data_tmp <- id_data_tmp[, Volume := rowSums(.SD, na.rm = TRUE),
@@ -732,7 +732,7 @@ get_drv_data <- function(
       km_dup = wid[duplicated(km), km]
       if (length(km_dup) > 0) {
         warning('There are more than one wIDs for the same KM at KM(s): ', 
-                paste(km_dup, collapse = ", "),
+                paste(km_dup, collapse = ', '),
                 '. These KM(s) will be remove out of the graphic')
         id_tbl <- id_tbl[!km %in% km_dup]
       }
@@ -831,7 +831,7 @@ get_drv_data <- function(
   }
   if (isTRUE(get.max)) {
     drv_data <- drv_data[, lapply(.SD, max, na.rm = TRUE),
-                             .SDcols = -c("ts"), by = case] %>%
+                             .SDcols = -c('ts'), by = case] %>%
       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
     # removing ID_F that were aggregated to the first ID_F at the duplicated KM
     if (param == 'discharge') {
@@ -871,11 +871,11 @@ get_drv_data <- function(
 #' @return a data.table
 #' @export
 get_polder_max <- function(
-  name = NULL,
-  case.list = NULL,
+  name,
+  case.list,
   case.desc = case.list,
-  param = NULL,
-  sobek.project = NULL,
+  param,
+  sobek.project,
   upstream = TRUE,
   w.canal = TRUE,
   volume = TRUE,
@@ -884,38 +884,40 @@ get_polder_max <- function(
   cmp.sort = FALSE,
   compare.by = 'zustand',
   group.by = compare.by,
-  master.tbl = NULL,
+  master.tbl,
   verbose = TRUE
 ){
   param <- tolower(param)
   delta <- isTRUE(delta)
-  stopifnot(!is.null(name) & !is.null(master.tbl) &
-              !is.null(sobek.project) & !is.null(case.list)
-  )
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   if (delta) {
+    stopifnot(length(group.by) <= 2)
     stopifnot(
       compare.by %in% c('zustand', 'vgf', 'hwe', 'notiz', 'zielpegel') &
-        group.by %in% c('zustand', 'vgf', 'hwe', 'notiz', 'zielpegel')
+        all(group.by %in% c('zustand', 'vgf', 'hwe', 'notiz', 'zielpegel'))
     )
     cmp_vars <- unique(case_tbl[, get(compare.by)])
     if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
     if (length(cmp_vars) != 2) {
       stop('compare.by must have two values not: ',
-           str_flatten(cmp_vars, collapse = ", " ))
+           str_flatten(cmp_vars, collapse = ', ' ))
     }
-    grp_vars <- unique(case_tbl[, get(group.by)])
-    total_case <-
-      unique(as.vector(outer(cmp_vars, grp_vars, paste, sep = "_")))
-    if (compare.by != group.by) {
+    if (length(group.by) == 1) {
+      case_tbl[, group__by := get(group.by)]
+    } else {
+      case_tbl[, group__by := paste(get(group.by[1]), get(group.by[2]), sep = '_')]
+    }
+    grp_vars <- unique(case_tbl[, group__by])
+    total_case <- unique(as.vector(outer(cmp_vars, grp_vars, paste, sep = '_')))
+    if (length(group.by) > length(compare.by) | compare.by != group.by[1]) {
       if (length(total_case) != length(case.list)) {
-        stop("Combination of compare.by and group.by is not distinct
-             for calculating delta")
+        stop('Combination of compare.by and group.by is not distinct
+             for calculating delta')
       }
     } else {
       if (!near(length(total_case) / 2, length(case.list), 0.1)) {
-        stop("Combination of compare.by and group.by is not distinct
-             for calculating delta")
+        stop('Combination of compare.by and group.by is not distinct
+             for calculating delta')
       }
     }
   }
@@ -985,11 +987,11 @@ get_polder_max <- function(
     col_get_delta <- colnames(id_data_max)[-1]
     id_data_max <- merge(id_data_max, case_tbl, by = 'case', sort = FALSE)
     id_data_max[, group := seq_len(.N), by = eval(compare.by)]
-    if (compare.by != group.by) {
+    if (all(compare.by != group.by)) {
       for (i in col_get_delta) {
         data_tbl_delta <-
           dcast(id_data_max,
-                group  ~ get(compare.by) + get(group.by)  ,
+                group  ~ get(compare.by) + group__by  ,
                 value.var = i)
         for (j in grp_vars) {
           col_j <- paste('Delta', i, j, sep = '_')
@@ -1002,16 +1004,16 @@ get_polder_max <- function(
         data_tbl_delta <- melt(
           data_tbl_delta,
           id.vars = 'group',
-          variable.name = group.by,
+          variable.name = 'group__by',
           value.name = paste('Delta', i, sep = '_'),
           sort = FALSE
         )
-        data_tbl_delta[, eval(group.by) :=
-                         str_replace(get(group.by),
-                                     paste('Delta_', i, "_", sep = ""), '')
+        data_tbl_delta[, group__by :=
+                         str_replace(group__by,
+                                     paste('Delta_', i, '_', sep = ''), '')
                        ]
         id_data_max <- merge(id_data_max, data_tbl_delta,
-                             by = c(group.by, 'group'), sort = FALSE)
+                             by = c('group__by', 'group'), sort = FALSE)
       }
     } else{
       for (i in col_get_delta) {
@@ -1030,11 +1032,297 @@ get_polder_max <- function(
     }
     col_keep <- c('case',
                   col_get_delta,
-                  paste('Delta', col_get_delta, sep = "_"),
+                  paste('Delta', col_get_delta, sep = '_'),
                   group.by)
-    if (group.by != compare.by) col_keep <- c(col_keep, compare.by)
+    if (all(group.by != compare.by)) col_keep <- c(col_keep, compare.by)
     id_data_max <- id_data_max[, .SD, .SDcols = col_keep]
   }
   
   return(id_data_max)
+}
+
+
+#' Get information table for a polder to compare the outputs of with/without it
+#' 
+#' @param name Name of polder
+#' @param case.mit List of cases with (the effect of) the polder
+#' @param case.ohne List of cases without (the effect of) the polder
+#' @param hwe.names Names of the floods
+#' @param sobek.project Path to sobek project
+#' @param master.tbl Master table
+#' @param html Logical. If TRUE, a html table will be generated
+#' @param verbose Display some message if TRUE
+#' @export
+get_polder_tbl <- function(
+  name,
+  case.mit,
+  case.ohne,
+  ref.mID = NULL,
+  hwe.names,
+  sobek.project,
+  master.tbl,
+  html = TRUE,
+  verbose = TRUE
+) {
+  stopifnot(length(name) == 1)
+  all_cases <- c(case.mit, case.ohne)
+  stopifnot(length(all_cases) == length(unique(all_cases)))
+  pegel <- parse_ref_id(ref.mID)
+  case_tbl <- get_polder_case_tbl(case.mit, case.ohne, sobek.project)
+  id_tbl <- get_polder_id_tbl(name, case.mit, case.ohne, 
+                              master.tbl, sobek.project,
+                              case_tbl, pegel)
+  id_tbl_vol <- id_tbl[grepl(paste0(name, '_Vol'), besonderheit)]
+  id_tbl <- id_tbl[!grepl(paste0(name, '_Vol'), besonderheit)]
+  # reading volume
+  vol_max_list <- vector()
+  all_cases <- unique(id_tbl_vol$case)
+  for (i in seq_along(all_cases)) {
+    this_case <- all_cases[[i]]
+    this_his <- unique(id_tbl_vol[case == this_case, his_file])
+    if (verbose) cat('Get volume for case: ', this_case, '\n')
+    this_vol_tbl <- his_from_list(his.file = this_his, 
+                                  id.list = id_tbl_vol[his_file == this_his, ID_F],
+                                  param = 'Volume')
+    this_vol_tbl[, Volume := rowSums(.SD), .SDcols = -c('ts')]
+    vol_max_list[[i]] <- round(max(this_vol_tbl$Volume, na.rm = TRUE) / 10^6, 2)
+  }
+  vol_max_tbl <- data.table(Volume = vol_max_list, case = all_cases)
+  # reading discharge on the river at outlet location and at the measurement
+  id_tbl_qt <- id_tbl[grepl(paste0(name, '_Nach|Pegel'), besonderheit) & ID_TYPE != 'wID']
+  qt_max_list <- list()
+  for (i in seq_along(all_cases)) {
+    this_case <- all_cases[i]
+    if (verbose) cat('Get discharge for case: ', this_case, '\n')
+    this_his <- unique(id_tbl_qt[case == this_case, his_file])
+    id_nach <- id_tbl_qt[case == this_case & grepl('_Nach', besonderheit), ID_F]
+    # this_his should have length of 1 or 2
+    # length 2 means there is a pegel and pegel_type and id_nach_type are different
+    if (length(this_his) == 2) {
+      qt_pegel <- his_from_list(
+        his.file = id_tbl_qt[case == this_case & ID_F == pegel$ID, his_file], 
+        id.list = pegel$ID,
+        param = 'discharge'
+        )
+      qt_nach <- his_from_list(
+        his.file = id_tbl_qt[case == this_case & ID_F == id_nach, his_file],
+        id.list = id_nach,
+        param = 'discharge')
+      this_qt_tbl <- merge(qt_pegel, qt_nach, by = 'ts')
+    } else {
+      if (!is.null(pegel$ID)) {
+        this_qt_tbl <- his_from_list(
+          his.file = this_his, 
+          id.list = c(id_nach, pegel$ID),
+          param = 'discharge'
+          )
+        colnames(this_qt_tbl) <- c('ts',  'Q', 'Q_Pegel')
+      } else {
+        this_qt_tbl <- his_from_list(
+          his.file = this_his, 
+          id.list = id_nach,
+          param = 'discharge'
+        )
+        colnames(this_qt_tbl) <- c('ts',  'Q')
+      }
+    }
+    qt <- this_qt_tbl[, lapply(.SD, max, na.rm = TRUE), 
+                      .SDcols = -c('ts')]
+    qt$case <- this_case
+    qt_max_list[[i]] <- qt
+  }
+  qt_max_tbl <- rbindlist(qt_max_list)
+  # reading waterlevel on the river at outlet location
+  id_tbl_wt <-
+    id_tbl[grepl(paste0(name, '_Innen|', name, '_Nach'), besonderheit) &
+             ID_TYPE != 'qID']
+  wt_max_list <- list()
+  for (i in seq_along(all_cases)) {
+    this_case <- all_cases[i]
+    if (verbose) cat('Get waterlevel for case: ', this_case, '\n')
+    this_his <- unique(id_tbl_wt[case == this_case, his_file])
+    this_id_tbl_wt <- id_tbl_wt[case == this_case]
+    id_nach <- this_id_tbl_wt[grepl(paste0(name, '_Nach'), besonderheit), ID_F]
+    id_innen <- this_id_tbl_wt[grepl(paste0(name, '_Innen'), besonderheit), ID_F]
+    if (length(this_his) > 1) {
+      his_nach <- this_id_tbl_wt[grepl(paste0(name, '_Nach'), besonderheit), his_file]
+      his_innen <- this_id_tbl_wt[grepl(paste0(name, '_Innen'), besonderheit), his_file]
+      his_pegel <- this_id_tbl_wt[besonderheit == 'Pegel', his_file]
+      wt_nach <- his_from_list(
+        his.file = his_nach,
+        id.list = id_nach,
+        param = 'waterlevel'
+      )[, max(get(id_nach), na.rm = TRUE)]
+      wt_innen <- his_from_list(
+        his.file = his_innen,
+        id.list = id_innen,
+        param = 'waterlevel'
+      )[, max(get(id_innen), na.rm = TRUE)]
+      if (!is.null(pegel$ID)) {
+        wt_pegel <- his_from_list(
+          his.file = his_pegel,
+          id.list = pegel$ID,
+          param = 'waterlevel'
+        )[, max(get(id_innen), na.rm = TRUE)]
+        wt <- data.table(W = wt_nach, W_Polder = wt_innen, W_Pegel = wt_pegel)
+      } else {
+        wt <- data.table(W = wt_nach, W_Polder = wt_innen)
+      }
+    } else {
+      if (!is.null(pegel$ID)) {
+        wt <- his_from_list(
+          his.file = this_his,
+          id.list = c(id_nach, id_innen, pegel$ID),
+          param = 'waterlevel'
+        )
+        colnames(wt) <- c('ts', 'W', 'W_Polder', 'W_Pegel')
+      } else {
+        wt <- his_from_list(
+          his.file = this_his,
+          id.list = c(id_nach, id_innen),
+          param = 'waterlevel'
+        )
+        colnames(wt) <- c('ts', 'W', 'W_Polder')
+      }
+    }
+    wt <- wt[, lapply(.SD, max), .SDcols = -c('ts')]
+    wt$case <- this_case
+    wt_max_list[[i]] <- wt
+  }
+  wt_max_tbl <- rbindlist(wt_max_list)
+  polder_tbl <- merge(wt_max_tbl, qt_max_tbl, by = 'case')
+  polder_tbl <- merge(polder_tbl, vol_max_tbl, by = 'case')
+  polder_tbl[case %in% case.mit, zustand := 'Mit']
+  polder_tbl[case %in% case.ohne, zustand := 'Ohne']
+  polder_tbl <- merge(polder_tbl, case_tbl[, c('case', 'grp')], by = 'case')
+  value_vars <- c('W', 'W_Polder', 'Q', 'Volume', 'W_Pegel', 'Q_Pegel')
+  final_cols <- c(
+    'Q_Mit', 'Q_Ohne', 'Delta_Q',
+    'W_Mit', 'W_Ohne', 'Delta_W',
+    'Volume_Mit',
+    'W_Polder_Mit', 
+    'Q_Pegel_Mit', 'Q_Pegel_Ohne', 'Delta_Q_Pegel',
+    'W_Pegel_Mit', 'W_Pegel_Ohne', 'Delta_W_Pegel'
+  )
+  if (is.null(pegel$ID)) {
+    value_vars <- value_vars[!grepl('_Pegel', value_vars)]
+    final_cols <- final_cols[!grepl('_Pegel', final_cols)]
+  }
+  polder_tbl <- dcast(polder_tbl, grp ~ zustand, value.var = value_vars)
+  polder_tbl[, Delta_Q := Q_Mit - Q_Ohne]
+  polder_tbl[, Delta_W := W_Mit - W_Ohne]
+  if (!is.null(pegel$ID)) {
+    polder_tbl[, Delta_Q_Pegel := Q_Pegel_Mit - Q_Pegel_Ohne]
+    polder_tbl[, Delta_W_Pegel := W_Pegel_Mit - W_Pegel_Ohne]
+  }
+  polder_tbl[, (final_cols) := lapply(.SD, round, digits = 2), .SDcols = final_cols]
+  if (length(hwe.names) == max(polder_tbl$grp)) {
+    polder_tbl$HWE <- hwe.names
+  } else {
+    cat('Cannot assign hwe names, set hwe to group index\n')
+    polder_tbl[, HWE := grp]
+  }
+  final_cols <- c('HWE', final_cols)
+  polder_tbl <- polder_tbl[, ..final_cols]
+  if (html) {
+    headers <-  c(' ' = 1, 
+                  'Abfluss nach dem Polder' = 3, 
+                  'Wasserstand nach dem Polder' = 3, 
+                  'Im Polder' = 2,
+                  'Abfluss am Pegel' = 3,
+                  'Wasserstand am Pegel' = 3
+    )
+    names(headers)[5] <- trimws(paste('Abfluss am Pegel', pegel$name))
+    names(headers)[6] <- trimws(paste('Wasserstand am Pegel', pegel$name))
+    if (is.null(pegel$ID)) {
+      headers <- headers[-c(5,6)]
+    }
+    polder_tbl <- kable(polder_tbl) %>% kable_styling(c('hover', 'striped')) %>% 
+      add_header_above(headers)
+  }
+  return(polder_tbl)
+}
+
+parse_ref_id <- function(ref.mID) {
+  if (length(ref.mID) > 1) {
+    if (hasName(ref.mID, 'ID')) {
+      ref_id <- ref.mID[['ID']]
+    } else {
+      ref_id <- ref.mID[[1]]
+    }
+    if (hasName(ref.mID, 'name')) {
+      ref_name <- ref.mID[['name']]
+    } else {
+      ref_name <- ref.mID[[2]]
+    }
+    if (hasName(ref.mID, 'type')) {
+      ref_type <- ref.mID[['type']]
+    } else {
+      if (length(ref.mID) > 2) {
+        ref_type <- ref.mID[[3]]
+      } else {
+        ref_type <- 'mID'
+      }
+    }
+  if (is.null(ref_name)) ref_name <- ref_id
+  } else {
+    ref_id <- ref_name <- ref.mID[[1]]
+    ref_type <- 'mID'
+  }
+  return(list(ID = ref_id, type = ref_type, name = ref_name))
+}
+
+
+get_polder_case_tbl <- function(
+  case.mit, case.ohne, sobek.project
+) {
+  # parsing information from cases
+  case_tbl_mit <- data.table(case = case.mit)
+  case_tbl_ohne <- data.table(case = case.ohne)
+  case_tbl_mit[, grp := .GRP, by = case]
+  case_tbl_ohne[, grp := .GRP, by = case]
+  case_tbl <- rbind(case_tbl_mit, case_tbl_ohne)
+  # reading caselist.cmt
+  case_cmt <- fread(file_path('caselist.cmt', sobek.project), sep = ' ',
+                    quote = "'", col.names = c('case_number', 'case'))
+  case_cmt[, case := str_remove_all(case, '"')]
+  case_cmt <- case_cmt[case %in% c(case.mit, case.ohne)]
+  case_chk <- assertthat::are_equal(sort(case_cmt$case), 
+                                    sort(c(case.mit, case.ohne)))
+  if (!case_chk) {
+    stop('Not all cases were found in the caselist.cmt, check case names or sobek.project')
+  }
+  case_cmt[, case_folder := file.path(sobek.project, case_number)]
+  case_tbl <- merge(case_tbl, case_cmt, by = 'case')
+  return(case_tbl)
+}
+
+get_polder_id_tbl <- function(
+  name, case.mit, case.ohne, master.tbl, sobek.project, case_tbl, pegel
+) {
+  id_tbl <- get_id_tbl(name = name, 
+                       case.list = c(case.mit, case.ohne),
+                       master.tbl = master.tbl
+  )
+  id_tbl <- id_tbl[ID_TYPE != 'sID'][, c('km', 'river', 'ID') := rep(NULL, 3)]
+  refid_tbl <- case_tbl[, c('case')]
+  if (!is.null(pegel$ID)) {
+    refid_tbl[, ID_F := pegel$ID][, ID_TYPE := pegel$type][, besonderheit := 'Pegel']
+    id_tbl <- rbind(id_tbl, refid_tbl)
+  }
+  id_tbl <- id_tbl[grepl(paste0(name, '_Vol|',  name, '_Innen|', name, '_Nach|Pegel'), 
+                         besonderheit)]
+  id_tbl$his_file <- sapply(tolower(id_tbl$ID_TYPE), function(x) switch(
+    tolower(x),
+    wid = 'calcpnt.his',
+    mid = 'measstat.his',
+    qid = 'reachseg.his',
+    stop('master.tbl has wrong format!')
+  ),
+  USE.NAMES = FALSE
+  )
+  id_tbl <- merge(id_tbl, case_tbl[, c('case', 'case_folder', 'grp')], by = 'case')
+  id_tbl[, his_file := file.path(case_folder, his_file)]
+  id_tbl[, his_grp := .GRP, by = his_file]
+  return(id_tbl)
 }

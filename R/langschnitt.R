@@ -88,8 +88,8 @@ plot_drv <- function(
       stop("compare.by must be one of ('zustand', 'vgf', 'notiz', 'zielpegel', 'hwe')")
     }
     cmp_vars <- unique(case_tbl[, get(compare.by)])
-    if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
-    if (length(cmp_vars) != 2 & isTRUE(delta)) {
+    if (cmp.sort) cmp_vars <- sort(cmp_vars)
+    if (length(cmp_vars) != 2 & delta) {
       stop('compare.by must have two values not: ',
            str_flatten(cmp_vars, collapse = ", " ))
     }
@@ -109,7 +109,7 @@ plot_drv <- function(
     }
     grp_vars <- unique(case_tbl[, get(group.by)])
   }
-  if (isTRUE(delta)) {
+  if (delta) {
     if (is.null(compare.by) | is.null(group.by)) {
       stop('For caculating delta, compare.by and group.by must be specified!')
     }
@@ -135,7 +135,7 @@ plot_drv <- function(
                        )
   }
   #----get data----
-  if (verbose) print('Reading data...')
+  if (verbose) cat('Reading data...\n')
   data_tbl <- get_drv_data(name = name,
                            case.list = case.list,
                            case.desc = case.desc,
@@ -198,7 +198,7 @@ plot_drv <- function(
     # check if there is a mistake to give HQS of Q to 'waterlevel'
     if (min(hqs$HQS, na.rm = TRUE) > 5 * y1_max & param == 'waterlevel') {
       warning('Check if HQ Statistik for Discharge was given for a graphic of waterlevel')
-      print('HQ Statistik points have not been plotted.')
+      cat('HQ Statistik points have not been plotted.\n')
     } else {
       hqs_point <- TRUE
       y1_min <- min(min(hqs$HQS, na.rm = TRUE), y1_min)
@@ -209,7 +209,7 @@ plot_drv <- function(
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   y1_pretty <- pretty(y1_min:y1_max,  ntick.y, ntick.y)
   #----delta == TRUE----
-  if (isTRUE(delta)) {
+  if (delta) {
     # searching for KM that delta calculation is possible
     km_4_delta <- unique(data_tbl[!is.na(scheitel)]$km)
     y2_name <- paste('Delta',
@@ -272,7 +272,7 @@ plot_drv <- function(
         if (abs(y2.scale) > 10 ** i)
           y2.scale <- round(y2.scale, -i)
       }
-      if (isTRUE(verbose)) print(paste('tried with y2.scale =', y2.scale))
+      if (verbose) cat('tried with y2.scale =', y2.scale, '\n')
     }
     y2_shift <- y1_min - y2_min * y2.scale
     y1_max <- max(y1_max, y2_max * y2.scale + y2_shift)
@@ -324,9 +324,9 @@ plot_drv <- function(
     data_tbl[is.na(scheitel), delta := NA]
   }
   #----add graphic----
-  if (verbose) print('Preparing graphic...')
+  if (verbose) cat('Preparing graphic...\n')
   # preparing data for highlighting DRV
-  setorderv(b_tick, cols = 'km', order = ifelse(isTRUE(reverse.x), -1, 1))
+  setorderv(b_tick, cols = 'km', order = ifelse(reverse.x, -1, 1))
   b_tick[grepl('DRV_([^,;]*)_Begin', besonderheit), drv_start := km]
   b_tick[grepl('DRV_([^,;]*)_End', besonderheit), drv_end := km]
   b_tick[grepl('DRV_([^,;]*)_Begin', besonderheit), drv_nr := .I]
@@ -362,7 +362,7 @@ plot_drv <- function(
     labs(title = plot.title) +
     ylab(y.lab) +
     scale_y_continuous(breaks = y1_pretty)
-  if (isTRUE(reverse.x)) {
+  if (reverse.x) {
     g <- g +
       scale_x_reverse(
         name = x.lab,
@@ -387,11 +387,11 @@ plot_drv <- function(
   }
   g <- g + geom_line(size = 1)
   if (!is.null(man.colors)) {
-    g <- g + scale_color_manual(values = c(man.colors, man.colors))
+    g <- g + scale_color_manual(values = c(man.colors, man.colors, 'black'))
   }
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
-  if (isTRUE(delta)) {
+  if (delta) {
     g <- g + geom_line(
       data = data_tbl,
       aes(
@@ -435,7 +435,7 @@ plot_drv <- function(
     g <- g + facet_grid(rows = ensym(facet.by))
   }
   # adding HQS Points
-  if (isTRUE(hqs_point)) {
+  if (hqs_point) {
     g <- g + geom_point(
       mapping = aes(y = HQS, shape = HQ_Statistik),
       color = 'black',
@@ -444,8 +444,8 @@ plot_drv <- function(
     )
   }
   if (verbose) {
-    if (delta) print(paste('y2_shift =', y2_shift, 'and y2.scale =', y2.scale))
-    print("done.") 
+    if (delta) cat('y2_shift =', y2_shift, 'and y2.scale =', y2.scale, '\n')
+    cat("done.") 
   }
   return(g)
 }
@@ -545,8 +545,8 @@ plot_longprofile <- function(
   ntick.y = 7L,
   highlight = NULL,
   highlight.text = NULL,
-  a.fill = exl_std[3],
-  a.alpha = 0.1,
+  a.fill = 'grey',
+  a.alpha = 0.5,
   overlap = NULL,
   talweg = FALSE,
   master.tbl,
@@ -564,7 +564,7 @@ plot_longprofile <- function(
   if (!is.null(ts.trim.left)) stopifnot(is.numeric(ts.trim.left))
   # preparing parameters--------------------------------------------------------
   param <- tolower(param)
-  if (!isTRUE(dband)) dband.label <- FALSE
+  if (!dband) dband.label <- FALSE
   stopifnot(length(unique(case.list)) == length(case.list))
   stopifnot(is.numeric(from.km) & is.numeric(to.km))
   stopifnot(to.km > from.km)
@@ -580,8 +580,8 @@ plot_longprofile <- function(
       stop("compare.by must be one of ('zustand', 'hwe', 'vgf', 'notiz', 'zielpegel')")
     }
     cmp_vars <- unique(case_tbl[, get(compare.by)])
-    if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
-    if (length(cmp_vars) != 2 & isTRUE(delta)) {
+    if (cmp.sort) cmp_vars <- sort(cmp_vars)
+    if (length(cmp_vars) != 2 & delta) {
       if (length(case.list) != 1) stop('compare.by must have two values not: ',
            str_flatten(cmp_vars, collapse = ", " ))
     }
@@ -602,15 +602,15 @@ plot_longprofile <- function(
     }
     grp_vars <- unique(case_tbl[, get(group.by)])
   }
-  if (isTRUE(delta)) {
+  if (delta) {
     if (is.null(compare.by) | is.null(group.by)) {
       stop('For caculating delta, compare.by and group.by must be specified!')
     }
     if (compare.by != group.by) {
       total_case <- unique(as.vector(outer(cmp_vars, grp_vars, paste, sep = "_")))
       if (length(total_case) != length(case.list)) {
-        print("Combination of compare.by and group.by does not have the same length as case.list")
-        print('Hint: notiz can be modified and used as a groupping parameter')
+        cat("Combination of compare.by and group.by does not have the same length as case.list\n")
+        cat('Hint: notiz can be modified and used as a groupping parameter\n')
         stop('Groupping by ', group.by,
              ' is not unique for calculating delta between ', compare.by)
       }
@@ -625,7 +625,7 @@ plot_longprofile <- function(
   }
   #----get data----
   if (is.null(input.data)) {
-    if (verbose) print('Reading data...')
+    if (verbose) cat('Reading data...\n')
     data_tbl <- get_segment_data(
       river = river,
       from.km = from.km,
@@ -640,7 +640,7 @@ plot_longprofile <- function(
       do.par = do.par,
       ts.trim.left = ts.trim.left
     )
-    if (isTRUE(keep.data)) {
+    if (keep.data) {
       dta <- copy(data_tbl)
     }
   } else {
@@ -694,7 +694,7 @@ plot_longprofile <- function(
       # check if there is a mistake to give HQS of Q to 'waterlevel'
     if (min(hqs$HQS, na.rm = TRUE) > 5 * y1_max & param == 'waterlevel') {
       warning('Check if HQ Statistik for Discharge was given for a graphic of waterlevel')
-      print('HQ Statistik points have not been plotted.')
+      cat('HQ Statistik points have not been plotted.\n')
     } else {
       hqs_point <- TRUE
       y1_min <- min(min(hqs$HQS, na.rm = TRUE), y1_min)
@@ -705,7 +705,7 @@ plot_longprofile <- function(
   x_pretty <- pretty(x_min:x_max, ntick.x, ntick.x)
   y1_pretty <- pretty(y1_min:y1_max, ntick.y, ntick.y)
   #----delta == TRUE----
-  if (isTRUE(delta)) {
+  if (delta) {
     # searching for KM that delta calculation is possible
     km_4_delta <- unique(data_tbl[!is.na(scheitel)]$km)
     y2_name <- paste('Delta',
@@ -819,9 +819,18 @@ plot_longprofile <- function(
     data_tbl[get(compare.by) == cmp_vars[2], delta := NA]
     data_tbl[get(compare.by) == cmp_vars[2], delta_color := NA]
     data_tbl[is.na(scheitel), delta := NA]
+    if (dband) {
+      round_nr <- ifelse(param == 'discharge', 0, y2.round)
+      d_min <- round(min(data_tbl$delta, na.rm = TRUE), round_nr)
+      d_max <- round(max(data_tbl$delta, na.rm = TRUE), round_nr)
+      data_tbl[, dband_min := min(delta, na.rm = TRUE), by = km]
+      data_tbl[, dband_max := max(delta, na.rm = TRUE), by = km]
+      data_tbl[is.infinite(dband_min), dband_min := NA]
+      data_tbl[is.infinite(dband_max), dband_max := NA]
+    }
   }
   #----add graphic----
-  if (verbose) print('Preparing graphic...')
+  if (verbose) cat('Preparing graphic...\n')
   if (!is.null(compare.by)) {
     data_tbl[[compare.by]] <- factor(data_tbl[[compare.by]], 
                                      levels = c(cmp_vars)
@@ -849,7 +858,7 @@ plot_longprofile <- function(
     ) +
     labs(title = plot.title) +
     ylab(y.lab)
-  if (isTRUE(reverse.x)) {
+  if (reverse.x) {
     g <- g +
       scale_x_reverse(
         name = x.lab,
@@ -873,8 +882,8 @@ plot_longprofile <- function(
       )
   }
   g <- g + geom_line(size = 1)
-  if (isTRUE(talweg) & param == 'waterlevel') {
-    if (isTRUE(verbose)) print('Reading profile...')
+  if (talweg & param == 'waterlevel') {
+    if (verbose) cat('Reading profile...\n')
     pf_tbl <- get_profile_tbl(
       case = case.list[[1]],
       sobek.project = sobek.project
@@ -885,8 +894,7 @@ plot_longprofile <- function(
     y1_min <- min(y1_min, data_tbl$zb, na.rm = TRUE)
     y1_max <- max(y1_max, data_tbl$zb, na.rm = TRUE)
     y1_pretty <- pretty(y1_min:y1_max, ntick.y, ntick.y)
-    if (isTRUE(delta)) y2_pretty <- (y1_pretty - y2_shift) / y2.scale
-    print(y1_pretty)
+    if (delta) y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     g <- g + geom_line(data = data_tbl,
                        aes(
                          y = zb,
@@ -895,31 +903,27 @@ plot_longprofile <- function(
                        ),
                        size = 1)
   }
-  if (!isTRUE(delta)) g <-  g + scale_y_continuous(breaks = y1_pretty)
+  if (!delta) g <-  g + scale_y_continuous(breaks = y1_pretty)
   if (!is.null(man.colors)) {
     g <- g + scale_color_manual(values = c(man.colors, man.colors))
   }
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
-  if (isTRUE(dband)) {
-    round_nr <- ifelse(param == 'discharge', 0, y2.round)
-    d_min <- round(min(data_tbl$delta, na.rm = TRUE), round_nr)
-    d_max <- round(max(data_tbl$delta, na.rm = TRUE), round_nr)
-  }
-  if (isTRUE(delta)) {
+
+  if (delta) {
     # manual setting for y2 axis
     if (!is.null(y2.shift)) {
-      if (verbose) print('Manual y2-axis setting with y2.scale and y2.shift, y2.tick1 was ignored!')
+      if (verbose) cat('Manual y2-axis setting with y2.scale and y2.shift, y2.tick1 was ignored!\n')
       y2_shift <- y2.shift
       y1_min <- min(y1_min, data_tbl$scheitel, na.rm = TRUE)
       y1_max <- max(y1_max, data_tbl$scheitel, na.rm = TRUE)
-      if (isTRUE(hqs_point)) {
+      if (hqs_point) {
         y1_min <- min(min(hqs$HQS, na.rm = TRUE), y1_min)
         y1_max <- max(max(hqs$HQS, na.rm = TRUE), y1_max)
       }
       y2_min <- (y1_min - y2_shift) / y2.scale
       y2_max <- (y1_max - y2_shift) / y2.scale
-      if (isTRUE(dband.label)) {
+      if (dband.label) {
         y2_min <- min(y2_min, d_min)
         y2_max <- max(y2_max, d_max)
       }
@@ -928,23 +932,15 @@ plot_longprofile <- function(
       y1_pretty <- pretty(y1_min:y1_max, ntick.y, ntick.y)
       y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     }
-    if (isTRUE(dband.label)) {
+    if (dband.label) {
       y2_pretty <- sort(c(d_min, d_max, y2_pretty))
     }
-    if (isTRUE(y2.zero)) {
+    if (y2.zero) {
       g <- g + geom_hline(yintercept = y2_shift, 
                           color = 'black', 
                           size = 1.1,
                           linetype = 'solid'
                           )
-    }
-    if (isTRUE(dband)) {
-      g <- g + annotate("rect",
-                        xmin = -Inf, xmax = Inf,
-                        ymin = y2.scale * d_min + y2_shift,
-                        ymax = y2.scale * d_max + y2_shift,
-                        alpha = 0.2, fill = "grey20"
-      )
     }
     g <- g + geom_line(
       data = data_tbl,
@@ -995,7 +991,7 @@ plot_longprofile <- function(
     }
   }
   # adding HQS Points
-  if (isTRUE(hqs_point)) {
+  if (hqs_point) {
       g <- g + geom_point(
         mapping = aes(y = HQS, shape = HQ_Statistik),
         color = 'black',
@@ -1008,12 +1004,26 @@ plot_longprofile <- function(
     shape = guide_legend(nrow = shape.nrow),
     linetype = guide_legend(nrow = lt.nrow)
   )
-  if (isTRUE(delta)) {
-    print(paste('y2_shift =', y2_shift, 'and y2.scale =', y2.scale))
-    print("done.") 
+  if (dband) {
+    g <- g +
+      geom_ribbon(
+        aes(
+          x = km,
+          ymax = y2.scale * dband_min + y2_shift,
+          ymin = y2.scale * dband_max + y2_shift
+        ),
+        color = 'black',
+        linetype = 'dashed',
+        fill = a.fill,
+        alpha = a.alpha
+      )
+  }
+  if (verbose) {
+    if (delta) cat('y2_shift =', y2_shift, 'and y2.scale =', y2.scale,  '\n')
+    cat("done.") 
   }
   
-  if (isTRUE(keep.data)) {
+  if (keep.data) {
     ret <- list(data_tbl = dta, g = g)
   } else {
     ret <- g

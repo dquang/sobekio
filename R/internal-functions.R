@@ -193,13 +193,13 @@
     his.params[, param_long := '']
   }
   # correcting the 'water level' instead of 'waterlevel' in measstat.his
-  his.params[, param_short := sub('water level',
+  his.params[, param_short := sub('water level|w.level',
                                   'Waterlevel',
                                   ignore.case = TRUE,
                                   param_short
                                   )
              ]
-  his.params[, param_long := sub('water level',
+  his.params[, param_long := sub('water level|w.level',
                                   'Waterlevel',
                                  param_long,
                                  ignore.case = TRUE
