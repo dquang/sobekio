@@ -698,3 +698,233 @@ plot_polder_scenario <- function(
 
   return(g)
 }
+
+#' Get data for polder
+#' 
+#' @inheritParams plot_polder_scenario
+#' @export
+get_polder_scenario_data <- function(name,
+                                     param,
+                                     case.list,
+                                     case.desc = case.list,
+                                     sobek.project,
+                                     ref.mID = NULL,
+                                     w.canal = TRUE,
+                                     q.in = TRUE,
+                                     q.out = q.in,
+                                     master.tbl,
+                                     verbose = FALSE
+) {
+  pegel <- parse_ref_id(ref.mID)
+  case_tbl <- get_polder_scenario_case_tbl(case.list, case.desc, sobek.project)
+  id_tbl <- get_polder_scenario_id_tbl(name, case.list, master.tbl, 
+                                       sobek.project, case_tbl, pegel)
+  id_vol <- id_tbl[grepl(paste0(name, '_Vol'), besonderheit)]
+  id_tbl <- id_tbl[!grepl(paste0(name, '_Vol'), besonderheit)] 
+  # for w.canal, always need water level (so only wID|mID)
+  # assumed that sID was not given to w.canal - if yes, an error with parameter will occur
+  # reading volume
+  vol_max_list <- vector()
+  for (i in seq_along(case.list)) {
+    this_case <- case.list[[i]]
+    this_his <- id_vol[case == this_case, his_file][1]
+    if (verbose) cat('Get volume for case: ', this_case, '\n')
+    this_vol_tbl <- his_from_list(his.file = this_his, 
+                                  id.list = id_vol[his_file == this_his, ID_F],
+                                  param = 'Volume')
+    this_vol_tbl[, Volume := rowSums(.SD), .SDcols = -c('ts')]
+    vol_max_list[[i]] <- round(max(this_vol_tbl$Volume, na.rm = TRUE) / 10^6, 2)
+  }
+  vol_max_tbl <- data.table(Volume = vol_max_list, case = case.list)
+  # reading data at "nach, vor, 
+  if (param == 'waterlevel') {
+    pat_vor_nach <- '_Vor|_Nach'
+    if (w.canal) {
+      pat_vor_nach <- '_Vor|_Nach|_Innen'
+    }
+    id_vor_nach <- id_tbl[grepl(pat_vor_nach, besonderheit)]
+    data_tbl <- get_data_for_id_tbl(case.list, param, id_vor_nach)
+    if (q.in | q.out) {
+      id_ein_aus <- id_tbl[grepl('_Einlass|_Auslass', besonderheit)]
+      data_ein_aus <- get_data_for_id_tbl(case.list, 'discharge', id_ein_aus)
+      data_tbl <- merge(data_tbl, data_ein_aus, by = c('ts', 'case'), sort = FALSE)
+    }
+    data_cols <- colnames(data_tbl)
+    colnames(data_tbl) <- rename_polder_cols(data_cols)
+  } else {
+    if (q.in | q.out) {
+      id_rest <- id_tbl[!grepl(paste0(name, '_Innen'), 
+                               besonderheit)][ID_TYPE != 'wID']
+      data_tbl <- get_data_for_id_tbl(case.list, 'discharge', id_rest)
+    } else {
+      id_rest <- id_tbl[grepl(paste0(name, '_Auslass|_Einlass'), 
+                              besonderheit)][ID_TYPE != 'wID']
+      data_tbl <- get_data_for_id_tbl(case.list, 'discharge', id_rest)
+    }
+    if (w.canal) {
+      id_wcanal <- id_tbl[grepl(paste0(name, '_Innen'), besonderheit)]
+      data_wcanal <- get_data_for_id_tbl(case.list, 'waterlevel', id_wcanal)
+      data_tbl <- merge(data_wcanal, data_tbl, by = c('ts', 'case'), sort = FALSE)
+    }
+    data_cols <- colnames(data_tbl)
+    colnames(data_tbl) <- rename_polder_cols(data_cols)
+  }
+  data_tbl <- merge(
+    data_tbl,
+    case_tbl[, c('case', 'zustand', 'zielpegel', 'hwe', 'vgf', 'notiz')],
+    by = 'case', sort = FALSE)
+  vol_max_tbl <- merge(
+    vol_max_tbl,
+    case_tbl[, c('case', 'zustand', 'zielpegel', 'hwe', 'vgf', 'notiz')],
+    by = 'case', sort = FALSE)
+  return(list(data_tbl = data_tbl,  vol_max_tbl = vol_max_tbl))
+}
+
+
+get_polder_scenario_case_tbl <- function(
+  case.list, case.desc, sobek.project
+) {
+  # parsing information from cases
+  case_tbl <- parse_case(case.desc, case.list)
+  # reading caselist.cmt
+  case_cmt <- fread(file_path('caselist.cmt', sobek.project), sep = ' ',
+                    quote = "'", col.names = c('case_number', 'case'))
+  case_cmt[, case := str_remove_all(case, '"')]
+  case_cmt <- case_cmt[case %in% case.list]
+  case_chk <- assertthat::are_equal(sort(case_cmt$case), 
+                                    sort(case.list))
+  if (!case_chk) {
+    stop('Not all cases were found in the caselist.cmt, check case names or sobek.project')
+  }
+  case_cmt[, case_folder := file.path(sobek.project, case_number)]
+  case_tbl <- merge(case_tbl, case_cmt, by = 'case')
+  return(case_tbl)
+}
+
+get_polder_scenario_id_tbl <- function(
+  name, case.list, master.tbl, sobek.project, case_tbl, pegel
+) {
+  id_tbl <- get_id_tbl(name = name, case.list = case.list, master.tbl = master.tbl)
+  id_tbl <- id_tbl[, c('km', 'river', 'ID') := rep(NULL, 3)]
+  refid_tbl <- case_tbl[, c('case')]
+  if (!is.null(pegel$ID)) {
+    refid_tbl[, ID_F := pegel$ID][, ID_TYPE := pegel$type][, besonderheit := 'Pegel1']
+    id_tbl <- rbind(id_tbl, refid_tbl)
+  }
+  polder_pat <- paste0(name, '_Vol|',  
+                       name, '_Innen|',
+                       name, '_Vor|',
+                       name, '_Auslass|',
+                       name, '_Einlass|',
+                       name, '_Nach|Pegel1')
+  id_tbl <- id_tbl[grepl(polder_pat, besonderheit)]
+  id_tbl$his_file <- sapply(tolower(id_tbl$ID_TYPE), function(x) switch(
+    tolower(x),
+    sid = 'struc.his',
+    wid = 'calcpnt.his',
+    mid = 'measstat.his',
+    qid = 'reachseg.his',
+    stop('master.tbl has wrong format!')
+  ),
+  USE.NAMES = FALSE
+  )
+  id_tbl <- merge(id_tbl, case_tbl[, c('case', 'case_folder')], by = 'case')
+  id_tbl[, his_file := file.path(case_folder, his_file)]
+  return(id_tbl)
+}
+
+get_ids_polder <- function(name, id_tbl) {
+  id_vol <- id_tbl[grepl(paste0(name, '_Vol'), besonderheit)]
+  id_tbl <- id_tbl[!grepl(paste0(name, '_Vol'), besonderheit)]
+  # check if his file for case are all calcpnt.his
+  his_type <- unique(basename(id_tbl_vol$his_file))
+  if (!isTRUE(all(his_type == 'calcpnt.his')) | length(his_type) == 0) {
+    stop('master.tbl has wrong format for Volume IDs of the polder: ', name)
+  }
+  id_nach <- id_tbl[grepl(paste0(name, '_Nach'), besonderheit)]
+  check_id <- function(x, multi = FALSE) {
+    id_nrow <- nrow(x)
+    if (id_nrow == 0) return(FALSE)
+    if (!multi) {
+      id_ncase <- length(unique(x$case))
+      id_nhis <- length(unique(x$his_file))
+      if (id_ncase != id_nhis) return(FALSE)
+    }
+    if (isTRUE(any(is.na(x)))) return(FALSE)
+    return(TRUE)
+  }
+  if (!check_id(id_nach)) {
+    stop('master.tbl has wrong format for "Nach" IDs of the polder: ', name)
+  }
+  id_innen <- id_tbl[grepl(paste0(name, '_Innen'), besonderheit)]
+  if (!check_id(id_innen)) {
+    stop('master.tbl has wrong format for "Nach" IDs of the polder: ', name)
+  }
+  id_vor <- id_tbl[grepl(paste0(name, '_Vor'), besonderheit)]
+  if (!check_id(id_vor)) {
+    stop('master.tbl has wrong format for "Vor" IDs of the polder: ', name)
+  }
+  id_ein <- id_tbl[grepl(paste0(name, '_Einlass'), besonderheit)]
+  if (!check_id(id_ein, multi = TRUE)) {
+    stop('master.tbl has wrong format for "Vor" IDs of the polder: ', name)
+  }
+  id_aus <- id_tbl[grepl(paste0(name, '_Auslass'), besonderheit)]
+  if (!check_id(id_aus, multi = TRUE)) {
+    stop('master.tbl has wrong format for "Vor" IDs of the polder: ', name)
+  }
+  id_pegel <- id_tbl[grepl('Pegel1', besonderheit)]
+  ret <- list(
+    id_vol = id_vol,
+    id_nach = id_nach,
+    id_vor = id_vor,
+    id_innen = id_innen,
+    id_ein = id_ein,
+    id_aus = id_aus,
+    id_pegel = id_pegel
+  )
+  return(ret)
+}
+
+
+get_data_for_id_tbl <- function(
+  case.list, param, id_tbl
+){
+  data_list <- list()
+  for (i in seq_along(case.list)) {
+    this_case <- case.list[i]
+    his_files <- unique(id_tbl[case == this_case, his_file])
+    # this_his should have length of 1 or 2
+    # length 2 means there is a pegel and pegel_type and id_nach_type are different
+    for (j in seq_along(his_files)) {
+      data_tmp <- his_from_list(
+        his.file = his_files[j],
+        id.list = id_tbl[case == this_case & his_file == his_files[j], ID_F],
+        param = param
+      )
+      colnames(data_tmp) <- c(
+        'ts', 
+        id_tbl[case == this_case & his_file == his_files[j], besonderheit]
+      )
+      if (j == 1) {
+        data_this_case <- data_tmp
+      } else {
+        data_this_case <- merge(data_this_case, data_tmp, by = 'ts', sort = FALSE)
+      }
+    }
+    data_this_case[, case := this_case]
+    data_list[[i]] <- data_this_case
+  }
+  data_tbl <- rbindlist(data_list)
+  data_cols <- colnames(data_tbl)
+  return(data_tbl)
+}
+
+rename_polder_cols <- function(data_cols) {
+  data_cols <- str_replace_all(data_cols, '[^,]*_(Vor[^,]*).*', '\\1')
+  data_cols <- str_replace_all(data_cols, '[^,]*_(Nach[^,]*).*', '\\1')
+  data_cols <- str_replace_all(data_cols, '[^,]*_(Einlass[^,]*).*', '\\1')
+  data_cols <- str_replace_all(data_cols, '[^,]*_(Auslass[^,]*).*', '\\1')
+  data_cols <- str_replace_all(data_cols, '[^,]*_(Innen[^,]*).*', '\\1')
+  return(data_cols)
+}
+  

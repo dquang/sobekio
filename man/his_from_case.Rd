@@ -5,8 +5,8 @@
 \title{Export data for nodes/reaches for multiple SOBEK Cases}
 \usage{
 his_from_case(
-  case.list = NULL,
-  sobek.project = NULL,
+  case.list,
+  sobek.project,
   param = 1,
   verbose = TRUE,
   get.max = FALSE,

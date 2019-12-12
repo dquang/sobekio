@@ -37,8 +37,8 @@
 #' @return a data.table
 #' @export
 his_from_case <- function(
-  case.list = NULL, # path to list of cases to work with
-  sobek.project = NULL, # path to Sobek Project folder
+  case.list, # path to list of cases to work with
+  sobek.project, # path to Sobek Project folder
   param = 1, # index of the paramter to get data from .HIS file
   verbose = TRUE,
   get.max = FALSE, # instead of get the time series, get the max values only
@@ -55,7 +55,11 @@ his_from_case <- function(
   if (isTRUE(get.abs.max)) get.max <- FALSE
   f_args <- as.list(match.call(expand.dots = FALSE))
   id_args <- list(...)
-  stopifnot(!is.null(case.list) & !is.null(sobek.project))
+  if (length(id_args) != 1) {
+    cat('"..." accepts only one parameter in form of id_type = id_list.\n')
+    cat('for examples: mid = "p_worms"\n')
+    stop('Wrong parameter input')
+  }
   if (!is.null(id.type)) {
     id_type <- id.type
   } else {

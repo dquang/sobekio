@@ -82,7 +82,6 @@ plot_multi_lines <- function(
   qt <- his_from_case(case.list = case.list, 
                       sobek.project = sobek.project,
                       ...,
-                      # mID = c('p_worms','p_duesseldorf'),
                       param = param
                       )
   if (!is.null(id.names)) {

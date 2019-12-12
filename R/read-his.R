@@ -7,17 +7,12 @@
 #' @export
 #' @import data.table
 his_location <- function(his.file = "") {
-  str_as_factor <- default.stringsAsFactors()
-  options("stringsAsFactors" = FALSE)
   # this fucntion take input is a HIS file (path to)
   # out put is a data frame with two column (location & sobek.id)
   if (!file.exists(his.file)) {
     stop(paste("HIS file:", his.file, "does not exit!"))
   }
   con <- file(his.file, open = "rb", encoding = "native.enc")
-  txt_title <- stri_conv(readBin(con, what = "raw", n = 160), 
-                         from = 'windows-1252')
-  his_title <- str_extract_all(txt_title, ".{40}", simplify = TRUE)
   # move file reading cursor to byte 160, where title ends
   # just to make sure correct reading
   seek(con, where = 160, origin = "start")
@@ -95,7 +90,6 @@ his_location <- function(his.file = "") {
       }
     }
   }
-  options("stringsAsFactors" = str_as_factor)
   his_locs[, location := as.integer(location)]
   setkey(his_locs, sobek.id)
   return(his_locs)
@@ -116,8 +110,6 @@ his_location <- function(his.file = "") {
 #' }
 #' @export
 his_info <- function(his.file = "") {
-  str_as_factor <- default.stringsAsFactors()
-  options("stringsAsFactors" = FALSE)
   if (!file.exists(his.file)) {
     stop(paste("HIS file:", his.file, "does not exit!"))
   }
@@ -173,7 +165,6 @@ his_info <- function(his.file = "") {
     his_t0 = his_t0,
     his_dt = his_dt
   )
-  options("stringsAsFactors" = str_as_factor)
   return(result)
 }
 
@@ -188,8 +179,7 @@ his_from_list <- function(
   his.file = NULL, # path to .HIS file
   id.list = NULL, # list of node ids to get data
   param = 1L) {
-  str_as_factor <- default.stringsAsFactors()
-  options("stringsAsFactors" = FALSE)
+  id.list <- as.character(unlist(id.list))
   if (!file.exists(his.file)) {
     stop("HIS file: ", his.file, " does not exist!")
   }
@@ -199,8 +189,8 @@ his_from_list <- function(
   close(con)
   if (!is.vector(id.list)) stop("id must be a vector")
   if (!is.numeric(param)) {
-    pardf <- .his_parameter(his.file)
-    par_int <- .id2param(param, pardf)
+    pardf <- his_parameter(his.file)
+    par_int <- param_name_2_id(param, pardf)
     if (is.na(par_int)) {
       print('List of Parameters in the .HIS file')
       print(pardf)
@@ -214,13 +204,15 @@ his_from_list <- function(
   }
   locdf <- his_location(his.file)
   locs <- locdf[id.list, location]
-  hisdf <- .his_df(his.file)
+  hisdf <- his_df(his.file)
+  matrix_chk <- FALSE
+  if (nrow(hisdf) == 1) matrix_chk <- TRUE
   # creating a mask for the matrix, to get only columns for the param
   cols_mask <- par_int + param_nr * (locs - 1)
   hisdf <- hisdf[, cols_mask]
-  tsdf <- .his_time_df(his.file = his.file)
+  if (matrix_chk) hisdf <- matrix(hisdf, nrow = 1)
+  tsdf <- his_time_df(his.file = his.file)
   df_out <- data.table(tsdf, hisdf)
-  options("stringsAsFactors" = str_as_factor)
   colnames(df_out) <- c('ts', id.list)
   return(df_out)
 }
@@ -244,8 +236,6 @@ his_from_file <- function(
                           f.sep = "\t", # seperation of node list
                           f.comment = '#'
                           ) {
-  str_as_factor <- default.stringsAsFactors()
-  options("stringsAsFactors" = FALSE)
   if (!file.exists(his.file) || !file.exists(id.file)) {
     stop(paste("HIS file: ", his.file,
                " and/or id.file: ", id.file,
@@ -267,6 +257,5 @@ his_from_file <- function(
   if (ncol(id.list) > 1) {
     colnames(df_out) <- c("ts", id.list[, 2])
   }
-  options("stringsAsFactors" = str_as_factor)
   return(df_out)
 }
