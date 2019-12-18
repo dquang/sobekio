@@ -6,7 +6,7 @@ write-test-*
 *.Ruserdata
 *.Rproj.user
 *.Rd
-man/*.*
+man/
 *.Rproj
 NAMESPACE
 .Rproj.user
@@ -14,5 +14,5 @@ inst/doc
 doc
 Meta
 .RData*
-draft
+draftgit a
 draft*

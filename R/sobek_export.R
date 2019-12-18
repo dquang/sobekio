@@ -36,7 +36,7 @@ sobek_export <- function(case.list,
   file.copy(from = all_files, to = dest, recursive = TRUE)
   for (i in case.list) {
     if (substr(i, 1, 3) == "---") next
-    print(paste('copying case: ', i, "..."))
+    cat('copying case:', i, "...\n")
     from_folder <- dirname(get_file_path(
       case.name = i,
       sobek.project = sobek.project,
@@ -87,7 +87,7 @@ sobek_export <- function(case.list,
   }
   sobek_reg[1,1] <- as.character(length(sobek_reg$V1) - 1)
   case_cmt <- data.table(case_folders, case.list)
-  print('updating register...')
+  cat('updating register...\n')
   case_cmt[, case.list := paste("'", case.list, "'", sep = "")]
   write.table(case_cmt,
          file = paste(dest, "caselist.cmt", sep = "\\"),

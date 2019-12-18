@@ -22,16 +22,16 @@ get_struct_info <- function(
   nrow.ct = 10,
   nrow.tg = 5
 ){
-  str_info_tbl_list <- list()
+  st_info_tbl_list <- list()
   for (i in seq_along(case.list)) {
-    str_def_f <- get_file_path(case.name = case.list[i],
+    st_def_f <- get_file_path(case.name = case.list[i],
                                sobek.project = sobek.project,
                                type = 'struct.def')
-    st.def <- .get_struct_def(str_def_f)
-    str_dat_f <- get_file_path(case.name = case.list[i],
+    st.def <- .get_struct_def(st_def_f)
+    st_dat_f <- get_file_path(case.name = case.list[i],
                                sobek.project = sobek.project,
                                type = 'struct.dat')
-    st.dat <- .get_struct_dat(str_dat_f)
+    st.dat <- .get_struct_dat(st_dat_f)
     if (control) {
       ct_def_f <- get_file_path(case.name = case.list[i], 
                                 sobek.project, type = 'control.def')
@@ -46,9 +46,9 @@ get_struct_info <- function(
     } else {
       tg.tbl <- NULL
     }
-    str_info_tbl_i <- list()
+    st_info_tbl_i <- list()
     for (j in seq_along(st.list)) {
-      str_info_tbl_i[[j]] <- .get_struct_info(
+      st_info_tbl_i[[j]] <- .get_struct_info(
         s.id = st.list[j],
         case.name = case.list[i],
         sobek.project = sobek.project,
@@ -64,40 +64,40 @@ get_struct_info <- function(
         na.rm = FALSE
       )
     }
-    str_info_tbl_list[[i]] <- rbindlist(str_info_tbl_i)
-    colnames(str_info_tbl_list[[i]])[2] <- case.desc[i]
+    st_info_tbl_list[[i]] <- rbindlist(st_info_tbl_i)
+    colnames(st_info_tbl_list[[i]])[2] <- case.desc[i]
     if (i == 1) {
-      str_info_tbl <- str_info_tbl_list[[i]]
+      st_info_tbl <- st_info_tbl_list[[i]]
     } else {
-      str_info_tbl <- cbind(str_info_tbl, 
-                            str_info_tbl_list[[i]][, .SD, 
+      st_info_tbl <- cbind(st_info_tbl, 
+                            st_info_tbl_list[[i]][, .SD, 
                                                    .SDcols = eval(case.desc[i])]
                             )
     }
   }
-  str_info_tbl <- filter_at(str_info_tbl, 
+  st_info_tbl <- filter_at(st_info_tbl, 
                             vars(case.desc), any_vars(!is.na(.))) %>%
     as.data.table()
-  str_info_tbl[is.na(Parameter), Parameter := '']
+  st_info_tbl[is.na(Parameter), Parameter := '']
   if (html) {
     # calculating number of rows for each Controller group
-    str_info_tbl[, orig_line := .I]
-    row_begin <- str_info_tbl[Parameter == 'Controller ID' | 
+    st_info_tbl[, orig_line := .I]
+    row_begin <- st_info_tbl[Parameter == 'Controller ID' | 
                                 Parameter == 'Trigger ID' |
                                 Parameter == 'Structure name', 
                               orig_line]
-    row_names <- str_info_tbl[row_begin, Parameter] %>% str_replace(' name| ID', '')
-    row_end <- shift(row_begin, -1, fill = nrow(str_info_tbl))
+    row_names <- st_info_tbl[row_begin, Parameter] %>% str_replace(' name| ID', '')
+    row_end <- shift(row_begin, -1, fill = nrow(st_info_tbl))
     n_group <- length(row_begin)
-    str_info_tbl[, orig_line := NULL]
-    str_info_tbl <- kable(str_info_tbl, escape = FALSE) %>%
+    st_info_tbl[, orig_line := NULL]
+    st_info_tbl <- kable(st_info_tbl, escape = FALSE) %>%
       kable_styling(c('hover', 'striped'), fixed_thead = TRUE)
     for (i in 1:n_group) {
-      str_info_tbl <- str_info_tbl %>%
+      st_info_tbl <- st_info_tbl %>%
         pack_rows(row_names[i], row_begin[i], row_end[i])
     }
   }
-  str_info_tbl
+  st_info_tbl
 }
 
 
@@ -128,16 +128,16 @@ get_struct_info <- function(
 ){
   # get path to files
   if (is.null(st.def)) {
-    str_def_f <- get_file_path(case.name = case.name,
+    st_def_f <- get_file_path(case.name = case.name,
                                sobek.project = sobek.project,
                                type = 'struct.def')
-    st.def <- .get_struct_def(str_def_f)
+    st.def <- .get_struct_def(st_def_f)
   }
   if (is.null(st.dat)) {
-    str_dat_f <- get_file_path(case.name = case.name,
+    st_dat_f <- get_file_path(case.name = case.name,
                                sobek.project = sobek.project,
                                type = 'struct.dat')
-    st.dat <- .get_struct_dat(str_dat_f)
+    st.dat <- .get_struct_dat(st_dat_f)
   }
   if (is.null(ct.tbl)) {
     ct_def_f <- get_file_path(case.name, sobek.project, type = 'control.def')
@@ -150,25 +150,25 @@ get_struct_info <- function(
   if (!s.id %in% st.dat$id) {
     stop(s.id, ' not found in struct.dat. Remember that cases are sensitive')
   }
-  str_id_tbl <- st.dat[id == s.id][1,]
-  str_id_def <- st.def[def_ID == str_id_tbl$def_ID][1,]
+  st_id_tbl <- st.dat[id == s.id][1,]
+  st_id_def <- st.def[def_ID == st_id_tbl$def_ID][1,]
   # avoid having NA in name, for html table later
-  str_id_tbl[is.na(name), name := '']
-  str_id_list <- c(
-    "Structure name" = str_id_tbl$name,
+  st_id_tbl[is.na(name), name := '']
+  st_id_list <- c(
+    "Structure name" = st_id_tbl$name,
     "Structure ID" = s.id,
-    'Structure definition ID' = str_id_tbl$def_ID,
-    "Structure type" = .get_str_type(str_id_def$def_ty),
-    "Crest level" = str_id_def$cl,
-    "Crest width" = str_id_def$cw,
-    "Control active" = str_id_tbl$ca,
-    "Possible flow direction" = .get_rt_type(str_id_def$rt),
+    'Structure definition ID' = st_id_tbl$def_ID,
+    "Structure type" = .get_str_type(st_id_def$def_ty),
+    "Crest level" = st_id_def$cl,
+    "Crest width" = st_id_def$cw,
+    "Control active" = st_id_tbl$ca,
+    "Possible flow direction" = .get_rt_type(st_id_def$rt),
     'Total controllers' = 0L
   )
-  if (!is.na(str_id_tbl$cj)) {
-    ca_list <- str_split(str_id_tbl$ca, ' ', simplify = TRUE)[1, ]
-    str_id_list[['Total controllers']] <- length(ca_list[ca_list == '1'])
-    cj_list <- str_split(str_id_tbl$cj, ' ', simplify = TRUE)[1, ]
+  if (!is.na(st_id_tbl$cj)) {
+    ca_list <- str_split(st_id_tbl$ca, ' ', simplify = TRUE)[1, ]
+    st_id_list[['Total controllers']] <- length(ca_list[ca_list == '1'])
+    cj_list <- str_split(st_id_tbl$cj, ' ', simplify = TRUE)[1, ]
     ct_id_list <- gsub("'", "", cj_list)
     ct_id_list <- ct_id_list[ca_list == '1']
     # for structure that have less than 4 controllers, make sure ct_id_list has always 4 members
@@ -179,9 +179,9 @@ get_struct_info <- function(
     for (i in 1:4) {
         ct_name <- paste('Controller', i, 'ID: ')
         if (ct_id_list[[i]] != '-1') {
-          str_id_list[[ct_name]] <- ct_id_list[[i]]
+          st_id_list[[ct_name]] <- ct_id_list[[i]]
         } else {
-          str_id_list[[ct_name]] <- NA
+          st_id_list[[ct_name]] <- NA
         }
     }
   } else {
@@ -189,9 +189,9 @@ get_struct_info <- function(
     # always have 4 triggers
     ct_id_list <- c('-1', '-1', '-1', '-1')
   }
-  str_info_tbl <- data.table(
-    Parameter = names(str_id_list),
-    Value = unlist(str_id_list)
+  st_info_tbl <- data.table(
+    Parameter = names(st_id_list),
+    Value = unlist(st_id_list)
   )
   if (isTRUE(control)) {
     ct_tbl <- rbindlist(lapply(ct_id_list, get_control_info,
@@ -204,14 +204,14 @@ get_struct_info <- function(
                                nrow.tg = nrow.tg,
                                html = FALSE,
                                trigger = trigger))
-    str_info_tbl <- rbind(str_info_tbl, ct_tbl)
+    st_info_tbl <- rbind(st_info_tbl, ct_tbl)
     if (html) {
       # calculating number of rows for each Controller group
-      str_info_tbl[, orig_line := .I]
-      n_group <- str_info_tbl[Parameter == 'Controller ID' | Parameter == 'Trigger ID'
+      st_info_tbl[, orig_line := .I]
+      n_group <- st_info_tbl[Parameter == 'Controller ID' | Parameter == 'Trigger ID'
                                 , orig_line]
       r_group <- unlist(c("Structure Information", 
-                          str_info_tbl[n_group, paste0('Infos for ', 
+                          st_info_tbl[n_group, paste0('Infos for ', 
                                                        Parameter, ': ', Value)]
       ))
       n_group <- n_group - 1
@@ -224,19 +224,19 @@ get_struct_info <- function(
       gr_tbl[, col_id := .GRP, by = gr_color]
       # there are only max 4 controllers
       color_r_group <- c('none', '#f0f9e8', '#bae4bc', '#7bccc4', '#2b8cbe')[gr_tbl$col_id]
-      str_info_tbl[, orig_line := NULL]
+      st_info_tbl[, orig_line := NULL]
     }
   } else {
     if (html) {
       r_group <- c("Structure Information")
       color_r_group <- 'none'
-      n_group <- nrow(str_info_tbl) # Number of rows for "Structure information"
+      n_group <- nrow(st_info_tbl) # Number of rows for "Structure information"
     }
   }
-  if (na.rm) str_info_tbl <- str_info_tbl[!is.na(Value)]
+  if (na.rm) st_info_tbl <- st_info_tbl[!is.na(Value)]
   if (html) {
-      str_info_tbl <- htmlTable::htmlTable(
-        str_info_tbl,
+      st_info_tbl <- htmlTable::htmlTable(
+        st_info_tbl,
         align = 'l',
         col.rgroup = color_r_group,
         rgroup = r_group,
@@ -246,7 +246,7 @@ get_struct_info <- function(
         tfoot = paste('Case:', case.name)
       )
   }
-  return(str_info_tbl)
+  return(st_info_tbl)
 }
 
 
@@ -297,7 +297,7 @@ struct_report <- function(
       # output was given as a path to a file
       folder_chk <- file_test('-d', folder_name)
       if (!folder_chk) stop('output path does not exist')
-      file_ext <- str_extract(file_name, '\\..+$')
+      file_ext <- st_extract(file_name, '\\..+$')
       if (is.na(file_ext)) {
         file_name <- paste0(file_name, ifelse(html, '.html', '.xlsx'))
       }
@@ -393,14 +393,14 @@ get_all_struct <- function(
       file_out <- file.path(folder_name, file_name)
     }
   }
-  str_dat_tbl <- .get_all_struct(case.name = case.name, 
+  st_dat_tbl <- .get_all_struct(case.name = case.name, 
                                  sobek.project = sobek.project, tble = tble)
   if (!html) {
     if (!is.null(output)) {
       # write output to excel file
       xlsx_wb <- createWorkbook()
       xlsx_sheet <- createSheet(xlsx_wb, sheetName = 'struct_info_tbl')
-      addDataFrame(str_dat_tbl, xlsx_sheet, row.names = FALSE,
+      addDataFrame(st_dat_tbl, xlsx_sheet, row.names = FALSE,
                    startRow = 5)
       autoSizeColumn(xlsx_sheet, seq.int(11))
       cell_style <- CellStyle(
@@ -423,7 +423,7 @@ get_all_struct <- function(
       }
       saveWorkbook(xlsx_wb, file = file_out)
     }
-    invisible(str_dat_tbl)
+    invisible(st_dat_tbl)
   } else {
     rmd_f <- system.file('Rmd/struct_table.Rmd', package = 'sobekio')
     rmd_tmp <- tempfile(pattern = 'struct_info_', fileext = '.Rmd')
@@ -442,7 +442,7 @@ get_all_struct <- function(
       append = FALSE,
       quote = FALSE
     )
-    html_tmp <- str_replace(rmd_tmp, 'Rmd$', 'html')
+    html_tmp <- st_replace(rmd_tmp, 'Rmd$', 'html')
     rmarkdown::render(rmd_tmp, output_format = 'html_document', 
                       output_file = html_tmp)
     if (!is.null(output)) {
@@ -451,7 +451,7 @@ get_all_struct <- function(
       html_tmp <- file_out
     }
     browseURL(html_tmp)
-    invisible(str_dat_tbl)
+    invisible(st_dat_tbl)
   }
 }
 
@@ -463,42 +463,42 @@ get_all_struct <- function(
   tble = TRUE
 ) {
   
-  str_dat_f <- get_file_path(
+  st_dat_f <- get_file_path(
     case.name = case.name, 
     sobek.project = sobek.project,
     'struct.dat'
   )
-  str_def_f <- get_file_path(
+  st_def_f <- get_file_path(
     case.name = case.name, 
     sobek.project = sobek.project,
     'struct.def'
   )
-  str_def_tbl <- .get_struct_def(str_def_f)
-  str_def_tbl <- str_def_tbl[grepl(" id '.*'", V1)]
-  str_def_tbl[, def_ty := 
-                sapply(str_def_tbl$def_ty, .get_str_type)]
-  str_def_tbl[, rt := 
-                sapply(str_def_tbl$rt, .get_rt_type)]
-  str_def_tbl <- str_def_tbl[, c('def_ID', 'def_name', 'def_ty', 'cl', 'cw', 'rt')]
-  str_dat_tbl <- .get_struct_dat(str_dat_f)
-  str_mtx <- str_match(
-    str_dat_tbl$cj,
+  st_def_tbl <- .get_struct_def(st_def_f)
+  st_def_tbl <- st_def_tbl[grepl(" id '.*'", V1)]
+  st_def_tbl[, def_ty := 
+                sapply(st_def_tbl$def_ty, .get_st_type)]
+  st_def_tbl[, rt := 
+                sapply(st_def_tbl$rt, .get_rt_type)]
+  st_def_tbl <- st_def_tbl[, c('def_ID', 'def_name', 'def_ty', 'cl', 'cw', 'rt')]
+  st_dat_tbl <- .get_struct_dat(st_dat_f)
+  st_mtx <- str_match(
+    st_dat_tbl$cj,
     "'([^']+)' '([^']+)' '([^']+)' '([^']+)'")[, -1] %>% as.data.table()
-  str_mtx[V1 == '-1', V1 := ''][V2 == '-1', V2 := '']
-  str_mtx[V3 == '-1', V3 := ''][V4 == '-1', V4 := '']
-  str_mtx[is.na(V1), V1 := ''][is.na(V2), V2 := '']
-  str_mtx[is.na(V3), V3 := ''][is.na(V4), V4 := '']
-  str_dat_tbl[, c('ct1', 'ct2', 'ct3', 'ct4') := str_mtx]
+  st_mtx[V1 == '-1', V1 := ''][V2 == '-1', V2 := '']
+  st_mtx[V3 == '-1', V3 := ''][V4 == '-1', V4 := '']
+  st_mtx[is.na(V1), V1 := ''][is.na(V2), V2 := '']
+  st_mtx[is.na(V3), V3 := ''][is.na(V4), V4 := '']
+  st_dat_tbl[, c('ct1', 'ct2', 'ct3', 'ct4') := st_mtx]
   # get controllers for structure that have only one controller
-  str_dat_tbl[!grepl("ca \\d \\d ", V1), 
+  st_dat_tbl[!grepl("ca \\d \\d ", V1), 
               ct1 := str_match(V1, " cj '([^']*)' ")[, 2]]
-  str_dat_tbl[is.na(ct1), ct1 := '']
-  str_dat_tbl <- str_dat_tbl[, c('id', 'name', 'def_ID',
+  st_dat_tbl[is.na(ct1), ct1 := '']
+  st_dat_tbl <- st_dat_tbl[, c('id', 'name', 'def_ID',
                                  'ct1', 'ct2', 'ct3', 'ct4')]
-  str_dat_tbl <- merge(str_dat_tbl, str_def_tbl, by.x = 'def_ID',
+  st_dat_tbl <- merge(st_dat_tbl, st_def_tbl, by.x = 'def_ID',
                        no.dups = TRUE,
                        by.y = 'def_ID') %>% setkey(NULL) %>% unique()
-  str_cols <- c('id',
+  st_cols <- c('id',
                 'name',
                 'def_ty',
                 'def_name',
@@ -509,7 +509,7 @@ get_all_struct <- function(
                 'ct2',
                 'ct3',
                 'ct4')
-  str_cols_names <-
+  st_cols_names <-
     c(
       'ID',
       'Name',
@@ -523,26 +523,26 @@ get_all_struct <- function(
       'Controller 3',
       'Controller 4'
     )
-  str_dat_tbl <- str_dat_tbl[, .SD ,.SDcols = str_cols]
-  colnames(str_dat_tbl) <- str_cols_names
-  setorder(str_dat_tbl, ID)
+  st_dat_tbl <- st_dat_tbl[, .SD ,.SDcols = st_cols]
+  colnames(st_dat_tbl) <- st_cols_names
+  setorder(st_dat_tbl, ID)
   
   if (html) {
     ct_tbl <- .get_control_def(get_file_path(case.name, sobek.project, 'control.def'))
     tg_tbl <- .get_trigger_def(get_file_path(case.name, sobek.project, 'trigger.def'))
     ct_names <- grep("Controller \\d", 
-                     colnames(str_dat_tbl), value = TRUE)
+                     colnames(st_dat_tbl), value = TRUE)
     for (i in ct_names) {
       ct_hover <- lapply(
-        str_dat_tbl[[i]],
+        st_dat_tbl[[i]],
         get_control_popover,
         ct.tbl = ct_tbl,
         tg.tbl = tg_tbl,
         html = TRUE,
         tble = tble
       )
-      str_dat_tbl[[i]] <- cell_spec(
-        str_dat_tbl[[i]],
+      st_dat_tbl[[i]] <- cell_spec(
+        st_dat_tbl[[i]],
         popover = spec_popover2(
           content = ct_hover,
           title = '<strong>Controller Information</strong>',
@@ -552,7 +552,7 @@ get_all_struct <- function(
       )
     }
   }
-  return(str_dat_tbl)
+  return(st_dat_tbl)
 }
 
 
@@ -730,25 +730,25 @@ transfer_struct <- function(
   sobek.project,
   control = TRUE
 ) {
-  str_dat_to_file <- get_file_path(case.name = to,
+  st_dat_to_file <- get_file_path(case.name = to,
                                    sobek.project = sobek.project,
                                    type = 'struct.dat')
-  str_def_to_file <- get_file_path(case.name = to,
+  st_def_to_file <- get_file_path(case.name = to,
                                    sobek.project = sobek.project,
                                    type = 'struct.def')
-  str_dat_from <- .get_struct_dat(
+  st_dat_from <- .get_struct_dat(
     get_file_path(case.name = from, sobek.project = sobek.project,
                   type = 'struct.dat')
   )
-  str_def_from <- .get_struct_def(
+  st_def_from <- .get_struct_def(
     get_file_path(case.name = from, sobek.project = sobek.project,
                   type = 'struct.def')
   )
-  str_dat_to <- .get_struct_dat(str_dat_to_file)
-  str_def_to <- .get_struct_def(str_def_to_file)
-  strid_dat_from <- str_dat_from[id == st.id]
+  st_dat_to <- .get_struct_dat(st_dat_to_file)
+  st_def_to <- .get_struct_def(st_def_to_file)
+  strid_dat_from <- st_dat_from[id == st.id]
   strid_def_id_from <- strid_dat_from$def_ID[[1]]
-  strid_def_from <- str_def_from[def_ID == strid_def_id_from]
+  strid_def_from <- st_def_from[def_ID == strid_def_id_from]
   if (nrow(strid_dat_from) == 0) {
     stop('Structure with ID ', st.id, ' is not found in case: ', from)
   }
@@ -785,35 +785,35 @@ transfer_struct <- function(
                    V1 := str_replace(V1, " cw \\d*\\.*\\d* ", " cw 0 ")
                    ]
   }
-  str_name_from <- strid_dat_from$name[[1]]
-  if (nchar(str_name_from) > 1) {
-    str_name_to <- str_name_from
-    while (str_name_to %in% str_dat_to$name) {
-      str_name_to <- paste(
-        str_name_to,
+  st_name_from <- strid_dat_from$name[[1]]
+  if (nchar(st_name_from) > 1) {
+    st_name_to <- st_name_from
+    while (st_name_to %in% st_dat_to$name) {
+      st_name_to <- paste(
+        st_name_to,
         substr(basename(tempfile(pattern = '', fileext = '')), 1, 6),
         sep = '_'
       )
     }
     strid_dat_from[, V1 := 
                      str_replace(V1, 
-                                 paste0(" nm '", str_name_from, "'"),
-                                 paste0(" nm '", str_name_to, "'")
+                                 paste0(" nm '", st_name_from, "'"),
+                                 paste0(" nm '", st_name_to, "'")
                                  )]
   }
   strid_def_id_to <- strid_def_id_from
   # strid_def_from will be copied to the new def file
-  strid_def_from <- str_def_from[def_ID == strid_def_id_from]
-  strid_dat_to <- str_dat_to[id == st.id]
-  # check if strid_def_id_from is already used in the str_def_to
-  while (strid_def_id_to %in% str_def_to[, unique(def_ID)]) {
+  strid_def_from <- st_def_from[def_ID == strid_def_id_from]
+  strid_dat_to <- st_dat_to[id == st.id]
+  # check if strid_def_id_from is already used in the st_def_to
+  while (strid_def_id_to %in% st_def_to[, unique(def_ID)]) {
     strid_def_id_to <- substr(
       basename(tempfile(pattern = 'st_', fileext = '')),
       1, 10)
   }
   strid_def_nm_from <- strid_def_from[1, def_name]
   strid_def_nm_to <- strid_def_nm_from
-  while (strid_def_nm_to %in% str_def_to[, unique(def_name)]) {
+  while (strid_def_nm_to %in% st_def_to[, unique(def_name)]) {
     strid_def_nm_to <- paste(
       strid_def_nm_from,
       substr(basename(tempfile(pattern = '', fileext = '')),  1, 6),
@@ -839,40 +839,40 @@ transfer_struct <- function(
   # definition line of destination struct.dat will be replaced
   nrow_dat_to <- nrow(strid_dat_to)
   if (nrow_dat_to > 0) {
-    str_dat_to_begin <- strid_dat_to[, min(orig_line_nr)]
-    str_dat_to_end <- strid_dat_to[, max(orig_line_nr)]
+    st_dat_to_begin <- strid_dat_to[, min(orig_line_nr)]
+    st_dat_to_end <- strid_dat_to[, max(orig_line_nr)]
     # it is ok with an empty data.table
-    str_dat_new <- rbind(str_dat_to[orig_line_nr < str_dat_to_begin, c('V1')],
+    st_dat_new <- rbind(st_dat_to[orig_line_nr < st_dat_to_begin, c('V1')],
                          strid_dat_from[, c('V1')],
-                         str_dat_to[orig_line_nr > str_dat_to_end, c('V1')])
+                         st_dat_to[orig_line_nr > st_dat_to_end, c('V1')])
   } else {
-    str_dat_new <- rbind(str_dat_to[, c('V1')], strid_dat_from[, c('V1')])
+    st_dat_new <- rbind(st_dat_to[, c('V1')], strid_dat_from[, c('V1')])
   }
   # Transfer struct in def file-----
-  str_def_new <- rbind(str_def_to[, c('V1')], strid_def_from[, c('V1')])
+  st_def_new <- rbind(st_def_to[, c('V1')], strid_def_from[, c('V1')])
   # back up files
   file.copy(
-    from = str_dat_to_file,
-    to = paste0(str_dat_to_file, '.bak'),
+    from = st_dat_to_file,
+    to = paste0(st_dat_to_file, '.bak'),
     overwrite = TRUE
   )
   file.copy(
-    from = str_def_to_file,
-    to = paste0(str_def_to_file, '.bak'),
+    from = st_def_to_file,
+    to = paste0(st_def_to_file, '.bak'),
     overwrite = TRUE
   )
   # write result to files
   fwrite(
-    str_dat_new,
-    file = str_dat_to_file,
+    st_dat_new,
+    file = st_dat_to_file,
     col.names = FALSE,
     row.names = FALSE,
     quote = FALSE,
     sep = "\n"
   )
   fwrite(
-    str_def_new,
-    file = str_def_to_file,
+    st_def_new,
+    file = st_def_to_file,
     col.names = FALSE,
     row.names = FALSE,
     quote = FALSE,
@@ -917,48 +917,48 @@ get_struct_info_old <- function(
 ){
   
   # get path to files
-  str_def_f <- get_file_path(case.name = case.name,
+  st_def_f <- get_file_path(case.name = case.name,
                              sobek.project = sobek.project,
                              type = 'struct.def')
-  str_dat_f <- get_file_path(case.name = case.name,
+  st_dat_f <- get_file_path(case.name = case.name,
                              sobek.project = sobek.project,
                              type = 'struct.dat')
   
-  str_dat_tbl <- .get_struct_dat(str_dat_f)
-  if (!s.id %in% str_dat_tbl$id) {
+  st_dat_tbl <- .get_struct_dat(st_dat_f)
+  if (!s.id %in% st_dat_tbl$id) {
     stop(s.id, ' not found in struct.dat. Remember that cases are sensitive')
   }
-  str_def_tbl <- .get_struct_def(str_def_f)
-  str_id_tbl <- str_dat_tbl[id == s.id][1,]
-  str_id_def <- str_def_tbl[def_ID == str_id_tbl$def_ID][1,]
-  str_id_list <- list(
+  st_def_tbl <- .get_struct_def(st_def_f)
+  st_id_tbl <- st_dat_tbl[id == s.id][1,]
+  st_id_def <- st_def_tbl[def_ID == st_id_tbl$def_ID][1,]
+  st_id_list <- list(
     Struct_ID = s.id,
-    Struct_name = str_id_tbl$name,
-    Struct_type = .get_str_type(str_id_def$def_ty),
-    "Crest_level" = str_id_def$cl,
-    "Crest_width" = str_id_def$cw,
-    Controller = str_id_tbl$ca,
-    "Possible_flow_direction" = str_id_def$rt,
+    Struct_name = st_id_tbl$name,
+    Struct_type = .get_str_type(st_id_def$def_ty),
+    "Crest_level" = st_id_def$cl,
+    "Crest_width" = st_id_def$cw,
+    Controller = st_id_tbl$ca,
+    "Possible_flow_direction" = st_id_def$rt,
     'Total_controllers' = 0L,
-    'Definition_ID' = str_id_tbl$def_ID
+    'Definition_ID' = st_id_tbl$def_ID
   )
-  if (!is.na(str_id_tbl$cj)) {
-    cj_list <- str_split(str_id_tbl$cj, ' ', simplify = TRUE)[1, ]
+  if (!is.na(st_id_tbl$cj)) {
+    cj_list <- str_split(st_id_tbl$cj, ' ', simplify = TRUE)[1, ]
     ct_id_list <- gsub("'", "", cj_list[!grepl("'-1'", cj_list)])
     if (length(ct_id_list) > 0) {
-      str_id_list$Total_controllers <- length(ct_id_list)
+      st_id_list$Total_controllers <- length(ct_id_list)
       # ct_id_tbl <- subset(ct_def_tbl, id %in% ct_id_list & !is.na(ct))
       for (i in seq_along(ct_id_list)){
         ct_name <- paste('Control', i, sep = "_")
-        str_id_list[[ct_name]] <- ct_id_list[[i]]
+        st_id_list[[ct_name]] <- ct_id_list[[i]]
       }
     }
   } else {
     ct_id_list <- NULL
   }
-  str_info_tbl <- data.table(
-    Parameter = names(str_id_list),
-    Value = str_id_list
+  st_info_tbl <- data.table(
+    Parameter = names(st_id_list),
+    Value = st_id_list
   )
   r.group <- c("Structure Information")
   n.rgroup <- c(11) # Number of rows for "Structure information"
@@ -969,18 +969,18 @@ get_struct_info_old <- function(
                                sobek.project = sobek.project,
                                html = FALSE,
                                trigger = trigger))
-    str_info_tbl <- rbind(str_info_tbl, ct_tbl)
+    st_info_tbl <- rbind(st_info_tbl, ct_tbl)
     # calculating number of rows for each Controller group
-    str_info_tbl[, orig_line := .I - 1]
+    st_info_tbl[, orig_line := .I - 1]
     r.group <- c("Structure Information", paste('Controller', ct_id_list))
-    n.rgroup <- c(str_info_tbl[Parameter == 'Control_ID', orig_line], 
-                  nrow(str_info_tbl)) 
+    n.rgroup <- c(st_info_tbl[Parameter == 'Control_ID', orig_line], 
+                  nrow(st_info_tbl)) 
     n.rgroup <- n.rgroup - shift(n.rgroup, 1, fill = 0)
-    str_info_tbl[, orig_line := NULL]
+    st_info_tbl[, orig_line := NULL]
   }
   if (isTRUE(html)) {
-    str_info_tbl <- htmlTable::htmlTable(
-      str_info_tbl,
+    st_info_tbl <- htmlTable::htmlTable(
+      st_info_tbl,
       align = 'l',
       rgroup = r.group,
       n.rgroup = n.rgroup,
@@ -989,7 +989,7 @@ get_struct_info_old <- function(
       tfoot = paste('Case:', case.name)
     )
   }
-  return(str_info_tbl)
+  return(st_info_tbl)
 }
 
 

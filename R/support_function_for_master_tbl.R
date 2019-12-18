@@ -49,10 +49,10 @@ get_id_tbl <- function(
   id_tbl <- master.tbl[grepl(name, besonderheit)]
   
   if (drv == 'auto') {
-    str_mt <- str_match(id_tbl$besonderheit,
+    st_mtx <- str_match(id_tbl$besonderheit,
                             paste('(^.+)_', name, sep = '')
                             )
-    measure_type <- toupper(unique(str_mt[,2]))
+    measure_type <- toupper(unique(st_mtx[,2]))
       # warning('Type of the measure is not unique: ', measure_type)
     drv <- ifelse('DRV' %in% measure_type, TRUE, FALSE)
   }
