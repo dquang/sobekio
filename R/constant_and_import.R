@@ -1,9 +1,9 @@
 # excel standard color
 #' Standard colors in Excel
-#' @import stringr
 #' @import ggplot2
 #' @importFrom xlsx createWorkbook createSheet addDataFrame saveWorkbook autoSizeColumn createRow createCell Font Alignment addMergedRegion setCellStyle
-#' @importFrom stringi stri_conv stri_pad_left stri_pad_right
+#' @import stringr
+#' @importFrom stringi stri_conv stri_pad_left stri_pad_right stri_match_first_regex stri_trim_both
 #' @importFrom dplyr %>% select starts_with near filter filter_at
 #' @importFrom purrr map_dbl map_int
 #' @import data.table

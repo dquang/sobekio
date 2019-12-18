@@ -6,7 +6,7 @@ write-test-*
 *.Ruserdata
 *.Rproj.user
 *.Rd
-man/*.*
+man/
 *.Rproj
 NAMESPACE
 .Rproj.user

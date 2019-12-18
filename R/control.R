@@ -283,17 +283,17 @@ get_control_tbl <- function(
   
   if (!is.null(s.id)) {
     # get path to files
-    str_def_f <- get_file_path(case.name = case.name,
+    st_def_f <- get_file_path(case.name = case.name,
                                sobek.project = sobek.project,
                                type = 'struct.def')
-    str_dat_f <- get_file_path(case.name = case.name,
+    st_dat_f <- get_file_path(case.name = case.name,
                                sobek.project = sobek.project,
                                type = 'struct.dat')
     
-    str_dat_tbl <- .get_struct_dat(str_dat_f)
-    if (s.id %in% str_dat_tbl$id) {
-      str_id_tbl <- str_dat_tbl[id == s.id][1,]
-      cj_list <- str_split(str_id_tbl$cj, ' ', simplify = TRUE)[1, ]
+    st_dat_tbl <- .get_struct_dat(st_dat_f)
+    if (s.id %in% st_dat_tbl$id) {
+      st_id_tbl <- st_dat_tbl[id == s.id][1,]
+      cj_list <- str_split(st_id_tbl$cj, ' ', simplify = TRUE)[1, ]
       ct_id_list <- gsub("'", "", cj_list[!grepl("'-1'", cj_list)])
     } else {
       stop('structure with ID: ', s.id, 
@@ -604,14 +604,14 @@ transfer_controller <- function(
   ctr_tbl[, cp := sapply(cp, .get_cp_type)]
   ctr_tbl[, ac := ifelse(ac == '1', 'YES', 'NO')]
   # get table of trigger names
-  str_mtx <- str_match(
+  st_mtx <- str_match(
     ctr_tbl$gi,
     "'([^']+)' '([^']+)' '([^']+)' '([^']+)'")[, -1] %>% as.data.table()
-  str_mtx[V1 == '-1', V1 := ''][V2 == '-1', V2 := '']
-  str_mtx[V3 == '-1', V3 := ''][V4 == '-1', V4 := '']
-  str_mtx[is.na(V1), V1 := ''][is.na(V2), V2 := '']
-  str_mtx[is.na(V3), V3 := ''][is.na(V4), V4 := '']
-  ctr_tbl[, c('tg1', 'tg2', 'tg3', 'tg4') := str_mtx]
+  st_mtx[V1 == '-1', V1 := ''][V2 == '-1', V2 := '']
+  st_mtx[V3 == '-1', V3 := ''][V4 == '-1', V4 := '']
+  st_mtx[is.na(V1), V1 := ''][is.na(V2), V2 := '']
+  st_mtx[is.na(V3), V3 := ''][is.na(V4), V4 := '']
+  ctr_tbl[, c('tg1', 'tg2', 'tg3', 'tg4') := st_mtx]
   # get trigger for controller that have only one trigger
   ctr_tbl[!grepl("ta \\d \\d ", V1), 
               ct1 := str_match(V1, " gi '([^']*)' ")[, 2]]

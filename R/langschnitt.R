@@ -508,9 +508,9 @@ plot_longprofile <- function(
   river = NULL,
   from.km = -Inf,
   to.km = Inf,
-  case.list = NULL,
+  case.list,
   case.desc = case.list,
-  sobek.project = NULL,
+  sobek.project,
   param = 'discharge',
   compare.by = 'zustand',
   group.by = compare.by,
@@ -526,7 +526,7 @@ plot_longprofile <- function(
   pt.size = 2.5,
   delta = FALSE,
   dband = TRUE,
-  dband.label = TRUE,
+  dband.label = dband,
   reverse.x = FALSE,
   x.lab = 'Lage (KM)',
   y.lab = ifelse(param == 'discharge',
@@ -561,10 +561,8 @@ plot_longprofile <- function(
   # must evaluate lt.by and color.by to avoid problem with ggplot
   eval(lt.by)
   eval(color.by)
-  if (!is.null(ts.trim.left)) stopifnot(is.numeric(ts.trim.left))
   # preparing parameters--------------------------------------------------------
   param <- tolower(param)
-  if (!dband) dband.label <- FALSE
   stopifnot(length(unique(case.list)) == length(case.list))
   stopifnot(is.numeric(from.km) & is.numeric(to.km))
   stopifnot(to.km > from.km)
@@ -588,7 +586,6 @@ plot_longprofile <- function(
   }
   if (!is.null(group.by)) {
     if (length(group.by) == 1) {
-      # grp_vars <- unique(case_tbl[, get(group.by)])
       if (!group.by %in% c('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')) {
         stop("group.by must be one of ('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')")
       }

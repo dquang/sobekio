@@ -1,12 +1,14 @@
-#' Read location table from .HIS file
+#' Get location table from .HIS file
+#' 
 #' Locations are SOBEK's internal index of the node/reach IDs
-#' sobek.ids are IDs of nodes/reaches in the River Network
+#' sobek.id are IDs of nodes/reaches in the River Network
 #' sobek.id are automatically truncated to max. length of 20 characters by SOBEK
+#' 
 #' @param his.file Path to the .HIS file
 #' @return a data.table with two column: location & sobek.id
 #' @export
 #' @import data.table
-his_location <- function(his.file = "") {
+his_location <- function(his.file) {
   # this fucntion take input is a HIS file (path to)
   # out put is a data frame with two column (location & sobek.id)
   if (!file.exists(his.file)) {
@@ -109,7 +111,7 @@ his_location <- function(his.file = "") {
 #' \item Time step of the timeserie: his_dt (sec.)
 #' }
 #' @export
-his_info <- function(his.file = "") {
+his_info <- function(his.file) {
   if (!file.exists(his.file)) {
     stop(paste("HIS file:", his.file, "does not exit!"))
   }
@@ -176,8 +178,8 @@ his_info <- function(his.file = "") {
 #' @return A data.table
 #' @export
 his_from_list <- function(
-  his.file = NULL, # path to .HIS file
-  id.list = NULL, # list of node ids to get data
+  his.file,
+  id.list,
   param = 1L) {
   id.list <- as.character(unlist(id.list))
   if (!file.exists(his.file)) {
@@ -230,7 +232,7 @@ his_from_list <- function(
 #' @export
 his_from_file <- function(
                           his.file, # path to .HIS file
-                          id.file, # path to list of sobek.ids file
+                          id.file, # path to list of sobek.id.list file
                           param = 1L,
                           f.header = FALSE, # does node list contain header
                           f.sep = "\t", # seperation of node list

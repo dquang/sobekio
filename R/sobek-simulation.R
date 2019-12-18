@@ -86,13 +86,13 @@ sobek_sim <- function(case.name = NULL,
          row.names = FALSE, quote = FALSE)
   cmd <- paste("cmd.exe /c ", sobek.path, "/programs/simulate.exe simulate.ini", sep = "")
   if (interactive()) {
-    print("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...")
-    print("If you need to do something else with R, please open another session")
+    cat("Waiting for Sobek Simulation.exe. DO NOT terminate R or run any other commands...\n")
+    cat("If you need to do something else with R, please open another session\n")
   } else{
     cat(
       "Running simulation for case:\n",
       clist[case_number == c_number, case_name],
-       "\nPlease DO NOT CLOSE this windows until the simulation has been done."
+       "\nPlease DO NOT CLOSE this windows until the simulation has been done.\n"
       )
   }
   system(command = cmd, wait = TRUE)
@@ -226,7 +226,7 @@ sobek_sim <- function(case.name = NULL,
                     recursive = TRUE,
                     overwrite = TRUE)
         }
-        print("done.")
+        cat("done.\n")
       }
       # cleaning
       setwd(sobek.path)

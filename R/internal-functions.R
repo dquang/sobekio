@@ -53,18 +53,16 @@ his_df <- function(his.file) {
 }
 
 
-# Get all time steps in the .HIS file with GMT as time zone
-# @param his.file Path to .HIS file, string
-# @return a single column data.frame of timeserie (POSXCt)
+#' Get all time steps in the .HIS file
+#' 
+#' @param his.file Path to .HIS file, string
+#' @return a single column data.frame of timeserie (POSXCt)
 his_time_df <- function(his.file) {
-  # output: one column matrix, nrows = total time steps
-
   if (!file.exists(his.file)) {
     stop(paste("HIS file:", his.file, "does not exit!"))
   }
   con <- file(his.file, open = "rb", encoding = "native.enc")
   txt_title <- stri_conv(readBin(con, 'raw', n = 160), from = 'windows-1252')
-  his_title <- str_extract_all(txt_title, ".{40}", simplify = TRUE)
   # get the total bytes of the his file
   his_fsize <- file.size(his.file)
   # get number of parameters and number of locations
@@ -81,18 +79,11 @@ his_time_df <- function(his.file) {
   # int(4) for time, double(4) for data
   total_tstep <- data_bytes / (4 + 4 * param_nr * total_loc)
   # searching the start time (t0) and time step (dt) in his_title
-  t0_pattern <- "[0-9]{4}.[0-9]{2}.[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}"
-  dt_pattern <- "scu=[[:space:]]{1,}([0-9]{1,})(s)"
-  his_t0 <- regmatches(his_title[4], regexpr(t0_pattern, his_title[4]))
+  t0_pattern <- "\\d{4}.\\d{2}.\\d{2} \\d{2}:\\d{2}:\\d{2}"
+  dt_pattern <- "scu= *(\\d{1,})s"
+  his_t0 <- stri_match_first_regex(txt_title, t0_pattern)[1]
   his_t0 <- as.POSIXct(his_t0, format = "%Y.%m.%d %H:%M:%S", tz = "GMT")
-  his_dt <- as.integer(gsub(
-    dt_pattern,
-    "\\1",
-    regmatches(
-      his_title[4],
-      gregexpr(dt_pattern, his_title[4])
-    )[[1]]
-  ))
+  his_dt <- as.integer(stri_match_first_regex(txt_title, dt_pattern)[2])
   his_time <- vector(mode = 'numeric', length = total_tstep)
   seek(con, where = 168 + 20 * param_nr + 24 * total_loc)
   for (i in 1:total_tstep) {
@@ -108,6 +99,7 @@ his_time_df <- function(his.file) {
 
 
 #' Get parameter table from .HIS & .HIA files
+#' 
 #' @param his.file Path to the .HIS file
 #' @return a data.table with two column: location & sobek.id
 his_parameter <- function(his.file = "") {
@@ -123,11 +115,8 @@ his_parameter <- function(his.file = "") {
   # get parameter table
   for (i in 1:param_nr) {
     param_id[i] <- i
-    param_name[i] <-
-      str_sub(stri_conv(readBin(con, what = "raw", n = 20),
-                        from = 'windows-1252'),
-              start = 1,
-              end = 20) # SOBEK output max. 20 chars names)
+    param_name[i] <- stri_trim_both(stri_conv(readBin(con, what = "raw", n = 20),
+                               from = 'windows-1252'))
     seek(con, where = 168 + 20 * i, origin = "start")
   }
   close(con)
@@ -173,8 +162,7 @@ his_parameter <- function(his.file = "") {
       i_long_loc <- which(hia_sbegin == pos_long_loc + 1)
       if (length(i_long_loc) > 0) {
         long_loc <- hia_dt[hia_sbegin[i_long_loc]:hia_send[i_long_loc], ]
-        long_loc[, c("param_id", "param_long") :=
-                   tstrsplit(V1, "=",                                                                     fixed = TRUE)]
+        long_loc[, c("param_id", "param_long") := tstrsplit(V1, "=", fixed = TRUE)]
         long_loc[, V1 := NULL]
         his.params <- merge(his.params, long_loc, all.x = TRUE,
                           by = "param_id",
