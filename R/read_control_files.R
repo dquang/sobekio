@@ -3,14 +3,14 @@
 # orig_line_nr is original line number, this serves any changing later
 # this function get definition table of triggers (trigger.def)
 .get_trigger_def <- function(trigger.def.f = NULL){
-  trig_def <- fread(trigger.def.f, sep = "\n", 
+  trig_def <- fread(trigger.def.f, sep = "\n",
                     strip.white = FALSE,
                     encoding = 'Latin-1',
                     header = FALSE)
-  str_mt <-  str_match(trig_def$V1,
+  st_mtx <-  str_match(trig_def$V1,
                        "TRGR id '([^']*)' nm '([^']*)'")
-  trig_def$id <- str_mt[, 2]
-  trig_def$nm <- str_mt[, 3]
+  trig_def$id <- st_mtx[, 2]
+  trig_def$nm <- st_mtx[, 3]
   # type of trigger
   trig_def$ty <- str_match(trig_def$V1, "ty ([0-9]{1}) ")[, 2]
   # trigger parameter
@@ -21,10 +21,10 @@
   trig_def$struct <- str_match(trig_def$V1, " ts '([^']*)' ")[, 2]
   # check on (only relevant if trigger parameter: 3, 4, 5)
   trig_def$chk <- str_match(trig_def$V1, " ch (\\d) ")[, 2]
-  # cumulative sum of the id, i.e. 
+  # cumulative sum of the id, i.e.
   # id takes the value of the first element, grouping by none-NA
   trig_def[, id := id[1], by = .(cumsum(!is.na(id)))]
-  
+
   return(trig_def)
 }
 
@@ -40,21 +40,21 @@
                    sep = "\n", header = FALSE)
   str_tbl[, orig_line_nr := .I]
   # get id, name, definitionID
-  str_mt <- str_match(
+  st_mtx <- str_match(
     str_tbl$V1,
     " id '([^']*)' nm '([^']*)' dd '([^']*)' ")
-  str_tbl$id <- str_mt[, 2]
-  str_tbl$name <- str_mt[, 3]
-  str_tbl$def_ID <- str_mt[, 4]
+  str_tbl$id <- st_mtx[, 2]
+  str_tbl$name <- st_mtx[, 3]
+  str_tbl$def_ID <- st_mtx[, 4]
   # get controllers
-  str_mt <- str_match(
+  st_mtx <- str_match(
     str_tbl$V1,
     " id .* ca (\\d \\d \\d \\d) cj ('[^']*' '[^']*' '[^']*' '[^']*') ")
-  str_tbl$ca <- str_mt[, 2]
-  str_tbl$cj <- str_mt[, 3]
+  str_tbl$ca <- st_mtx[, 2]
+  str_tbl$cj <- st_mtx[, 3]
   str_tbl[is.na(ca), ca := str_match(V1, " ca (\\d) ")[, 2]]
   str_tbl[is.na(cj), cj := str_match(V1, " cj ('[^']*') ")[, 2]]
-  
+
   return(str_tbl)
 }
 
@@ -62,29 +62,29 @@
 #----reading table of structure difinitions (with def_ID)-----
 # this function get definition table of structures (struct.def)
 .get_struct_def <- function(struct.def.f = NULL){
-  str_def <- fread(struct.def.f , 
+  st_def <- fread(struct.def.f ,
                    strip.white = FALSE,
                    sep = "\n", header = FALSE, encoding = 'Latin-1')
-  str_def[, orig_line_nr := .I]
+  st_def[, orig_line_nr := .I]
   # get the description lines only
-  str_def_tbl <- str_def[grepl("^STDS id", V1)]
+  st_def_tbl <- st_def[grepl("^STDS id", V1)]
   # get def_ID, name, type
-  str_mt <- str_match(
-    str_def_tbl$V1,
+  st_mtx <- str_match(
+    st_def_tbl$V1,
     "STDS id '([^']*)' nm '([^']*)' ty (\\d{1,2}).*")
-  str_def_tbl$def_ID <- str_mt[, 2]
-  str_def_tbl$def_name <- str_mt[, 3]
-  str_def_tbl$def_ty <- str_mt[, 4]
+  st_def_tbl$def_ID <- st_mtx[, 2]
+  st_def_tbl$def_name <- st_mtx[, 3]
+  st_def_tbl$def_ty <- st_mtx[, 4]
   # get crest level, crest/sill width
-  str_def_tbl[, cl := as.double(str_match(V1, ' cl (\\d*\\.*\\d*) ')[, 2])]
-  str_def_tbl[, cw := as.double(str_match(V1, ' [cs]w (\\d*\\.*\\d*) ')[, 2])]
+  st_def_tbl[, cl := as.double(str_match(V1, ' cl (\\d*\\.*\\d*) ')[, 2])]
+  st_def_tbl[, cw := as.double(str_match(V1, ' [cs]w (\\d*\\.*\\d*) ')[, 2])]
   # get possible flow direction
-  str_def_tbl[, rt := str_match(V1, ' rt (\\d*\\.*\\d*) ')[, 2]]
-  str_def_tbl[def_ty == '9', rt := str_match(V1, ' (dn -*\\d) ')[, 2]]
-  str_def_tbl$V1 <- NULL
-  str_def <- merge(str_def, str_def_tbl, by = 'orig_line_nr', all.x = TRUE)
-  str_def[, def_ID := def_ID[1], .(cumsum(!is.na(def_ID)))]
-  return(str_def)
+  st_def_tbl[, rt := str_match(V1, ' rt (\\d*\\.*\\d*) ')[, 2]]
+  st_def_tbl[def_ty == '9', rt := str_match(V1, ' (dn -*\\d) ')[, 2]]
+  st_def_tbl$V1 <- NULL
+  st_def <- merge(st_def, st_def_tbl, by = 'orig_line_nr', all.x = TRUE)
+  st_def[, def_ID := def_ID[1], .(cumsum(!is.na(def_ID)))]
+  return(st_def)
 }
 
 
@@ -112,9 +112,9 @@
   ct_tbl[, ta := str_match(V1, " ta (\\d \\d \\d \\d) ")[,2]]
   ct_tbl[is.na(ta), ta := str_match(V1, " ta (\\d) ")[,2]]
   # id of triggers
-  ct_tbl[, gi := 
+  ct_tbl[, gi :=
            str_match(V1, " gi ('[^ ]*' '[^ ]*' '[^ ]*' '[^ ]*') ")[,2]]
-  ct_tbl[is.na(gi), gi := 
+  ct_tbl[is.na(gi), gi :=
            str_match(V1, " gi ('[^ ]*') ")[,2]]
   # and (=1) or (=0) relation when using more triggers
   ct_tbl[, ao := str_match(V1, " ao (\\d \\d \\d \\d)")[,2]]
@@ -131,7 +131,7 @@
   ct_tbl$V1 <- NULL
   ct_def <- merge(ct_def, ct_tbl, by = 'orig_line_nr', all.x = TRUE)
   ct_def[, id := id[1], .(cumsum(!is.na(id)))]
-  
+
   return(ct_def)
 }
 

@@ -3,7 +3,7 @@
 #' @param case.list List of cases
 #' @param case.desc Correct (according to case naming standard in NHWSP) version of case.list, it will be used for legend
 #' @param sobek.project Path to sobek project
-#' @param param 'waterlevel', 'discharge', or 'both'. 
+#' @param param 'waterlevel', 'discharge', or 'both'.
 #' If both, two graphics will be first procedured and then arrange vertically together
 #' @param q.in Logical. Should discharge through the inlet be plotted?
 #' @param q.out Logical. Should discharge through the outlet be plotted?
@@ -74,7 +74,7 @@ plot_polder_scenario_old <- function(
   polder.f = NULL,
   polder.z = NULL,
   verbose = TRUE) {
-  
+
   #----checking input----
   # there should be only two cases
   stopifnot(length(unlist(case.list)) == 2)
@@ -105,7 +105,7 @@ plot_polder_scenario_old <- function(
     f_args$y2.tick1 <- y2.tick1_qt
     if (verbose) cat('working with discharge \n')
     q_wt <- do.call(plot_polder_scenario, f_args)
-    g <- cowplot::plot_grid(g_wt, q_wt, ncol = 1, 
+    g <- cowplot::plot_grid(g_wt, q_wt, ncol = 1,
                        rel_heights = 1,
                        align = 'v', axis = 'l')
     return(g)
@@ -209,7 +209,7 @@ plot_polder_scenario_old <- function(
         )
         names(ref_mID_args)[3] <- ref.mID2_type
         ref_mID2 <- do.call(his_from_case, ref_mID_args)
-        
+
       } else{
         ref_mID2 <- his_from_case(
           case.list = case.list,
@@ -698,7 +698,7 @@ plot_polder_scenario_old <- function(
 
 
 #' Get data for polder
-#' 
+#'
 #' @inheritParams plot_polder_scenario
 #' @export
 get_polder_scenario_data <- function(name,
@@ -717,10 +717,10 @@ get_polder_scenario_data <- function(name,
   pegel1 <- parse_ref_id(ref.mID)
   pegel2 <- parse_ref_id(ref.mID2)
   case_tbl <- get_polder_scenario_case_tbl(case.list, case.desc, sobek.project)
-  id_tbl <- get_polder_scenario_id_tbl(name, case.list, master.tbl, 
+  id_tbl <- get_polder_scenario_id_tbl(name, case.list, master.tbl,
                                        sobek.project, case_tbl, pegel1, pegel2)
   id_vol <- id_tbl[grepl(paste0(name, '_Vol'), besonderheit)]
-  id_tbl <- id_tbl[!grepl(paste0(name, '_Vol'), besonderheit)] 
+  id_tbl <- id_tbl[!grepl(paste0(name, '_Vol'), besonderheit)]
   # for w.canal, always need water level (so only wID|mID)
   # assumed that sID was not given to w.canal - if yes, an error with parameter will occur
   # reading volume
@@ -729,14 +729,14 @@ get_polder_scenario_data <- function(name,
     this_case <- case.list[[i]]
     this_his <- id_vol[case == this_case, his_file][1]
     if (verbose) cat('Get volume for case: ', this_case, '\n')
-    this_vol_tbl <- his_from_list(his.file = this_his, 
+    this_vol_tbl <- his_from_list(his.file = this_his,
                                   id.list = id_vol[his_file == this_his, ID_F],
                                   param = 'Volume')
     this_vol_tbl[, Volume := rowSums(.SD), .SDcols = -c('ts')]
     vol_max_list[[i]] <- round(max(this_vol_tbl$Volume, na.rm = TRUE) / 10^6, 2)
   }
   vol_max_tbl <- data.table(Volume = vol_max_list, case = case.list)
-  # reading data at "nach, vor, 
+  # reading data at "nach, vor,
   if (param == 'waterlevel') {
     pat_vor_nach <- '_Vor|_Nach|Bezugspegel'
     if (w.canal) {
@@ -753,11 +753,11 @@ get_polder_scenario_data <- function(name,
     colnames(data_tbl) <- rename_polder_cols(data_cols)
   } else {
     if (q.in | q.out) {
-      id_rest <- id_tbl[!grepl(paste0(name, '_Innen'), 
+      id_rest <- id_tbl[!grepl(paste0(name, '_Innen'),
                                besonderheit)][ID_TYPE != 'wID']
       data_tbl <- get_data_for_id_tbl(case.list, 'discharge', id_rest)
     } else {
-      id_rest <- id_tbl[grepl(paste0(name, '_Auslass|_Einlass|Bezugspegel'), 
+      id_rest <- id_tbl[grepl(paste0(name, '_Auslass|_Einlass|Bezugspegel'),
                               besonderheit)][ID_TYPE != 'wID']
       data_tbl <- get_data_for_id_tbl(case.list, 'discharge', id_rest)
     }
@@ -791,7 +791,7 @@ get_polder_scenario_case_tbl <- function(
                     quote = "'", col.names = c('case_number', 'case'))
   case_cmt[, case := str_remove_all(case, '"')]
   case_cmt <- case_cmt[case %in% case.list]
-  case_chk <- assertthat::are_equal(sort(case_cmt$case), 
+  case_chk <- assertthat::are_equal(sort(case_cmt$case),
                                     sort(case.list))
   if (!case_chk) {
     stop('Not all cases were found in the caselist.cmt, check case names or sobek.project')
@@ -808,17 +808,17 @@ get_polder_scenario_id_tbl <- function(
   id_tbl <- id_tbl[, c('km', 'river', 'ID') := rep(NULL, 3)]
   if (!is.null(pegel1$ID)) {
     refid_tbl <- case_tbl[, c('case')]
-    refid_tbl[, ID_F := 
+    refid_tbl[, ID_F :=
                 pegel1$ID][, ID_TYPE := pegel1$type][, besonderheit := 'Bezugspegel']
     id_tbl <- rbind(id_tbl, refid_tbl)
   }
   if (!is.null(pegel2$ID)) {
     refid_tbl <- case_tbl[, c('case')]
-    refid_tbl[, ID_F := 
+    refid_tbl[, ID_F :=
                 pegel2$ID][, ID_TYPE := pegel2$type][, besonderheit := 'Bezugspegel_2']
     id_tbl <- rbind(id_tbl, refid_tbl)
   }
-  polder_pat <- paste0(name, '_Vol|',  
+  polder_pat <- paste0(name, '_Vol|',
                        name, '_Innen|',
                        name, '_Vor|',
                        name, '_Auslass|',
@@ -909,7 +909,7 @@ get_data_for_id_tbl <- function(
         param = param
       )
       colnames(data_tmp) <- c(
-        'ts', 
+        'ts',
         id_tbl[case == this_case & his_file == his_files[j], besonderheit]
       )
       if (j == 1) {
@@ -931,7 +931,7 @@ rename_polder_cols <- function(data_cols) {
   data_cols <- str_replace_all(data_cols, '[^,]*_(Nach[^,]*).*', '\\1')
   data_cols <- str_replace_all(data_cols, '[^,]*_(Einlass[^,]*).*', '\\1')
   data_cols <- str_replace_all(data_cols, '[^,]*_(Auslass[^,]*).*', '\\1')
-  data_cols <- str_replace_all(data_cols, '[^,]*_(Innen[^,]*).*', '\\1')
+  data_cols <- str_replace_all(data_cols, '.*_Innen.*', 'W_innen')
   return(data_cols)
 }
 
@@ -944,7 +944,7 @@ rename_polder_cols <- function(data_cols) {
 #' @param case.list List of cases
 #' @param case.desc Correct (according to case naming standard in NHWSP) version of case.list, it will be used for legend
 #' @param sobek.project Path to sobek project
-#' @param param 'waterlevel', 'discharge', or 'both'. 
+#' @param param 'waterlevel', 'discharge', or 'both'.
 #' If both, two graphics will be first procedured and then arrange vertically together
 #' @param q.in Logical. Should discharge through the inlet be plotted?
 #' @param q.out Logical. Should discharge through the outlet be plotted?
@@ -1015,7 +1015,7 @@ plot_polder_scenario <- function(
   polder.f = NULL,
   polder.z = NULL,
   verbose = TRUE) {
-  
+
   #----checking input----
   # there should be only two cases
   stopifnot(length(unlist(case.list)) == 2)
@@ -1051,7 +1051,7 @@ plot_polder_scenario <- function(
     f_args$y2.tick1 <- y2.tick1_qt
     if (verbose) cat('working with discharge \n')
     q_wt <- do.call(plot_polder_scenario, f_args)
-    g <- cowplot::plot_grid(g_wt, q_wt, ncol = 1, 
+    g <- cowplot::plot_grid(g_wt, q_wt, ncol = 1,
                             rel_heights = 1,
                             align = 'v', axis = 'l')
     return(g)
@@ -1072,7 +1072,7 @@ plot_polder_scenario <- function(
     param = param,
     ref.mID = ref.mID,
     ref.mID2 = ref.mID2,
-    w.canal = TRUE,
+    w.canal = TRUE, # to get data for the summary text
     sobek.project = sobek.project,
     master.tbl = master.tbl,
     verbose = verbose
@@ -1084,7 +1084,7 @@ plot_polder_scenario <- function(
   if (isTRUE(cmp.sort)) cmp_vars <- sort(cmp_vars)
   #----read data for Bezugspegel 1 & 2----
   pegel1 <- parse_ref_id(ref.mID)
-  pegel2 <- parse_ref_id(ref.mID2) 
+  pegel2 <- parse_ref_id(ref.mID2)
   pegel1$color <- paste(ifelse(param == 'discharge', 'Q', 'W'), toupper(pegel1$name))
   pegel2$color <- paste(ifelse(param == 'discharge', 'Q', 'W'), toupper(pegel2$name))
   if (!is.null(ref.mID)) {
@@ -1358,7 +1358,7 @@ plot_polder_scenario <- function(
     einlass_max_col <- paste(i, 'Max', sep = '_')
     data_tbl[, eval(einlass_max_col) := max(get(i), na.rm = TRUE)]
   }
-  data_tbl[, W_in_max := max(Innen, na.rm = TRUE), by = case]
+  data_tbl[, W_in_max := max(W_innen, na.rm = TRUE), by = case]
   # finding the locations on x-axis for the annotated text
   # get length of x_axis, then get text.pos of it
   data_tbl[, N := .N, by = case]
@@ -1430,7 +1430,7 @@ plot_polder_scenario <- function(
       hjust = 0,
       vjust = 1
     )
-  
+
   if (!is.null(h.lines)) {
     for (i in seq_along(h.lines)) {
       hline_label <- ifelse(is.null(names(h.lines[i])),
@@ -1561,6 +1561,6 @@ plot_polder_scenario <- function(
         ". Use y2.tick1 and y2.scale to adjust y2-axis\n"
     )
   }
-  
+
   return(g)
 }

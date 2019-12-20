@@ -1,5 +1,5 @@
 #' Get information of a controller
-#' 
+#'
 #' @param ct.id ID of the controller
 #' @param ct.tbl Controller table
 #' @param case.name Name of the case (considered if ct.tbl == NULL)
@@ -104,7 +104,7 @@ get_control_info <- function(ct.id = NULL,
     } else {
       # empty controlling table
       ct_tble <- rbind(ct_tble,
-                       data.table(Parameter = c('Controlling table', 
+                       data.table(Parameter = c('Controlling table',
                                                 rep(NA, nrow.ct - 1)),
                                   Value = rep(NA, nrow.ct)))
     }
@@ -115,7 +115,7 @@ get_control_info <- function(ct.id = NULL,
   if (isTRUE(trigger)) {
     # Sobek always configure 4 triggers, not like controllers: 1 or 4
     trig_all <- str_match(
-      ct_info_tbl[Parameter == 'Trigger IDs', Value], 
+      ct_info_tbl[Parameter == 'Trigger IDs', Value],
       "'([^']+)' '([^']+)' '([^']+)' '([^']+)'"
     )[1, 2:5] %>% sort()
     trig_all[is.na(trig_all)] <- "'-1'"
@@ -126,7 +126,7 @@ get_control_info <- function(ct.id = NULL,
     }
     trig_tbl <- rbindlist(lapply(trig_all, get_trigger_info,
                                  tg.tbl = tg.tbl,
-                                 case.name = case.name, 
+                                 case.name = case.name,
                                  sobek.project = sobek.project,
                                  html = FALSE,
                                  tble = trigger,
@@ -138,8 +138,8 @@ get_control_info <- function(ct.id = NULL,
     ct_info_tbl[, orig_line := .I]
     r_group <- c("Controller Information")
     n_group <- c(ct_info_tbl[Parameter == 'Trigger ID', orig_line], nrow(ct_info_tbl))
-    r_group <- unlist(c("Structure Information", 
-                        ct_info_tbl[n_group[-length(n_group)], 
+    r_group <- unlist(c("Structure Information",
+                        ct_info_tbl[n_group[-length(n_group)],
                                     paste0('Infos for ', Parameter, ': ', Value)]
     ))
     n_group <- n_group - 1
@@ -160,7 +160,7 @@ get_control_info <- function(ct.id = NULL,
 
 
 #' Get information of a controller for popover
-#' 
+#'
 #' @param ct.id ID of the controller
 #' @param ct.tbl Table of controllers
 #' @param tg.tbl Table of triggers
@@ -177,7 +177,7 @@ get_control_popover <- function(ct.id = NULL,
                                 trigger = FALSE,
                                 html = TRUE,
                                 tble = FALSE
-                                
+
 ) {
   if (isTRUE(ct.id == '')) return('')
   if (is.na(ct.id)) return('')
@@ -194,7 +194,7 @@ get_control_popover <- function(ct.id = NULL,
   # activated triggers
   ct_tg_ta <- ct_id_tbl$ta %>% str_replace_all('0','') %>% str_squish()
   # ids of activated triggers
-  ct_tg_gi <- ct_id_tbl$gi %>% str_replace_all("'-1'", '') %>% 
+  ct_tg_gi <- ct_id_tbl$gi %>% str_replace_all("'-1'", '') %>%
     str_replace_all("'", "") %>% str_squish()
   ct_info_list <- c(
     '<strong>Name: </strong>' = ct_id_tbl$name,
@@ -204,7 +204,7 @@ get_control_popover <- function(ct.id = NULL,
     '<strong>Measured parameter: </strong>' = .get_cp_type(ct_id_tbl$cp),
     '<strong>Time lag: </strong>' = ct_id_tbl$mp,
     '<strong>Update frequency: </strong>' = ct_id_tbl$cf,
-    '<strong>Trigger activated: </strong>' = ct_tg_ta, 
+    '<strong>Trigger activated: </strong>' = ct_tg_ta,
     '<strong>Trigger IDs: </strong>' = ct_tg_gi,
     '<strong>dValue/dt: </strong>' = ct_id_tbl$mc
   )
@@ -236,7 +236,7 @@ get_control_popover <- function(ct.id = NULL,
   n_group <- nrow(ct_info_tbl) # Number of rows for "Structure information"
   if (isTRUE(trigger)) {
     trig_all <- str_match(
-      ct_info_tbl[Parameter == 'Trigger IDs', Value], 
+      ct_info_tbl[Parameter == 'Trigger IDs', Value],
       "'([^']+)' '([^']+)' '([^']+)' '([^']+)'"
     )[, 2:5]
     trig_all <- trig_all[trig_all != '-1']
@@ -244,7 +244,7 @@ get_control_popover <- function(ct.id = NULL,
     if (length(trig_all) > 0) {
       trig_tbl <- rbindlist(lapply(trig_all, get_trigger_info,
                                    tg.tbl = tg.tbl,
-                                   case.name = case.name, 
+                                   case.name = case.name,
                                    sobek.project = sobek.project,
                                    tble = tble,
                                    html = FALSE)
@@ -280,30 +280,27 @@ get_control_tbl <- function(
   case.name = NULL,
   sobek.project = NULL
 ) {
-  
+
   if (!is.null(s.id)) {
     # get path to files
-    st_def_f <- get_file_path(case.name = case.name,
-                               sobek.project = sobek.project,
-                               type = 'struct.def')
     st_dat_f <- get_file_path(case.name = case.name,
                                sobek.project = sobek.project,
                                type = 'struct.dat')
-    
+
     st_dat_tbl <- .get_struct_dat(st_dat_f)
     if (s.id %in% st_dat_tbl$id) {
       st_id_tbl <- st_dat_tbl[id == s.id][1,]
       cj_list <- str_split(st_id_tbl$cj, ' ', simplify = TRUE)[1, ]
       ct_id_list <- gsub("'", "", cj_list[!grepl("'-1'", cj_list)])
     } else {
-      stop('structure with ID: ', s.id, 
+      stop('structure with ID: ', s.id,
            " not found. Maybe you want to use ct.id = '", s.id, "' instead?")
     }
   } else {
     ct_id_list <- ct.id
   }
   if (length(ct_id_list) > 0) {
-      ct_def_f <- get_file_path(case.name = case.name, 
+      ct_def_f <- get_file_path(case.name = case.name,
                                 sobek.project = sobek.project,
                                 'control.def')
       ct_def <- .get_control_def(ct_def_f)
@@ -311,7 +308,7 @@ get_control_tbl <- function(
       for (i in ct_id_list) {
         ct_name_tbl <- ct_def[id == i, c('V1')][grepl(" < {0,1}$", V1)]
         if (nrow(ct_name_tbl) > 0) {
-          ct_name_tbl[, c('V2', 'V3', 'V4') := 
+          ct_name_tbl[, c('V2', 'V3', 'V4') :=
                         tstrsplit(str_trim(V1), split = ' ')]
           ts_chk <- grepl("^'\\d{4}/\\d{2}/\\d{2}", ct_name_tbl$V2[1])[1]
           if (ts_chk) {
@@ -334,7 +331,7 @@ get_control_tbl <- function(
 }
 
 #' Change controlling table for a controller
-#' 
+#'
 #' @param tble New control table
 #' @param ct.id Controller ID
 #' @param dvalue.dt Changing speed of the controlled parameter (unit per second)
@@ -402,7 +399,7 @@ change_control_tbl <- function(
   if (!is.null(dvalue.dt)) {
     stopifnot(is.numeric(as.numeric(dvalue.dt)))
     id_line <- ct_tbl[1, orig_line_nr]
-    old_dvalue_dt <- ct_def_tbl[id_line, 
+    old_dvalue_dt <- ct_def_tbl[id_line,
                                str_match(V1, ' mc (\\d+\\.*\\d*) ')[, 2]]
     ct_def_tbl[id_line, V1 := str_replace(V1, ' mc \\d+\\.*\\d* ',
                                     paste0(' mc ', dvalue.dt, ' ')
@@ -425,11 +422,11 @@ change_control_tbl <- function(
 
 
 #' Transfer a controller from one case to another
-#' 
+#'
 #' This function copies the definition of a controller in the control.def from one case, and paste/replace the controller with same id in the other case. By using this method, all information will be copied (for ex. included dValue/dt)
-#' 
+#'
 #' @param from Name of ogirinal case
-#' @param to Name of destination case 
+#' @param to Name of destination case
 #' @param ct.id ID of the controller
 #' @param sobek.project Path to sobek project
 #' @param overwrite Logical, default FASLE, if TRUE the definition of the controller will be overwrite. Be carefull with this option
@@ -442,11 +439,19 @@ transfer_controller <- function(
   overwrite = FALSE,
   write.def = FALSE
 ) {
+  ct.ids <- unlist(ct.ids)
+  if (length(overwrite) == 1) {
+    overwrite <- rep(overwrite, length(ct.ids))
+  } else {
+    if (length(overwrite) != length(ct.ids)) {
+      stop('length(overwrite) must be one or same as length(ct.ids)')
+    }
+  }
   # reading definition files
-  ctr_def_from_file <- get_file_path(case.name = from, 
+  ctr_def_from_file <- get_file_path(case.name = from,
                                      sobek.project = sobek.project,
                                      type = 'control.def')
-  ctr_def_to_file <- get_file_path(case.name = to, 
+  ctr_def_to_file <- get_file_path(case.name = to,
                                      sobek.project = sobek.project,
                                      type = 'control.def')
   ctr_def_from <- .get_control_def(ctr_def_from_file)
@@ -456,29 +461,43 @@ transfer_controller <- function(
   ct_nm_to_list <- vector()
   ct_id_to_list <- vector()
   ct_nm_from_list <- vector()
-  i = 1
+  i <- 1
   for (ct.id in ct.ids) {
     # table of control difinition for ct.id
     ctrid_from <- ctr_def_from[id == ct.id]
     ct_nm_from <- ctrid_from[1, name]
-    trig_chk <- isTRUE(ctrid_from$ta[[1]] == '0 0 0 0')
-    if (!trig_chk) stop('This function is not yet supported for controllers with triggers')
-    # ctrid_from_ta <- ctrid_from$ta[[1]]
-    # if (trig_chk) {
-    #   trig_def_from <- .get_trigger_def(trig_def_from_file)
-    #   trig_def_to <- .get_trigger_def(trig_def_to_file)
-    # }
+    ct_id_to <- ct.id
     if (nrow(ctrid_from) == 0) {
       stop('Controller with ID ', ct.id, ' is not found in case: ', from)
     }
-    if (isTRUE(overwrite)) {
+    if (is.na(ctrid_from$ta[[1]])) {
+      trig_chk <- FALSE
+    } else {
+      trig_chk <- isTRUE(ctrid_from$ta[[1]] != '0 0 0 0')
+    }
+    if (trig_chk) stop('This function is not yet supported for controllers with triggers')
+    if (isTRUE(overwrite[i])) {
+      # logic: we transfer a controller from one case to another
+      # we have to make sure that there is no conflict in controller id (ct_id_to)
+      # or name (ct_nm_to) in the new destination control.def file
+      # we can overwrite with the ct_id_from and ct_nm_from if:
+      #   + ct_id_from and ct_nm_from is not already used in the ct_def_to, or
+      #   + if they are used, they are used only by the same structure that uses
+      #   + ct_id_to and ct_nm_to
       ctrid_to <- ctr_def_to[id == ct.id]
-      ct_nm_to <- ctrid_to[1, name]
+      if (nrow(ctrid_to) > 0) {
+        ct_nm_to <- ctrid_to[1, name]
+        nm_chk <- ifelse(ct_nm_to == ct_nm_from, FALSE, TRUE)
+      } else {
+        nm_chk <- TRUE
+      }
       # because overwrite == TRUE, we overwrite the ID
       # We want to transfer also the old name to the new def file
       # If there is a naming conflict, we have to solve it
-      if (ct_nm_to != ct_nm_from) {
-        ct_nm_to <- ct_nm_from
+      # using ct_nm_from in the destination control.def
+      # check if the ct_nm_from is alread used and if yes, for which controllers
+      ct_nm_to <- ct_nm_from
+      if (nm_chk) {
         while (ct_nm_to %in% ctr_def_to_nms) {
           ct_nm_to <- paste(ct_nm_from,
                             substr(basename(tempfile(
@@ -490,13 +509,13 @@ transfer_controller <- function(
           V1,
           paste0(" nm '", ct_nm_from),
           paste0(" nm '", ct_nm_to)
-          
+
         )]
       }
       if (nrow(ctrid_to) > 0) {
         if (ctrid_to$ct[[1]] != ctrid_from$ct[[1]]) {
-          warning('Controller with id: ', ct.id, 
-                  'has different types in the given cases')
+          warning('Controller with id: ', ct.id,
+                  ' has different types in the given cases')
         }
         ctrid_to_begin <- ctrid_to[, min(orig_line_nr)]
         ctrid_to_end <- ctrid_to[, max(orig_line_nr)]
@@ -509,7 +528,6 @@ transfer_controller <- function(
         ctr_def_to <- rbind(ctr_def_to[, c('V1')], ctrid_from[, c('V1')])
       }
     } else {
-      ct_id_to <- ct.id
       while (ct_id_to %in% ctr_def_to_ids) {
         ct_id_to <- paste(ct.id,
                           substr(basename(tempfile(
@@ -530,13 +548,13 @@ transfer_controller <- function(
         V1,
         paste0(" id '", ct.id),
         paste0(" id '", ct_id_to)
-        
+
       )]
       ctrid_from[, V1 := str_replace(
         V1,
         paste0(" nm '", ct_nm_from),
         paste0(" nm '", ct_nm_to)
-        
+
       )]
       ctr_def_to <- rbind(ctr_def_to[, c('V1')], ctrid_from[, c('V1')])
     }
@@ -592,7 +610,7 @@ transfer_controller <- function(
 ) {
   if (is.null(ct.tbl)) {
     ctr_def_f <- get_file_path(
-      case.name = case.name, 
+      case.name = case.name,
       sobek.project = sobek.project,
       'control.def'
     )
@@ -613,17 +631,17 @@ transfer_controller <- function(
   st_mtx[is.na(V3), V3 := ''][is.na(V4), V4 := '']
   ctr_tbl[, c('tg1', 'tg2', 'tg3', 'tg4') := st_mtx]
   # get trigger for controller that have only one trigger
-  ctr_tbl[!grepl("ta \\d \\d ", V1), 
+  ctr_tbl[!grepl("ta \\d \\d ", V1),
               ct1 := str_match(V1, " gi '([^']*)' ")[, 2]]
   ctr_tbl[is.na(ct1), ct1 := '']
   ctr_tbl <- ctr_tbl[, c(
     # basic
-    'id', 'name', 'ct', # type 
+    'id', 'name', 'ct', # type
     'ca', 'ac', # parameter, activated
     'mc', # dValue/dt
     'cp', # type of measurement parameter
     'ml', # reference pegel
-    # trigger                         
+    # trigger
     'ta', 'ao', 'tg1', 'tg2', 'tg3', 'tg4')
     ]
   ctr_cols <- c('ID', 'Name', 'Type',
@@ -639,14 +657,14 @@ transfer_controller <- function(
                 'Trigger 4')
   colnames(ctr_tbl) <- ctr_cols
   setorder(ctr_tbl, ID)
-  
+
   if (html) {
-    tg_names <- grep("Trigger \\d", 
+    tg_names <- grep("Trigger \\d",
                      colnames(ctr_tbl), value = TRUE)
     if (is.null(tg.tbl)) {
-      tg.tbl <- .get_all_trigger(case.name, sobek.project, tble = tble, html = FALSE) 
+      tg.tbl <- .get_all_trigger(case.name, sobek.project, tble = tble, html = FALSE)
     }
-    
+
     for (i in tg_names) {
       tg_hover <- lapply(
         ctr_tbl[[i]],
@@ -668,3 +686,50 @@ transfer_controller <- function(
   return(ctr_tbl)
 }
 
+
+#' Find out dependencies for one controller definition
+#'
+#' This function finds out structures that use this controller
+control_dependency <- function(
+  ct.id = NULL,
+  ct.nm = NULL,
+  ct.tbl = NULL,
+  ct.def.f = NULL,
+  st.dat.tbl = NULL,
+  st.dat.f = NULL,
+  case.name = NULL,
+  sobek.project = NULL
+) {
+  if (!is.null(ct.id)) {
+    if (ct.id == '-1' | ct.id == "'-1'") {
+      # return empty data.table with three columns
+      ret <- data.table(st_id = NA, st_ca = NA, st_cj = NA, ct_id = NA)
+      ret <- ret[!is.na(st_id)]
+      return(ret)
+    }
+  }
+  if (!is.null(case.name)) {
+    if (is.null(sobek.project)) stop('case.name and sobek.project must be given together')
+    st.dat.f <- get_file_path(case.name, sobek.project, 'struct.dat')
+    ct.def.f <- get_file_path(case.name, sobek.project, 'control.def')
+  }
+  if (!is.null(st.dat.f)) {
+    st.dat.tbl <- .get_struct_dat(st.dat.f)
+  } else {
+    if (is.null(st.dat.tbl)) stop('Not enough information for getting struct.dat table')
+  }
+  if (!is.null(ct.def.f)) {
+    ct.tbl <- .get_control_def(ct.def.f)
+  } else {
+    if (is.null(ct.tbl)) stop('Not enough information for getting controller table')
+  }
+  if (is.null(ct.id)) {
+    if (is.null(ct.nm)) stop('ct.id or ct.nm must be given')
+    ct.id <- ct.tbl[name == ct.nm, id][[1]]
+  }
+  st.dat.tbl[grepl(paste0("'", ct.id, "'"), cj), dep := 1]
+  ret <- st.dat.tbl[!is.na(dep), c('id', 'ca', 'cj')]
+  colnames(ret) <- c('st_id', 'st_ca', 'st_cj')
+  ret[, ct_id := ct.id]
+  return(ret)
+}

@@ -29,9 +29,9 @@
 #' @return a data.table or a html.table
 #' @export
 get_trigger_info <- function(
-  tg.id, 
+  tg.id,
   tg.tbl = NULL,
-  case.name = NULL, 
+  case.name = NULL,
   sobek.project = NULL,
   html = TRUE,
   tble = TRUE,
@@ -42,14 +42,14 @@ get_trigger_info <- function(
     # empty trigger table
     trig_tbl <- data.table(
       Parameter = c(
-        'Trigger ID', 'Trigger name', 'Trigger type', 'Trigger parameter', 
+        'Trigger ID', 'Trigger name', 'Trigger type', 'Trigger parameter',
         'Trigger measurement'
       ),
       Value = rep(NA, 5)
     )
     if (tble) {
       trig_tbl <- data.table(
-        Parameter = c('Trigger ID', 'Trigger name', 'Trigger type', 'Trigger parameter', 
+        Parameter = c('Trigger ID', 'Trigger name', 'Trigger type', 'Trigger parameter',
           'Trigger measurement', 'Triggering table', rep(NA, nrow.tg - 1)),
         Value = rep(NA, 5 + nrow.tg)
       )
@@ -79,7 +79,7 @@ get_trigger_info <- function(
   )
   trig_tbl <- data.table(
     Parameter = c(
-      'Trigger ID', 'Trigger name', 'Trigger type', 'Trigger parameter', 
+      'Trigger ID', 'Trigger name', 'Trigger type', 'Trigger parameter',
       'Trigger measurement'
     ),
     Value = c(
@@ -92,7 +92,7 @@ get_trigger_info <- function(
     trig_tble[, Parameter := NA]
     nrow_tble <- nrow(trig_tble)
     if (nrow_tble > 0) {
-      trig_tble[, c('V2', 'V3', 'V4', 'V5', 'V6', 'V7') := 
+      trig_tble[, c('V2', 'V3', 'V4', 'V5', 'V6', 'V7') :=
                   tstrsplit(str_trim(Value), split = ' ')]
       trig_tble[V3 == 0, V3 := 'OFF'][V3 == 1, V3 := 'ON']
       trig_tble[V4 == 0, V4 := 'OR'][V4 == 1, V4 := 'AND']
@@ -132,7 +132,7 @@ get_trigger_info <- function(
 
 
 #' Get information of a trigger for popover
-#' 
+#'
 #' @param tg.id ID of the controller
 #' @param def.file Path to control.def file
 #' @param case.name Name of the case (considered if def.file == NULL)
@@ -163,7 +163,7 @@ get_trigger_popover <- function(tg.id = NULL,
     tg_tble[, V1 := str_replace(V1, "< {0,1}$", "")]
     tg_tble[, V1 := str_replace_all(V1, "'", "")]
     tg_tble[, V1 := str_replace(V1, ";", " ")]
-    tg_tble[, c('V2', 'V3', 'V4', 'V5', 'V6', 'V7') := 
+    tg_tble[, c('V2', 'V3', 'V4', 'V5', 'V6', 'V7') :=
                 tstrsplit(str_trim(V1), split = ' ')]
     tg_tble[V4 == '0', V4 := 'OFF'][V4 != '0', V4 := 'ON']
     tg_tble[V5 == '0', V5 := 'OR'][V5 != '0', V5 := 'AND']
@@ -214,7 +214,7 @@ delete_trigger_by_ids <- function(
   cont = NULL,
   backup = TRUE
 ) {
-  
+
   if (!is.null(trig_ids)) {
     stopifnot(!is.null(trig))
     trig_f <- paste(path, trig, sep = "/")
@@ -226,7 +226,7 @@ delete_trigger_by_ids <- function(
     fwrite(trig_n[, list(V1)], file = trig_f, col.names = FALSE,
            quote = FALSE)
   }
-  
+
   if (!is.null(cont_ids)) {
     stopifnot(!is.null(cont))
     cont_f <- paste(path, cont, sep = "/")
@@ -242,11 +242,11 @@ delete_trigger_by_ids <- function(
 
 
 #' Transfer a trigger from one case to another
-#' 
+#'
 #' This function copies the definition of a trigger in the trigger.def from one case to the other case. Conflict IDs with be changed
-#' 
+#'
 #' @param from Name of ogirinal case
-#' @param to Name of destination case 
+#' @param to Name of destination case
 #' @param tg.ids IDs of the triggers
 #' @param sobek.project Path to sobek project
 #' @export
@@ -256,16 +256,16 @@ transfer_trigger <- function(
   tg.ids,
   sobek.project
 ) {
-  trig_def_from_file <- get_file_path(case.name = from, 
+  trig_def_from_file <- get_file_path(case.name = from,
                                       sobek.project = sobek.project,
                                       type = 'trigger.def')
-  trig_def_to_file <- get_file_path(case.name = to, 
+  trig_def_to_file <- get_file_path(case.name = to,
                                     sobek.project = sobek.project,
                                     type = 'trigger.def')
-  trig_tbl_to_file <- get_file_path(case.name = to, 
+  trig_tbl_to_file <- get_file_path(case.name = to,
                                     sobek.project = sobek.project,
                                     type = 'trigger.tbl')
-  trig_tbl_to <- fread(trig_tbl_to_file, sep = '\n', header = FALSE, 
+  trig_tbl_to <- fread(trig_tbl_to_file, sep = '\n', header = FALSE,
                     strip.white = FALSE)
   trig_tbl_to[, index := str_match(V1, '^ * (\\d+) ')[,2]]
   trig_tbl_to_maxid <- as.integer(trig_tbl_to[, max(index, na.rm = TRUE)])
@@ -292,7 +292,7 @@ transfer_trigger <- function(
       while (trig_nm_to %in% trig_nms_to) {
         trig_nm_to <- paste0(trig_nm_to, '_', basename(tempfile(pattern = '')))
       }
-      trig_from[1, V1 := str_replace(V1, paste0("nm '", trig_nm_from), 
+      trig_from[1, V1 := str_replace(V1, paste0("nm '", trig_nm_from),
                                      paste0("nm '", trig_nm_to))
                 ]
     }
@@ -303,7 +303,7 @@ transfer_trigger <- function(
     trig_ids_to <- c(trig_ids_to, trig_id_to)
     trig_nms_to <- c(trig_nms_to, trig_nm_to)
     trig_def_new_list[[i + 1]] <- trig_from[, c('V1')]
-    
+
   }
   trig_def_new <- rbindlist(trig_def_new_list)
   trig_tbl_new <- data.table(
@@ -367,7 +367,7 @@ get_trigger_info_old <- function(t.id, case.name, sobek.project, html = TRUE) {
   )
   trig_tbl <- data.table(
     Parameter = list(
-      'Trigger_ID', 'Trigger_name', 'Trigger_type', 'Trigger_parameter', 
+      'Trigger_ID', 'Trigger_name', 'Trigger_type', 'Trigger_parameter',
       'Trigger_measurement', 'Trigger_tble'
     ),
     Value = list(
@@ -375,7 +375,7 @@ get_trigger_info_old <- function(t.id, case.name, sobek.project, html = TRUE) {
       paste(trig_def[grepl(" <$", V1), V1], collapse = "<br>")
     )
   )
-  
+
   if (isTRUE(html)) {
     trig_tbl <- htmlTable::htmlTable(
       trig_tbl,
@@ -386,4 +386,44 @@ get_trigger_info_old <- function(t.id, case.name, sobek.project, html = TRUE) {
     )
   }
   return(trig_tbl)
+}
+
+
+#' Find out dependencies for one trigger definition
+#'
+#' This function searches trigger.def to find out how many controllers are using
+#' it as their trigger.
+trig_dependency <- function(
+  tg.id,
+  tg.tbl = NULL,
+  ct.tbl = NULL,
+  tg.def.f = NULL,
+  ct.def.f = NULL,
+  case.name = NULL,
+  sobek.project = NULL
+) {
+  if (tg.id == '-1' | tg.id == "'-1'") {
+    # return empty data.table with three columns
+    ret <- data.table(id = NA, ta = NA, gi = NA)
+    ret <- ret[!is.na(id)]
+    return(ret)
+  }
+  if (!is.null(case.name)) {
+    if (is.null(sobek.project)) stop('case.name and sobek.project must be given together')
+    tg.def.f <- get_file_path(case.name, sobek.project, 'trigger.def')
+    ct.def.f <- get_file_path(case.name, sobek.project, 'control.def')
+  }
+  if (!is.null(tg.def.f)) {
+    tg.tbl <- .get_trigger_def(tg.def.f)
+  } else {
+    if (is.null(tg.tbl)) stop('Not enough information for getting trigger table')
+  }
+  if (!is.null(ct.def.f)) {
+    ct.tbl <- .get_control_def(ct.def.f)
+  } else {
+    if (is.null(ct.tbl)) stop('Not enough information for getting controller table')
+  }
+  ct.tbl[grepl(paste0("'", tg.id, "'"), gi), dep := 1]
+  ret <- ct.tbl[!is.na(dep), c('id', 'ta', 'gi')]
+  return(ret)
 }
