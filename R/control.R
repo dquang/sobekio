@@ -520,12 +520,12 @@ transfer_controller <- function(
         ctrid_to_begin <- ctrid_to[, min(orig_line_nr)]
         ctrid_to_end <- ctrid_to[, max(orig_line_nr)]
         # it is ok with an empty data.table
-        ctr_def_to <- rbind(ctr_def_to[orig_line_nr < ctrid_to_begin, c('V1')],
-                            ctrid_from[, c('V1')],
-                            ctr_def_to[orig_line_nr > ctrid_to_end, c('V1')])
+        ctr_def_to <- rbind(ctr_def_to[orig_line_nr < ctrid_to_begin],
+                            ctrid_from,
+                            ctr_def_to[orig_line_nr > ctrid_to_end])
       } else {
         # if nrow(ctrid_to) == 0, there is nothing to remove
-        ctr_def_to <- rbind(ctr_def_to[, c('V1')], ctrid_from[, c('V1')])
+        ctr_def_to <- rbind(ctr_def_to, ctrid_from)
       }
     } else {
       while (ct_id_to %in% ctr_def_to_ids) {
@@ -556,7 +556,7 @@ transfer_controller <- function(
         paste0(" nm '", ct_nm_to)
 
       )]
-      ctr_def_to <- rbind(ctr_def_to[, c('V1')], ctrid_from[, c('V1')])
+      ctr_def_to <- rbind(ctr_def_to, ctrid_from)
     }
     ctr_def_to_nms <- c(ctr_def_to_nms, ct_nm_to)
     ctr_def_to_ids <- c(ctr_def_to_ids, ct_id_to)
@@ -565,6 +565,7 @@ transfer_controller <- function(
     ct_nm_from_list[i] <- ct_nm_from
     i <- i + 1
   }
+  ctr_def_to <- ctr_def_to[, c('V1')]
   if (write.def) {
     fwrite(
       ctr_def_to,

@@ -100,7 +100,7 @@ plot_drv <- function(
         stop("group.by must be one of ('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')")
       }
     } else {
-      case_tbl[, group__by :=  paste(get(group.by[1]), 
+      case_tbl[, group__by :=  paste(get(group.by[1]),
                                     get(group.by[2]),
                                     sep = "_"
       )
@@ -193,7 +193,7 @@ plot_drv <- function(
                 variable.name = 'HQ_Statistik', value.name = 'HQS') %>%
       as.data.table()
     hqs <- hqs[km >= from.km & km <= to.km]
-    hqs[, c('vgf',  'hwe', 'zustand', 'notiz', 'zielpegel') := 
+    hqs[, c('vgf',  'hwe', 'zustand', 'notiz', 'zielpegel') :=
           list(NA, NA, NA, NA, NA)]
     # check if there is a mistake to give HQS of Q to 'waterlevel'
     if (min(hqs$HQS, na.rm = TRUE) > 5 * y1_max & param == 'waterlevel') {
@@ -219,7 +219,7 @@ plot_drv <- function(
       lt.by <- compare.by
       color.by <- group.by
       data_tbl_delta <-
-        dcast.data.table(data_tbl[km %in% km_4_delta], 
+        dcast.data.table(data_tbl[km %in% km_4_delta],
                          km ~ get(compare.by) + get(group.by),
                          value.var = 'scheitel')
       for (i in grp_vars) {
@@ -445,7 +445,7 @@ plot_drv <- function(
   }
   if (verbose) {
     if (delta) cat('y2_shift =', y2_shift, 'and y2.scale =', y2.scale, '\n')
-    cat("done.") 
+    cat("done.")
   }
   return(g)
 }
@@ -520,13 +520,13 @@ plot_longprofile <- function(
   color.name = 'Farbe',
   lt.name = 'Linienart',
   cmp.sort = FALSE,
-  color.nrow = 2,
-  lt.nrow = 2,
+  color.nrow = 3,
+  lt.nrow = 3,
   shape.nrow = 2,
   pt.size = 2.5,
   delta = FALSE,
   dband = TRUE,
-  dband.label = dband,
+  dband.label = FALSE,
   reverse.x = FALSE,
   x.lab = 'Lage (KM)',
   y.lab = ifelse(param == 'discharge',
@@ -590,7 +590,7 @@ plot_longprofile <- function(
         stop("group.by must be one of ('hwe', 'zustand', 'vgf', 'notiz', 'zielpegel')")
       }
     } else {
-      case_tbl[, group__by :=  paste(get(group.by[1]), 
+      case_tbl[, group__by :=  paste(get(group.by[1]),
                                     get(group.by[2]),
                                     sep = "_"
                                     )
@@ -644,7 +644,6 @@ plot_longprofile <- function(
     keep.data <- FALSE
     data_tbl <- input.data[km >= from.km & km <= to.km]
   }
-
   from.km <- max(min(data_tbl$km, na.rm = TRUE), from.km)
   to.km <- min(max(data_tbl$km, na.rm = TRUE), to.km)
   if (is.null(plot.title)) {
@@ -658,23 +657,6 @@ plot_longprofile <- function(
     )
   }
   data_tbl <- merge(data_tbl, case_tbl, by = 'case', sort = FALSE)
-  b_tick <- data_tbl[case == case.list[[1]] &
-                         nchar(besonderheit) > 0,
-                       c("km", "besonderheit")
-                     ]
-  # processing overlap labels
-  if (!is.null(overlap)) {
-    for (i in seq_along(overlap)) {
-      overlap_i_pos <- b_tick[grepl(overlap[[i]], besonderheit), which = TRUE]
-      if (isTRUE(overlap_i_pos > 1)) {
-        overlap_nchar <- nchar(b_tick[overlap_i_pos -  1, besonderheit])
-        b_tick[overlap_i_pos,
-               besonderheit := str_replace(besonderheit, 'Polder_|DRV_', '')]
-        b_tick[overlap_i_pos, besonderheit := paste(str_dup(' ', 2 * overlap_nchar),
-                                                    '--', besonderheit)]
-      }
-    }
-  }
   x_min <- data_tbl[, min(km, na.rm = TRUE)]
   x_max <- data_tbl[, max(km, na.rm = TRUE)]
   y1_min <- data_tbl[, min(scheitel, na.rm = TRUE)]
@@ -686,7 +668,7 @@ plot_longprofile <- function(
                 variable.name = 'HQ_Statistik', value.name = 'HQS') %>%
       as.data.table()
     hqs <- hqs[km >= from.km & km <= to.km]
-    hqs[, c('vgf',  'hwe', 'zustand', 'notiz', 'zielpegel') := 
+    hqs[, c('vgf',  'hwe', 'zustand', 'notiz', 'zielpegel') :=
           list(NA, NA, NA, NA, NA)]
       # check if there is a mistake to give HQS of Q to 'waterlevel'
     if (min(hqs$HQS, na.rm = TRUE) > 5 * y1_max & param == 'waterlevel') {
@@ -712,7 +694,7 @@ plot_longprofile <- function(
       lt.by <- compare.by
       color.by <- group.by
       data_tbl_delta <-
-        dcast.data.table(data_tbl[!is.na(scheitel) & km %in% km_4_delta], 
+        dcast.data.table(data_tbl[!is.na(scheitel) & km %in% km_4_delta],
                          km ~ get(compare.by) + get(group.by),
                          value.var = 'scheitel')
       for (i in grp_vars) {
@@ -736,7 +718,7 @@ plot_longprofile <- function(
                         sort = FALSE)
     } else{
       data_tbl_delta <-
-        dcast(data_tbl[!is.na(scheitel) & km %in% km_4_delta], 
+        dcast(data_tbl[!is.na(scheitel) & km %in% km_4_delta],
               km  ~ get(compare.by),
               value.var = 'scheitel'
               )
@@ -827,14 +809,40 @@ plot_longprofile <- function(
     }
   }
   #----add graphic----
+  b_tick <- data_tbl[case == case.list[[1]] &
+                       nchar(besonderheit) > 0,
+                     c("km", "besonderheit")
+                     ]
+  b_tick_river <- b_tick[grepl('Lat_|M_', besonderheit)]
+  b_tick <- b_tick[!besonderheit %in% b_tick_river$besonderheit]
+  b_tick_measure <- b_tick[grepl('RHR_|Polder_|DRV_|RRE_', besonderheit)]
+  # processing overlap labels
+  if (!is.null(overlap)) {
+    for (i in seq_along(overlap)) {
+      overlap_i_pos <- b_tick[grepl(overlap[[i]], besonderheit), which = TRUE]
+      if (isTRUE(overlap_i_pos > 1)) {
+        overlap_nchar <- nchar(b_tick[overlap_i_pos -  1, besonderheit])
+        b_tick[overlap_i_pos,
+               besonderheit := str_replace(besonderheit, 'Polder_|DRV_', '')]
+        b_tick[overlap_i_pos, besonderheit := paste(str_dup(' ', 2 * overlap_nchar),
+                                                    '--', besonderheit)]
+      }
+    }
+  }
   if (verbose) cat('Preparing graphic...\n')
   if (!is.null(compare.by)) {
-    data_tbl[[compare.by]] <- factor(data_tbl[[compare.by]], 
+    data_tbl[[compare.by]] <- factor(data_tbl[[compare.by]],
                                      levels = c(cmp_vars)
     )
   }
-
-  g <- ggplot(data = data_tbl,
+  # data_tbl[, label := str_remove_all(besonderheit, 'M_|Lat_|Polder_|RHR_|RRE_')]
+  b_tick[, label := str_remove(besonderheit, 'M_|Lat_|Polder_|RHR_|RRE_|DRV_')]
+  b_tick_measure[, label := str_remove(besonderheit, 'Polder_|RHR_|RRE_|DRV_')]
+  # data_tbl[, mea_type := NA_character_]
+  # data_tbl[besonderheit %in% b_tick_measure$besonderheit, mea_type := 'gesteuert']
+  # data_tbl[grepl('DRV_', besonderheit), mea_type := 'ungesteuert']
+  b_tick_river[, label := str_remove(besonderheit, 'Polder_|RHR_|RRE_|DRV_')]
+  g_base <- ggplot(data = data_tbl,
               aes(x = km,
                   linetype = !!ensym(lt.by),
                   color = !!ensym(color.by),
@@ -856,24 +864,24 @@ plot_longprofile <- function(
     labs(title = plot.title) +
     ylab(y.lab)
   if (reverse.x) {
-    g <- g +
+    g <- g_base +
       scale_x_reverse(
         name = x.lab,
         breaks = x_pretty,
         sec.axis =  dup_axis(
-          breaks = b_tick$km,
-          labels = b_tick$besonderheit,
+          breaks = b_tick[!besonderheit %in% b_tick_river$besonderheit, km],
+          labels = b_tick[!besonderheit %in% b_tick_river$besonderheit, label],
           name = 'Station'
         )
       )
   } else {
-    g <- g +
+    g <- g_base +
       scale_x_continuous(
         name = x.lab,
         breaks = x_pretty,
         sec.axis =  dup_axis(
-          breaks = b_tick$km,
-          labels = b_tick$besonderheit,
+          breaks = b_tick[!besonderheit %in% b_tick_river$besonderheit, km],
+          labels = b_tick[!besonderheit %in% b_tick_river$besonderheit, label],
           name = 'Station'
         )
       )
@@ -885,8 +893,7 @@ plot_longprofile <- function(
       case = case.list[[1]],
       sobek.project = sobek.project
     )[, c('def_id', 'zb')]
-    # colnames(pf_tbl) <- c('ID_F')
-    data_tbl <- merge(data_tbl, pf_tbl, by.x = 'ID_F', by.y = 'def_id', 
+    data_tbl <- merge(data_tbl, pf_tbl, by.x = 'ID_F', by.y = 'def_id',
                       sort = FALSE)
     y1_min <- min(y1_min, data_tbl$zb, na.rm = TRUE)
     y1_max <- max(y1_max, data_tbl$zb, na.rm = TRUE)
@@ -900,7 +907,7 @@ plot_longprofile <- function(
                        ),
                        size = 1)
   }
-  if (!delta) g <-  g + scale_y_continuous(breaks = y1_pretty)
+  if (!delta) g <- g + scale_y_continuous(breaks = y1_pretty)
   if (!is.null(man.colors)) {
     g <- g + scale_color_manual(values = c(man.colors, man.colors))
   }
@@ -933,8 +940,8 @@ plot_longprofile <- function(
       y2_pretty <- sort(c(d_min, d_max, y2_pretty))
     }
     if (y2.zero) {
-      g <- g + geom_hline(yintercept = y2_shift, 
-                          color = 'black', 
+      g <- g + geom_hline(yintercept = y2_shift,
+                          color = 'black',
                           size = 1.1,
                           linetype = 'solid'
                           )
@@ -948,7 +955,7 @@ plot_longprofile <- function(
         linetype = Linienart
       ),
       size = 1
-    ) + 
+    ) +
       scale_y_continuous(
         breaks = y1_pretty,
         sec.axis =
@@ -1009,17 +1016,46 @@ plot_longprofile <- function(
           ymax = y2.scale * dband_min + y2_shift,
           ymin = y2.scale * dband_max + y2_shift
         ),
-        color = 'black',
+        color = NA,
         linetype = 'dashed',
         fill = a.fill,
         alpha = a.alpha
       )
   }
+  # ----adding besonderheit symbol----
+  y_lims <-  ggplot_build(g)$layout$panel_params[[1]]$y.range
+  g <- g + geom_point(
+    data = data_tbl[km %in% b_tick_river$km],
+    aes(x = km, y = -Inf),
+    color = 'blue', shape = '\u2191',
+    show.legend = FALSE,
+    size = 8
+  ) +
+    # geom_point(
+    #   data = data_tbl[besonderheit %in% b_tick_measure$besonderheit],
+    #   aes(x = km, y = y_lims[2], shape = mea_type),
+    #   color = 'blue', fill = 'blue',
+    #   size = 4,
+    #   position = position_dodge(width = 0.5)
+    #   ) +
+    # scale_shape_manual(name = 'Type der Maßnahme',
+    #                    # values = c('\u29ef', '\u2393'),
+    #                    values = c(15, 16)
+    #                    ) +
+    geom_text(
+      data = data_tbl[km %in% b_tick_river$km][,
+                                 besonderheit :=
+                                   str_remove_all(besonderheit, "M_|Lat_")],
+      aes(x = km, y = y_lims[1], label = besonderheit),
+      color = 'blue', size = 4, angle = 45,
+      hjust = 0.5, vjust = 0.5,
+      show.legend = FALSE
+    )
   if (verbose) {
     if (delta) cat('y2_shift =', y2_shift, 'and y2.scale =', y2.scale,  '\n')
-    cat("done.") 
+    cat("done.")
   }
-  
+
   if (keep.data) {
     ret <- list(data_tbl = dta, g = g)
   } else {
@@ -1027,3 +1063,8 @@ plot_longprofile <- function(
   }
   return(ret)
 }
+
+
+plot_longprofile_by_time <- function(
+  case =
+)

@@ -643,7 +643,7 @@ set_struct_on <- function(
     ct <- unlist(ct)
     for (ct_id in ct) {
       if (!ct_id %in% control_list) {
-        stop('Controller with ID: ', ct.id, ' is not defined in the control.def')
+        stop('Controller with ID: ', ct_id, ' is not defined in the control.def')
       }
     }
     # number of controllers is between 1 and 4

@@ -44,7 +44,7 @@ sobek_sim <- function(case.name = NULL,
   # on.exit(unlink(paste(sobek.path, wk_folder, sep ="/"), recursive = TRUE))
   prj_files <- dir(sobek.project, full.names = TRUE)
   prj_files <- prj_files[!grepl("/[0-9]{1,}$", prj_files)]
-  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|/NEWSTART|\\.his$", 
+  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|/NEWSTART|\\.his$",
                                 prj_files, ignore.case = TRUE)]
   # prj_files <- prj_files[!grepl("/CMTWORK", prj_files, ignore.case = TRUE)]
   file.copy(from = prj_files,
@@ -66,7 +66,6 @@ sobek_sim <- function(case.name = NULL,
             to = c_folder_in_tmp,
             recursive = TRUE
             )
-  # cmt_folder <- paste(sobek.path, tmp_folder, "CMTWORK", sep = "\\")
   wk_folder <- paste(tmp_folder, "WORK", sep = "\\")
   if (!dir.exists(wk_folder)) dir.create(wk_folder)
   file.copy(from = dir(c_folder, full.names = TRUE,
@@ -236,7 +235,8 @@ sobek_sim <- function(case.name = NULL,
 }
 
 
-#' Run Sobek Simulation for single case
+#' Open Sobek case for editing
+#'
 #' @param case.name Name of the Case
 #' @param sobek.project Path to Sobek Project Folder
 #' @param sobek.path Path to Sobek Program Folder (ex. d:/so21302)
@@ -280,7 +280,7 @@ sobek_edit <- function(case.name = NULL,
   prj_files <- prj_files[!grepl("[\\/][0-9]{1,}", prj_files,
                                 ignore.case = TRUE)]
   # for editing, the folder NEWSTART and RESTART are not needed
-  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|NEWSTART|RESTART", 
+  prj_files <- prj_files[!grepl("/WORK|/CMTWORK|NEWSTART|RESTART",
                                 prj_files, ignore.case = TRUE)]
   file.copy(from = prj_files,
             to = tmp_folder,
@@ -539,9 +539,9 @@ sobek_view <- function(case.name = NULL,
 
 
 #' Parallel simulating for many cases
-#' 
+#'
 #' This function divides a list of cases n threads and simulate them parallely
-#' 
+#'
 #' @param case.list List of cases
 #' @param sobek.project Path to sobek project
 #' @param sobek.path Path to sobek installation folder
@@ -549,7 +549,7 @@ sobek_view <- function(case.name = NULL,
 #' @param wait Number of seconds to wait before starting simulation on other cores
 #' This parameter is to avoid sobek to start too quick and cause error
 #' @export
-par_sim_cases <- function(case.list, sobek.project, sobek.path, 
+par_sim_cases <- function(case.list, sobek.project, sobek.path,
                           n = 2, wait = 2) {
   n_cores <- parallel::detectCores()
   if (n > n_cores) {
@@ -578,13 +578,13 @@ par_sim_cases <- function(case.list, sobek.project, sobek.path,
     if (case_end > n_cases) case_end <- n_cases
     cases_i <- case.list[case_begin:case_end]
     files_i <- tempfile(pattern = 'r_sim', fileext = '.R')
-    cmd_i <- paste0("sobek_sim(case.name = '", cases_i, "', ", 
+    cmd_i <- paste0("sobek_sim(case.name = '", cases_i, "', ",
                     'sobek.project = sobek.project, sobek.path = sobek.path)'
     )
     fwrite(cmd_header, file = files_i, col.names = FALSE, sep = '\n')
-    fwrite(list(cmd_i), file = files_i, col.names = FALSE, sep = '\n', 
+    fwrite(list(cmd_i), file = files_i, col.names = FALSE, sep = '\n',
            append = TRUE)
-    fwrite(cmd_footer, file = files_i, col.names = FALSE, sep = '\n', 
+    fwrite(cmd_footer, file = files_i, col.names = FALSE, sep = '\n',
            append = TRUE)
     r_script <- file.path(R.home(), 'bin/Rscript.exe')
     cmd <- paste0(r_script, ' --vanilla "', files_i, '"')
