@@ -942,9 +942,10 @@ plot_longprofile <- function(
     if (y2.zero) {
       g <- g + geom_hline(yintercept = y2_shift,
                           color = 'black',
-                          size = 1.1,
+                          size = 0.5,
                           linetype = 'solid'
                           )
+      y2_pretty <- unique(sort(c(y2_pretty, 0)))
     }
     g <- g + geom_line(
       data = data_tbl,
@@ -1064,7 +1065,3 @@ plot_longprofile <- function(
   return(ret)
 }
 
-
-plot_longprofile_by_time <- function(
-  case =
-)
