@@ -1,5 +1,5 @@
 #' Get max value table
-#' 
+#'
 #' This function create a table of maximum values for a list of locations,
 #' which is given by, i.e mID = c(...) for three group of cases
 #' \describe{
@@ -9,8 +9,8 @@
 #' }
 #' The variable name of each group will be taken for naming the group in the table.
 #' Keep in mind that it does not matter which cases you put in the groups.
-#' It is only about the group names, the delta (plan.ohne - bezug), (plan.mit- bezug) and (plan.mit - plan.ohne) 
-#' 
+#' It is only about the group names, the delta (plan.ohne - bezug), (plan.mit- bezug) and (plan.mit - plan.ohne)
+#'
 #' @param bezug List of "Bezugszustand" cases
 #' @param plan.ohne List of "Planzustand ohne Maßnahme" cases
 #' @param plan.mit List of "Planzustand mit Maßnahme" cases
@@ -22,6 +22,7 @@
 #' @param param Discharge, waterlevel,...
 #' @param p.layout Layout of the page for output table.
 #' Give 'p' for portrait, everything else will be regconized as landscape. This works only for html.out = TRUE
+#' @param ts.trim.left Default NULL. Number of days from the begining of simulation time to remove from timeseries (useful to remove "cold start period")
 #' @param sobek.project Path to sobek project
 #' @param ... ID Type and List in form of ID_TYPE = ID_LIST, e.x. mID = c('p_koeln)
 #' @export
@@ -30,14 +31,15 @@ get_summary_tbl <- function(
   bezug = NULL,
   plan.ohne = NULL,
   plan.mit = NULL,
-  hwe.list = NULL,
+  hwe.list,
   agg.ids = NULL,
   id.names = NULL,
   html.out = TRUE,
   out.dec = ",",
   param = 'discharge',
-  sobek.project = NULL,
+  sobek.project,
   p.layout = 'l',
+  ts.trim.left = NULL,
   ...
 ){
   f_args <- as.list(match.call())
@@ -70,29 +72,52 @@ get_summary_tbl <- function(
     }
   }
   # reading data from sobek
-  bezug_tbl <- his_from_case(case.list = bezug, get.max = TRUE,
+  bezug_tbl <- his_from_case(case.list = bezug, get.max = FALSE,
                              sobek.project = sobek.project,
                              ...,
                              param = param)
-  plan_ohne_tbl <- his_from_case(case.list = plan.ohne, get.max = TRUE,
+  plan_ohne_tbl <- his_from_case(case.list = plan.ohne, get.max = FALSE,
                                  sobek.project = sobek.project,
                                  ...,
                                  param = param)
-  plan_mit_tbl <- his_from_case(case.list = plan.mit, get.max = TRUE,
+  plan_mit_tbl <- his_from_case(case.list = plan.mit, get.max = FALSE,
                                 sobek.project = sobek.project,
                                 ...,
                                 param = param)
+  if (!is.null(ts.trim.left)) {
+    bezug_tbl[, ts_left := min(ts, na.rm = TRUE) +
+                   ts.trim.left * 3600 * 24, by = case]
+    bezug_tbl <- bezug_tbl[ts >= ts_left]
+    plan_ohne_tbl[, ts_left := min(ts, na.rm = TRUE) +
+                   ts.trim.left * 3600 * 24, by = case]
+    plan_ohne_tbl <- plan_ohne_tbl[ts >= ts_left]
+    plan_mit_tbl[, ts_left := min(ts, na.rm = TRUE) +
+                    ts.trim.left * 3600 * 24, by = case]
+    plan_mit_tbl <- plan_mit_tbl[ts >= ts_left]
+  }
+  bezug_tbl <- bezug_tbl[, lapply(.SD, max,
+                                        na.rm = TRUE),
+                               .SDcols = -c('ts'),
+                               by = case]
+  plan_ohne_tbl <- plan_ohne_tbl[, lapply(.SD, max,
+                                        na.rm = TRUE),
+                               .SDcols = -c('ts'),
+                               by = case]
+  plan_mit_tbl <- plan_mit_tbl[, lapply(.SD, max,
+                                          na.rm = TRUE),
+                                 .SDcols = -c('ts'),
+                                 by = case]
   # aggregating discharge for locations that have more than one IDs
   if (!is.null(agg.ids)) {
     for (loc_ids in agg.ids) {
       # aggregate data to the first column
-      bezug_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+      bezug_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE),
                    .SDcols = loc_ids
                    ]
-      plan_ohne_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+      plan_ohne_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE),
                    .SDcols = loc_ids
                    ]
-      plan_mit_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+      plan_mit_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE),
                     .SDcols = loc_ids
                     ]
       # delete the rest
@@ -112,7 +137,7 @@ get_summary_tbl <- function(
     plan_mit_tbl[case == plan.mit[[i]],
                  case := paste('mit', hwe.list[[i]], sep = "_")]
   }
-  
+
   # transforming and merging data
   bezug_tbl <- bezug_tbl %>%
     melt(id.vars = 'case', variable.name = 'Pegel') %>%
@@ -153,7 +178,7 @@ get_summary_tbl <- function(
   } else{
     data_tbl[, (cols) := round(.SD), .SDcols = cols]
   }
-  
+
   if (length(id.names) == length(data_tbl$Pegel)) {
     data_tbl$Pegel <- id.names
   }
@@ -167,21 +192,21 @@ get_summary_tbl <- function(
     if (p.layout == 'p') {
       data_tbl <-
         rbind(
-          setNames(select(data_tbl, 'Pegel', starts_with('bezug_')), 
+          setNames(select(data_tbl, 'Pegel', starts_with('bezug_')),
                    c('Pegel', hwe.list)
           ),
-          setNames(select(data_tbl, 'Pegel', starts_with('ohne_')), 
+          setNames(select(data_tbl, 'Pegel', starts_with('ohne_')),
                    c('Pegel', hwe.list)
           ),
-          setNames(select(data_tbl, 'Pegel', starts_with('mit_')), 
+          setNames(select(data_tbl, 'Pegel', starts_with('mit_')),
                    c('Pegel', hwe.list)),
-          setNames(select(data_tbl, 'Pegel', starts_with('d_ob_')), 
+          setNames(select(data_tbl, 'Pegel', starts_with('d_ob_')),
                    c('Pegel', hwe.list)),
-          setNames(select(data_tbl, 'Pegel', starts_with('d_mb_')), 
+          setNames(select(data_tbl, 'Pegel', starts_with('d_mb_')),
                    c('Pegel', hwe.list)),
-          setNames(select(data_tbl, 'Pegel', starts_with('d_mo_')), 
+          setNames(select(data_tbl, 'Pegel', starts_with('d_mo_')),
                    c('Pegel', hwe.list))
-        ) %>% 
+        ) %>%
         kable() %>%
         kable_styling(c("striped", "bordered")) %>%
         pack_rows(paste(f_args$bezug, '(1)'), 1, n_ids) %>%
@@ -190,10 +215,10 @@ get_summary_tbl <- function(
         pack_rows('Delta (2) - (1)', 3 * n_ids + 1, 4 * n_ids) %>%
         pack_rows('Delta (3) - (1)', 4 * n_ids + 1, 5 * n_ids) %>%
         pack_rows('Delta (3) - (2)', 5 * n_ids + 1, 6 * n_ids)
-      
+
     } else{
       # landscape layout
-      tbl_header <- c('', 
+      tbl_header <- c('',
                       bezug = n_case,
                       plan.one = n_case,
                       plan.mit = n_case,
@@ -201,7 +226,7 @@ get_summary_tbl <- function(
                       delta31 = n_case,
                       delta32 = n_case
       )
-      names(tbl_header) <- c('', 
+      names(tbl_header) <- c('',
                              paste(f_args$bezug, '(1)'),
                              paste(f_args$plan.ohne, '(2)'),
                              paste(f_args$plan.mit, '(3)'),
@@ -209,8 +234,8 @@ get_summary_tbl <- function(
                              'Delta (3) - (1)',
                              'Delta (3) - (2)'
       )
-      data_tbl <- data_tbl %>% 
-        kable(col.names = c('Pegel/Lage', rep(hwe.list, 6))) %>% 
+      data_tbl <- data_tbl %>%
+        kable(col.names = c('Pegel/Lage', rep(hwe.list, 6))) %>%
         kable_styling(c("striped", "bordered")) %>%
         add_header_above(header = tbl_header)
     }
@@ -233,19 +258,21 @@ get_summary_tbl <- function(
 #' Give 'p' for portrait, everything else will be regconized as landscape. This works only for html.out = TRUE
 #' @param sobek.project Path to sobek project
 #' @param ID Type and List in form of ID_TYPE = ID_LIST, e.x. mID = c('p_koeln)
+#' @param ts.trim.left Default NULL. Number of days from the begining of simulation time to remove from timeseries (useful to remove "cold start period")
 #' @export
 #' @return a data.table/ a html.table
 get_delta_table <- function(
   zustand1 = NULL,
   zustand2 = NULL,
-  hwe.list = NULL,
+  hwe.list,
   agg.ids = NULL,
   id.names = NULL,
   html.out = TRUE,
   out.dec = ",",
   param = 'discharge',
   p.layout = 'l',
-  sobek.project = NULL,
+  sobek.project,
+  ts.trim.left = NULL,
   ...
 ){
   f_args <- as.list(match.call())
@@ -278,25 +305,43 @@ get_delta_table <- function(
     }
   }
   # reading data from sobek
-  zustand1_tbl <- his_from_case(case.list = zustand1, get.max = TRUE,
+  zustand1_tbl <- his_from_case(case.list = zustand1, get.max = FALSE,
                                 ...,
-                                # mID = pegel_ID, 
+                                # mID = pegel_ID,
                                 sobek.project = sobek.project,
                                 param = param
                                 )
-  zustand2_tbl <- his_from_case(case.list = zustand2, get.max = TRUE,
+  zustand2_tbl <- his_from_case(case.list = zustand2, get.max = FALSE,
                                 ...,
-                                # mID = pegel_ID, 
+                                # mID = pegel_ID,
                                 sobek.project = sobek.project,
                                 param = param)
+  if (!is.null(ts.trim.left)) {
+    zustand1_tbl[, ts_left := min(ts, na.rm = TRUE) +
+                   ts.trim.left * 3600 * 24, by = case]
+    zustand1_tbl <- zustand1_tbl[ts >= ts_left]
+    zustand2_tbl[, ts_left := min(ts, na.rm = TRUE) +
+                   ts.trim.left * 3600 * 24, by = case]
+    zustand2_tbl <- zustand2_tbl[ts >= ts_left]
+    zustand1_tbl$ts_left <- NULL
+    zustand2_tbl$ts_left <- NULL
+  }
+  zustand1_tbl <- zustand1_tbl[, lapply(.SD, max,
+                                        na.rm = TRUE),
+                               .SDcols = -c('ts'),
+                               by = case]
+  zustand2_tbl <- zustand2_tbl[, lapply(.SD, max,
+                                        na.rm = TRUE),
+                               .SDcols = -c('ts'),
+                               by = case]
   # aggregating discharge for locations that have more than one IDs
   if (!is.null(agg.ids)) {
     for (loc_ids in agg.ids) {
       # aggregate data to the first column
-      zustand1_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+      zustand1_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE),
                    .SDcols = loc_ids
                    ]
-      zustand2_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE), 
+      zustand2_tbl[, eval(loc_ids[1]) := rowSums(.SD, na.rm = TRUE),
                    .SDcols = loc_ids
                    ]
       # delete the rest
@@ -341,7 +386,7 @@ get_delta_table <- function(
   } else{
     data_tbl[, (cols) := round(.SD), .SDcols = cols]
   }
-  
+
   if (length(id.names) == length(data_tbl$Pegel)) {
     data_tbl$Pegel <- id.names
   }
@@ -351,17 +396,17 @@ get_delta_table <- function(
     # data_tbl[, (cols) := format(.SD, decimal.mark = out.dec), .SDcols = cols]
     data_tbl <- data_tbl %>% mutate_at(
       vars(-Pegel), ~format(., decimal.mark = out.dec)
-    ) 
+    )
     if (p.layout == 'p') {
       data_tbl <-
         rbind(
-          setNames(select(data_tbl, 'Pegel', starts_with('Z1_')), 
+          setNames(select(data_tbl, 'Pegel', starts_with('Z1_')),
                    c('Pegel', hwe.list)
                    ),
-          setNames(select(data_tbl, 'Pegel', starts_with('Z2_')), 
+          setNames(select(data_tbl, 'Pegel', starts_with('Z2_')),
                    c('Pegel', hwe.list)
                    ),
-          setNames(select(data_tbl, 'Pegel', starts_with('delta_')), 
+          setNames(select(data_tbl, 'Pegel', starts_with('delta_')),
                    c('Pegel', hwe.list))
         )
       data_tbl <- data_tbl %>% kable() %>%
@@ -369,20 +414,20 @@ get_delta_table <- function(
         pack_rows(paste(f_args$zustand1, '(1)'), 1, n_ids) %>%
         pack_rows(paste(f_args$zustand2, '(2)'), n_ids + 1, 2 * n_ids) %>%
         pack_rows('Delta (2) - (1)', 2 * n_ids + 1, 3 * n_ids)
-      
+
     } else{
       # landscape layout
-      tbl_header <- c('', 
+      tbl_header <- c('',
                       zustand1 = n_case,
                       zustand2 = n_case,
                       delta = n_case
       )
-      names(tbl_header) <- c('', 
+      names(tbl_header) <- c('',
                              paste(f_args$zustand1, '(1)'),
                              paste(f_args$zustand2, '(2)'),
                              'Delta (2) - (1)'
       )
-      data_tbl <- data_tbl %>% kable() %>% 
+      data_tbl <- data_tbl %>% kable() %>%
         kable_styling(c("striped", "bordered")) %>%
         add_header_above(header = tbl_header)
     }

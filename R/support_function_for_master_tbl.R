@@ -47,7 +47,7 @@ get_id_tbl <- function(
 ){
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   id_tbl <- master.tbl[grepl(name, besonderheit)]
-  
+
   if (drv == 'auto') {
     st_mtx <- str_match(id_tbl$besonderheit,
                             paste('(^.+)_', name, sep = '')
@@ -225,7 +225,7 @@ get_segment_data <- function(
       # finding the IDs that have duplicated km
       km_dup = wid[duplicated(km), km]
       if (length(km_dup) > 0) {
-        warning('There are more than one wIDs for the same KM at KM(s): ', 
+        warning('There are more than one wIDs for the same KM at KM(s): ',
                 paste(km_dup, collapse = ', '),
                 '. These KM(s) will be remove out of the graphic')
         id_tbl <- id_tbl[!km %in% km_dup]
@@ -235,14 +235,14 @@ get_segment_data <- function(
   # parallel reading data from cases
   if (isTRUE(do.par)) {
     if (isTRUE(verbose)) {
-      print(paste('Getting data for',
+      cat(paste('Getting data for',
                   round(nrow(id_tbl)/length(case.list)),
-                  'ID(s) in', length(case.list), 'case(s)'))
-      print('Your computer will be overloaded for a short time. Please be patient...')
+                  'ID(s) in', length(case.list), 'case(s)\n'))
+      cat('Your computer will be overloaded for a short time. Please be patient...\n')
     }
     doParallel::registerDoParallel(parallel::detectCores() - 1)
     `%dopar%` <- foreach::`%dopar%`
-    segment_data_list <- 
+    segment_data_list <-
       foreach::foreach(i = 1:length(case.list)) %dopar% {
       if (param == 'discharge') {
           tmp <- his_from_case(
@@ -267,11 +267,11 @@ get_segment_data <- function(
   } else{
     segment_data_list <- list(rep(NA, length(case.list)))
     if (isTRUE(verbose)) {
-      print(paste('Getting data for',
+      cat(paste('Getting data for',
                   round(nrow(id_tbl)/length(case.list)),
-                  'ID(s) in', length(case.list), 'case(s)'))
-      print('Try it with do.par = TRUE if you have more than one case and so many IDs')
-      print('Please be patient...')
+                  'ID(s) in', length(case.list), 'case(s)\n'))
+      cat('Try it with do.par = TRUE if you have more than one case and so many IDs\n')
+      cat('Please be patient...\n')
     }
     if (param == 'discharge') {
       for (i in seq_along(case.list)) {
@@ -311,22 +311,22 @@ get_segment_data <- function(
       for (k in km_dup) {
         qid_k <- qid[km == k, ID_F]
         segment_data[case == case.list[[i]],
-                     eval(qid_k[1]) := rowSums(.SD, na.rm = TRUE), 
+                     eval(qid_k[1]) := rowSums(.SD, na.rm = TRUE),
                      .SDcols = qid_k
                      ]
-        segment_data[case == case.list[[i]], 
+        segment_data[case == case.list[[i]],
                      c(qid_k[-1]) := as.list(rep(NA, length(qid_k[-1])))
                      ]
       }
     }
   }
   if (!is.null(ts.trim.left)) {
-    segment_data[, ts_left := min(ts, na.rm = TRUE) + 
+    segment_data[, ts_left := min(ts, na.rm = TRUE) +
                    ts.trim.left * 3600 * 24, by = case]
     segment_data <- segment_data[ts >= ts_left]
   }
   if (isTRUE(get.max)) {
-    if (isTRUE(verbose)) print('Calculating max values....')
+    if (isTRUE(verbose)) cat('Calculating max values....\n')
     segment_data <- segment_data[, lapply(.SD, max, na.rm = TRUE),
                          .SDcols = -c('ts'), by = case] %>%
       melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
@@ -731,7 +731,7 @@ get_drv_data <- function(
       # finding the IDs that have duplicated km
       km_dup = wid[duplicated(km), km]
       if (length(km_dup) > 0) {
-        warning('There are more than one wIDs for the same KM at KM(s): ', 
+        warning('There are more than one wIDs for the same KM at KM(s): ',
                 paste(km_dup, collapse = ', '),
                 '. These KM(s) will be remove out of the graphic')
         id_tbl <- id_tbl[!km %in% km_dup]
@@ -742,14 +742,14 @@ get_drv_data <- function(
   }
   if (isTRUE(do.par)) {
     if (isTRUE(verbose)) {
-      print(paste('Getting data for',
+      cat(paste('Getting data for',
                   round(nrow(id_tbl)/length(case.list)),
-                  'ID(s) in', length(case.list), 'case(s)'))
-      print('Your computer will be overloaded for a short time. Please be patient...')
+                  'ID(s) in', length(case.list), 'case(s)\n'))
+      cat('Your computer will be overloaded for a short time. Please be patient...\n')
     }
     doParallel::registerDoParallel(parallel::detectCores() - 1)
     `%dopar%` <- foreach::`%dopar%`
-    drv_data_list <- 
+    drv_data_list <-
       foreach::foreach(i = 1:length(case.list)) %dopar% {
         if (param == 'discharge') {
           tmp <- sobekio::his_from_case(
@@ -775,9 +775,9 @@ get_drv_data <- function(
     doParallel::stopImplicitCluster()
   } else {
     drv_data_list <- list()
-    print(paste('Getting data for',
+    cat(paste('Getting data for',
                 round(nrow(id_tbl)/length(case.list)),
-                'ID(s) in', length(case.list), 'case(s)'))
+                'ID(s) in', length(case.list), 'case(s)\n'))
     if (param == 'discharge') {
       for (i in seq_along(case.list)) {
         drv_data_list[[i]] <- his_from_case(
@@ -815,17 +815,17 @@ get_drv_data <- function(
       for (k in km_dup) {
         qid_k <- qid[km == k, ID_F]
         drv_data[case == case.list[[i]],
-                     eval(qid_k[1]) := rowSums(.SD, na.rm = TRUE), 
+                     eval(qid_k[1]) := rowSums(.SD, na.rm = TRUE),
                      .SDcols = qid_k
                      ]
-        drv_data[case == case.list[[i]], 
+        drv_data[case == case.list[[i]],
                      c(qid_k[-1]) := as.list(rep(NA, length(qid_k[-1])))
                      ]
       }
     }
   }
   if (!is.null(ts.trim.left)) {
-    drv_data[, ts_left := min(ts, na.rm = TRUE) + 
+    drv_data[, ts_left := min(ts, na.rm = TRUE) +
                    ts.trim.left * 3600 * 24, by = case]
     drv_data <- drv_data[ts >= ts_left]
   }
@@ -921,7 +921,7 @@ get_polder_max <- function(
       }
     }
   }
-  if (isTRUE(verbose)) print('Reading data at the measure...')
+  if (isTRUE(verbose)) cat('Reading data at the measure...\n')
   id_data <- get_polder_data(
     name = name,
     case.list = case.list,
@@ -932,10 +932,10 @@ get_polder_max <- function(
     sobek.project = sobek.project,
     master.tbl = master.tbl
   )
-  
+
   # reading data for ref.mID
   if (!is.null(ref.mID)) {
-    if (isTRUE(verbose)) print('Reading data for ref.mID...')
+    if (isTRUE(verbose)) cat('Reading data for ref.mID...\n')
     if (length(ref.mID) > 1) {
       ref.mID_id <- ref.mID[[1]]
       if (hasName(ref.mID, 'ID'))
@@ -973,7 +973,7 @@ get_polder_max <- function(
                          by = case
                          ]
   if (isTRUE(volume)) {
-    if (isTRUE(verbose)) print('Reading volume...')
+    if (isTRUE(verbose)) cat('Reading volume...\n')
     id_vol <- get_polder_volume(
       name = name,
       case.list = case.list,
@@ -1037,13 +1037,13 @@ get_polder_max <- function(
     if (all(group.by != compare.by)) col_keep <- c(col_keep, compare.by)
     id_data_max <- id_data_max[, .SD, .SDcols = col_keep]
   }
-  
+
   return(id_data_max)
 }
 
 
 #' Get information table for a polder to compare the outputs of with/without it
-#' 
+#'
 #' @param name Name of polder
 #' @param case.mit List of cases with (the effect of) the polder
 #' @param case.ohne List of cases without (the effect of) the polder
@@ -1069,7 +1069,7 @@ get_polder_tbl <- function(
   stopifnot(length(all_cases) == length(unique(all_cases)))
   pegel <- parse_ref_id(ref.mID)
   case_tbl <- get_polder_case_tbl(case.mit, case.ohne, sobek.project)
-  id_tbl <- get_polder_id_tbl(name, case.mit, case.ohne, 
+  id_tbl <- get_polder_id_tbl(name, case.mit, case.ohne,
                               master.tbl, sobek.project,
                               case_tbl, pegel)
   id_tbl_vol <- id_tbl[grepl(paste0(name, '_Vol'), besonderheit)]
@@ -1081,7 +1081,7 @@ get_polder_tbl <- function(
     this_case <- all_cases[[i]]
     this_his <- unique(id_tbl_vol[case == this_case, his_file])
     if (verbose) cat('Get volume for case: ', this_case, '\n')
-    this_vol_tbl <- his_from_list(his.file = this_his, 
+    this_vol_tbl <- his_from_list(his.file = this_his,
                                   id.list = id_tbl_vol[his_file == this_his, ID_F],
                                   param = 'Volume')
     this_vol_tbl[, Volume := rowSums(.SD), .SDcols = -c('ts')]
@@ -1100,7 +1100,7 @@ get_polder_tbl <- function(
     # length 2 means there is a pegel and pegel_type and id_nach_type are different
     if (length(this_his) == 2) {
       qt_pegel <- his_from_list(
-        his.file = id_tbl_qt[case == this_case & ID_F == pegel$ID, his_file], 
+        his.file = id_tbl_qt[case == this_case & ID_F == pegel$ID, his_file],
         id.list = pegel$ID,
         param = 'discharge'
         )
@@ -1112,21 +1112,21 @@ get_polder_tbl <- function(
     } else {
       if (!is.null(pegel$ID)) {
         this_qt_tbl <- his_from_list(
-          his.file = this_his, 
+          his.file = this_his,
           id.list = c(id_nach, pegel$ID),
           param = 'discharge'
           )
         colnames(this_qt_tbl) <- c('ts',  'Q', 'Q_Pegel')
       } else {
         this_qt_tbl <- his_from_list(
-          his.file = this_his, 
+          his.file = this_his,
           id.list = id_nach,
           param = 'discharge'
         )
         colnames(this_qt_tbl) <- c('ts',  'Q')
       }
     }
-    qt <- this_qt_tbl[, lapply(.SD, max, na.rm = TRUE), 
+    qt <- this_qt_tbl[, lapply(.SD, max, na.rm = TRUE),
                       .SDcols = -c('ts')]
     qt$case <- this_case
     qt_max_list[[i]] <- qt
@@ -1200,7 +1200,7 @@ get_polder_tbl <- function(
     'Q_Mit', 'Q_Ohne', 'Delta_Q',
     'W_Mit', 'W_Ohne', 'Delta_W',
     'Volume_Mit',
-    'W_Polder_Mit', 
+    'W_Polder_Mit',
     'Q_Pegel_Mit', 'Q_Pegel_Ohne', 'Delta_Q_Pegel',
     'W_Pegel_Mit', 'W_Pegel_Ohne', 'Delta_W_Pegel'
   )
@@ -1225,9 +1225,9 @@ get_polder_tbl <- function(
   final_cols <- c('HWE', final_cols)
   polder_tbl <- polder_tbl[, ..final_cols]
   if (html) {
-    headers <-  c(' ' = 1, 
-                  'Abfluss nach dem Polder' = 3, 
-                  'Wasserstand nach dem Polder' = 3, 
+    headers <-  c(' ' = 1,
+                  'Abfluss nach dem Polder' = 3,
+                  'Wasserstand nach dem Polder' = 3,
                   'Im Polder' = 2,
                   'Abfluss am Pegel' = 3,
                   'Wasserstand am Pegel' = 3
@@ -1237,7 +1237,7 @@ get_polder_tbl <- function(
     if (is.null(pegel$ID)) {
       headers <- headers[-c(5,6)]
     }
-    polder_tbl <- kable(polder_tbl) %>% kable_styling(c('hover', 'striped')) %>% 
+    polder_tbl <- kable(polder_tbl) %>% kable_styling(c('hover', 'striped')) %>%
       add_header_above(headers)
   }
   return(polder_tbl)
@@ -1287,7 +1287,7 @@ get_polder_case_tbl <- function(
                     quote = "'", col.names = c('case_number', 'case'))
   case_cmt[, case := str_remove_all(case, '"')]
   case_cmt <- case_cmt[case %in% c(case.mit, case.ohne)]
-  case_chk <- assertthat::are_equal(sort(case_cmt$case), 
+  case_chk <- assertthat::are_equal(sort(case_cmt$case),
                                     sort(c(case.mit, case.ohne)))
   if (!case_chk) {
     stop('Not all cases were found in the caselist.cmt, check case names or sobek.project')
@@ -1300,7 +1300,7 @@ get_polder_case_tbl <- function(
 get_polder_id_tbl <- function(
   name, case.mit, case.ohne, master.tbl, sobek.project, case_tbl, pegel
 ) {
-  id_tbl <- get_id_tbl(name = name, 
+  id_tbl <- get_id_tbl(name = name,
                        case.list = c(case.mit, case.ohne),
                        master.tbl = master.tbl
   )
@@ -1310,7 +1310,7 @@ get_polder_id_tbl <- function(
     refid_tbl[, ID_F := pegel$ID][, ID_TYPE := pegel$type][, besonderheit := 'Pegel']
     id_tbl <- rbind(id_tbl, refid_tbl)
   }
-  id_tbl <- id_tbl[grepl(paste0(name, '_Vol|',  name, '_Innen|', name, '_Nach|Pegel'), 
+  id_tbl <- id_tbl[grepl(paste0(name, '_Vol|',  name, '_Innen|', name, '_Nach|Pegel'),
                          besonderheit)]
   id_tbl$his_file <- sapply(tolower(id_tbl$ID_TYPE), function(x) switch(
     tolower(x),

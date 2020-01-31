@@ -561,6 +561,7 @@ plot_longprofile <- function(
   # must evaluate lt.by and color.by to avoid problem with ggplot
   eval(lt.by)
   eval(color.by)
+  if (!delta) dband <- FALSE
   # preparing parameters--------------------------------------------------------
   param <- tolower(param)
   stopifnot(length(unique(case.list)) == length(case.list))
@@ -863,14 +864,22 @@ plot_longprofile <- function(
     ) +
     labs(title = plot.title) +
     ylab(y.lab)
+  if (nrow(b_tick_river) > 0) {
+    x_above_breaks <- b_tick[!besonderheit %in% b_tick_river$besonderheit, km]
+    x_above_labels <- b_tick[!besonderheit %in% b_tick_river$besonderheit, label]
+  } else {
+    x_above_breaks <- b_tick$km
+    x_above_labels <- b_tick$besonderheit
+  }
+
   if (reverse.x) {
     g <- g_base +
       scale_x_reverse(
         name = x.lab,
         breaks = x_pretty,
         sec.axis =  dup_axis(
-          breaks = b_tick[!besonderheit %in% b_tick_river$besonderheit, km],
-          labels = b_tick[!besonderheit %in% b_tick_river$besonderheit, label],
+          breaks = x_above_breaks,
+          labels = x_above_labels,
           name = 'Station'
         )
       )
@@ -880,8 +889,8 @@ plot_longprofile <- function(
         name = x.lab,
         breaks = x_pretty,
         sec.axis =  dup_axis(
-          breaks = b_tick[!besonderheit %in% b_tick_river$besonderheit, km],
-          labels = b_tick[!besonderheit %in% b_tick_river$besonderheit, label],
+          breaks = x_above_breaks,
+          labels = x_above_labels,
           name = 'Station'
         )
       )
@@ -911,9 +920,6 @@ plot_longprofile <- function(
   if (!is.null(man.colors)) {
     g <- g + scale_color_manual(values = c(man.colors, man.colors))
   }
-  g$labels$colour <- color.name
-  g$labels$linetype <- lt.name
-
   if (delta) {
     # manual setting for y2 axis
     if (!is.null(y2.shift)) {
@@ -1025,38 +1031,31 @@ plot_longprofile <- function(
   }
   # ----adding besonderheit symbol----
   y_lims <-  ggplot_build(g)$layout$panel_params[[1]]$y.range
-  g <- g + geom_point(
-    data = data_tbl[km %in% b_tick_river$km],
-    aes(x = km, y = -Inf),
-    color = 'blue', shape = '\u2191',
-    show.legend = FALSE,
-    size = 8
-  ) +
-    # geom_point(
-    #   data = data_tbl[besonderheit %in% b_tick_measure$besonderheit],
-    #   aes(x = km, y = y_lims[2], shape = mea_type),
-    #   color = 'blue', fill = 'blue',
-    #   size = 4,
-    #   position = position_dodge(width = 0.5)
-    #   ) +
-    # scale_shape_manual(name = 'Type der Maßnahme',
-    #                    # values = c('\u29ef', '\u2393'),
-    #                    values = c(15, 16)
-    #                    ) +
+  if (nrow(b_tick_river) > 0) {
+    g <- g + geom_point(
+      data = data_tbl[km %in% b_tick_river$km],
+      aes(x = km, y = -Inf),
+      color = 'blue', shape = '\u2191',
+      show.legend = FALSE,
+      size = 8
+    ) +
     geom_text(
       data = data_tbl[km %in% b_tick_river$km][,
-                                 besonderheit :=
-                                   str_remove_all(besonderheit, "M_|Lat_")],
+                                               besonderheit :=
+                                                 str_remove_all(besonderheit, "M_|Lat_")],
       aes(x = km, y = y_lims[1], label = besonderheit),
       color = 'blue', size = 4, angle = 45,
       hjust = 0.5, vjust = 0.5,
       show.legend = FALSE
     )
+  }
+
   if (verbose) {
     if (delta) cat('y2_shift =', y2_shift, 'and y2.scale =', y2.scale,  '\n')
     cat("done.")
   }
-
+  g$labels$colour <- color.name
+  g$labels$linetype <- lt.name
   if (keep.data) {
     ret <- list(data_tbl = dta, g = g)
   } else {

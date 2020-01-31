@@ -8,7 +8,7 @@
 dgj_mon_tbl <- function(pfile, type = 'auto', as.is = FALSE) {
   type <- match.arg(type, choices = c('single', 'multiple', 'auto'))
   mon_names <- c('Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep',
-                 'Oct', 'Nov', 'Dez')
+                 'Okt', 'Nov', 'Dez')
   chk_pdf <- isTRUE(grepl('pdf$', basename(pfile), ignore.case = TRUE))
   if (chk_pdf) {
     n_page <- tabulizer::get_n_pages(file = pfile)
@@ -42,7 +42,7 @@ dgj_mon_tbl <- function(pfile, type = 'auto', as.is = FALSE) {
       if (nrow(e_tbl[[2]]) != 7) stop('unexpected output by reading pdf file')
       if (e_tbl[[1]][2, 2] == 'Dez') {
         mon_names <- c('Nov', 'Dez', 'Jan', 'Feb', 'Mrz', 'Apr', 'Mai',
-                       'Jun', 'Jul', 'Aug', 'Sep', 'Oct')
+                       'Jun', 'Jul', 'Aug', 'Sep', 'Okt')
       }
       q_tbl <- as.data.table(e_tbl[[2]][2:6,2:13])
     }
@@ -90,7 +90,7 @@ dgj_top_hq <- function(pfile, as.is = FALSE) {
     q_tbl <- tabulizer::extract_tables(pfile,
                                        pages = 1,
                                        guess = FALSE,
-                                       area = list(c(675.1, 210.5, 735.2, 343.6)))
+                                       area = list(c(674, 200, 739, 343)))
     q_tbl <- data.table(q_tbl[[1]])
   } else {
     q_tbl <- fread(pfile, sep = '\n', header = FALSE)
@@ -103,9 +103,30 @@ dgj_top_hq <- function(pfile, as.is = FALSE) {
     q_tbl <- fread(text = q_tbl$dta, header = FALSE, sep = ' ')
   }
   if (!isTRUE(as.is)) {
-    colnames(q_tbl) <- c('Q', 'Spende', 'W', 'Date')
-    q_tbl[, Date := as.POSIXct(Date, tz = 'GMT', format = '%d.%m.%Y')]
+    if (ncol(q_tbl) == 3) {
+      colnames(q_tbl) <- c('Q', 'Spende', 'Date')
+      q_tbl$W <- NA
+    } else if (ncol(q_tbl) == 4) {
+      colnames(q_tbl) <- c('Q', 'Spende', 'W', 'Date')
+    } else if (ncol(q_tbl) == 5) {
+      q_tbl$V1 <- NULL
+      colnames(q_tbl) <- c('Q', 'Spende', 'W', 'Date')
+    } else  {
+      stop('Wrong format of pdf file: ', pfile)
+    }
+    q_tbl[, Date := stri_extract_first_regex(Date,
+                                 pattern = '(\\d+\\.*\\d+\\.\\d+)')
+          ]
     num_cols <-  c('Q', 'Spende', 'W')
+    q_tbl[, (num_cols) := lapply(.SD,
+                                 stri_replace_all_fixed,
+                                 pattern = ',',
+                                 replacement = '.'),
+          .SDcols = num_cols]
+    q_tbl[, (num_cols) := lapply(.SD,
+                                 stri_extract_first_regex,
+                                 pattern = '(\\d*\\.*\\d*)'),
+          .SDcols = num_cols]
     q_tbl[, (num_cols) := lapply(.SD, as.numeric), .SDcols = num_cols]
   }
   return(q_tbl)

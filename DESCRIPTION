@@ -1,7 +1,7 @@
 Type: Package
 Package: sobekio
 Title: Pre- and Post-Processing support tool for SOBEK V2
-Version: 0.2.0.5
+Version: 0.2.1.1
 Authors@R: person("D. Quang", "Duong", , "duong@bafg.de", c("aut", "cre"))
 Description: This package provides functions to work with SOBEK V2 
   read the .HIS files, create .DAT files, plot graphics from the output, and more.

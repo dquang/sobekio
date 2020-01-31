@@ -112,9 +112,9 @@ check_worms <- function(
   }
   qt_lubw <- worms.tbl[, .SD, .SDcols = c('ts', data_col)]
   colnames(qt_lubw) <- c('ts', 'Worms_LUBW')
-  
+
   if (check == 'dat') {
-    
+
   # reading from boundary.dat
     qt_dat <- get_data_from_id(
       dat.file = get_file_path(
@@ -129,17 +129,17 @@ check_worms <- function(
     qt <- merge(qt_lubw, qt_dat, by = 'ts')
     qt_cond <- all(near(qt$Worms_LUBW, qt$Worms_LUBW_DAT, 0.1))
     if (!qt_cond) stop('Worms input is not same as ', data_col)
-    
+
   } else if (check == 'mod') {
-    
+
     qt_mod <- his_from_case(case.list = case.name, sobek.project = sobek.project,
                             mID = mid, param = 'discharge')
     qt <- merge(qt_mod, qt_lubw, by = 'ts')
     qt_cond <- all(near(qt$Worms_LUBW, qt[[mid]], 0.1))
     if (!qt_cond) stop('Worms input is not same as Worms output from model')
-    
+
   } else {
-    
+
     qt_dat <- get_data_from_id(
       dat.file = get_file_path(
         case.name = case.name,
@@ -159,6 +159,52 @@ check_worms <- function(
     qt_cond <- all(near(qt$Worms_LUBW, qt[[mid]], 0.1))
     if (!qt_cond) stop('Worms input is not same as Worms output from model')
   }
-  
+
   return(TRUE)
+}
+
+#' @export
+plot_lubw_worms <- function(
+  zustand,
+  zielpegel
+) {
+  z_code <- match.arg(zustand, unique(lubw_code$zustand_data))
+  zustand_code <- unique(lubw_code[, .(zustand, zustand_data)])
+  colnames(zustand_code) <- c('name', 'code')
+  z_name <- zustand_code[code == zustand, name]
+  zielpegel <- match.arg(zielpegel,
+                         unique(lubw_code$zielpegel))
+  zustand_pat <- paste(z_name, toupper(zielpegel), sep = '_')
+  data_cols <-
+    lubw_code[grepl(zustand_pat, case_name), colname]
+  bezug_pat <- paste('Bezugszustand', toupper(zielpegel), sep = '_')
+  bezug_cols <- lubw_code[grepl(bezug_pat, case_name), colname]
+  if (zielpegel != 'zp0') {
+    worms <- lubw[, .SD, .SDcols = c('ts', data_cols, bezug_cols)]
+  } else {
+    worms <- lubw_vgf1[, .SD, .SDcols = c('ts', data_cols, bezug_cols)]
+  }
+  worms <- melt(worms, id.vars = 'ts')
+  worms[grepl('bezug_', variable), Zustand := 'Bezugszustand']
+  worms[grepl(z_code, variable), Zustand := z_name]
+  worms[, VGF := str_to_sentence(str_match(variable, 'mittel|selten'))]
+  worms[is.na(VGF), VGF := 'VGF1']
+  worms[, hwe := year(ts)][hwe == 2002, hwe := 2003]
+  worms[, HWE := paste0('HW', hwe)][, hwe := NULL]
+  g <- ggplot(worms, aes(x = ts, y = value, color = Zustand, linetype = VGF)) +
+    scale_x_datetime(date_labels = '%d.%m.%y', date_breaks = '1 day') +
+    theme(
+      axis.text.x = element_text(angle = 90),
+      legend.position = 'bottom'
+    ) +
+    geom_line(size = 1) +
+    facet_wrap(.~HWE, scales = 'free_x') +
+    xlab('Zeit') +
+    ylab('Abfluss (m³/s)') +
+    scale_y_continuous(limits = c(1000, 6500), breaks = pretty(1000:6500)) +
+    ggtitle(
+      paste0('Worms Abfluss Ganglinien von LUBW. Zustand: ', z_name,
+             '. Zielpegel: ', toupper(zielpegel))
+      )
+  return(g)
 }

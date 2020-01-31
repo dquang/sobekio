@@ -1,7 +1,7 @@
 #' Plot hydrographs at different locations
-#' 
+#'
 #' This function plots hydrographs for several IDs and cases
-#' 
+#'
 #' @param case.list List of cases
 #' @param case.desc Case naming according to NHWSP Standard
 #' @param id.names Names to assign for the IDs
@@ -27,6 +27,7 @@
 #' @param y2.scale Scale for second axis,
 #' @param y2.tick1 First value of the y2-axis, use this together with y2.scale to make it looks nice
 #' @param y2.lab Label for y2-axis, default = y.lab
+#' @param input.data a data.table as input, instead of reading from sobek
 #' @param p.caption Caption for the graphic. The IDs that were moved to second axis will have a small start (*) at the end of their names, a caption is about to explain that.
 #' @param ... This is the ID parameter to be transferred to his_from_case function. It is normally idType = idList
 #' @return A ggplot2 graphic
@@ -53,6 +54,7 @@ plot_multi_lines <- function(
   y2.scale = 5,
   y2.tick1 = 0,
   y2.lab = y.lab,
+  input.data = NULL,
   p.caption = NULL,
   date.breaks = '3 days',
   date.labels = "%d.%m.%Y",
@@ -79,11 +81,20 @@ plot_multi_lines <- function(
                    'crest level' = 'Crest level (m+NHN)'
                    )
   }
-  qt <- his_from_case(case.list = case.list, 
-                      sobek.project = sobek.project,
-                      ...,
-                      param = param
-                      )
+  if (is.null(input.data)) {
+    qt <- his_from_case(case.list = case.list,
+                        sobek.project = sobek.project,
+                        ...,
+                        param = param
+    )
+  } else {
+    stopifnot(is.data.frame(input.data))
+    if (is.data.table(input.data)) {
+      qt <- copy(input.data)
+    } else {
+      qt <- as.data.table(input.data)
+    }
+  }
   if (!is.null(id.names)) {
     if (length(id.names) == ncol(qt) - 2) {
       colnames(qt) <- c('ts', id.names, 'case')
@@ -190,14 +201,14 @@ plot_multi_lines <- function(
       data_hline[, eval(new_col) := h.lines[[i]]]
       g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 2)
     }
-    data_hline <- melt(data_hline, 
+    data_hline <- melt(data_hline,
                        measure.vars = patterns("hline_"),
                        variable.name = 'labels',
                        value.name = 'hlines'
                        )
     data_hline[, labels := str_replace(labels, 'hline_\\d_', '')]
-    g <- g + 
-      geom_text(aes(x = ts_min, y = hlines, label = labels), 
+    g <- g +
+      geom_text(aes(x = ts_min, y = hlines, label = labels),
                 data = data_hline, color = 'black', check_overlap = TRUE,
                 hjust = 0, vjust = 0)
   }
@@ -214,10 +225,10 @@ plot_multi_lines <- function(
 
 
 #' Plot multiple timeseries together without concerning time
-#' 
+#'
 #' This function plots hydrographs for several IDs and cases together without
 #' concerning time. The time will be converted to index
-#' 
+#'
 #' @param case.list List of cases
 #' @param case.desc Case naming according to NHWSP Standard
 #' @param id.names Names to assign for the IDs
@@ -280,7 +291,7 @@ plot_lines <- function(
     }
     y2.ids <- y2.ids + 1 # the first column is 'ts'
   }
-  
+
   case_type <- parse_case(case.desc = case.desc, orig.name = case.list)
   if (is.null(y.lab)) {
     y.lab = switch(tolower(param),
@@ -290,7 +301,7 @@ plot_lines <- function(
                    'crest level' = 'Crest level (m+NHN)'
     )
   }
-  qt <- his_from_case(case.list = case.list, 
+  qt <- his_from_case(case.list = case.list,
                       sobek.project = sobek.project,
                       ...,
                       # mID = c('p_koeln','p_duesseldorf2'),
@@ -385,16 +396,16 @@ plot_lines <- function(
     ggtitle(p.title) +
     xlab(x.lab) + ylab(y.lab) +
     scale_y_continuous(breaks = y1_pretty)
-  
+
   # horizontal lines --------------------------------------------------------
-  
+
   if (!is.null(h.lines)) {
     for (i in seq_along(h.lines)) {
       hline_label <- ifelse(is.null(names(h.lines[i])), h.lines[[i]],
                             names(h.lines[i]))
       g <- g + geom_hline(yintercept = h.lines[[i]], linetype = 2) +
-        annotate('text', 
-                 x = min(qt$ts_id, na.rm = TRUE), 
+        annotate('text',
+                 x = min(qt$ts_id, na.rm = TRUE),
                  y = h.lines[[i]], color = 'black',
                  label = hline_label,
                  hjust = 0, vjust = 0)
