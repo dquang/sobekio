@@ -28,6 +28,35 @@ parse_case <- function(case.desc, orig.name = case.desc, stringAsFactors = FALSE
   return(case_tbl)
 }
 
+#' Parse case name to get standard information
+#' @param case.desc Case description (standard naming)
+#' @param orig.name Case original name
+#' @return a data.table
+#' @export
+parse_case2 <- function(case.desc, orig.name = case.desc, stringAsFactors = FALSE){
+  stopifnot(length(case.desc) == length(orig.name))
+  case_tbl <- data.table(
+    case = orig.name,
+    case_desc = case.desc
+  )
+  case_tbl[, Zustand := str_match(case.desc, '^([^_]+)')[, 2]]
+  case_tbl[, Zielpegel := str_match(case.desc, '^[^_]+_([^_]+)_')[, 2]]
+  case_tbl[, HWE := str_match(case.desc, '^[^_]+_[^_]+_([^_]+)_')[, 2]]
+  case_tbl[, VGF := str_match(case.desc, '^[^_]+_[^_]+_[^_]+_([^_]+)')[, 2]]
+  case_tbl[, notiz := str_match(case.desc, '^[^_]+_[^_]+_[^_]+_[^_]+_(.+)')[, 2]]
+  if (any(is.na(case_tbl[, c('Zustand', 'Zielpegel', 'HWE', 'VGF')]))) {
+    stop('At least one of case description has wrong format')
+  }
+  if (isTRUE(stringAsFactors)) {
+    id_levels <- seq_along(case_tbl$Zustand)
+    f_levels <- purrr::map2(case_tbl$Zustand, id_levels, paste, sep = '_')
+    case_tbl$Zustand  <- factor(case_tbl$Zustand,
+                                levels = f_levels,
+                                labels = case_tbl$Zustand,
+                                ordered = TRUE)
+  }
+  return(case_tbl)
+}
 
 #' Get id tables for one measure from the master.tbl
 #' @param name Name of the measure
@@ -194,14 +223,14 @@ get_segment_id_tbl <- function(
 #' @export
 get_segment_data <- function(
   river = NULL,
-  from.km = NULL,
-  to.km = NULL,
-  case.list = NULL,
+  from.km = -Inf,
+  to.km = Inf,
+  case.list,
   case.desc = case.list,
   param = NULL,
-  sobek.project = NULL,
+  sobek.project,
   get.max = TRUE,
-  master.tbl = NULL,
+  master.tbl,
   verbose = TRUE,
   do.par = FALSE,
   ts.trim.left = NULL

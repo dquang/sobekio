@@ -59,26 +59,22 @@ volume_center <- function(
   peak.percent = 0.02,
   do.par = TRUE
 ){
-  # stopifnot(column %in% colnames(indt)
   all_cols <- colnames(indt)
   all_cols <- all_cols[!all_cols %in% c('ts', 'case', 'orig_row')]
   indt[, orig_row := .I]
   row_has_max <- vector(mode = 'integer', length = length(all_cols))
-  # col_max <- vector(mode = 'double', length = length(all_cols))
   col_max <- Rfast::colMaxs(as.matrix(indt[, .SD, .SDcols = all_cols]), value = TRUE)
-  # indt_peak <- list()
   if (isTRUE(do.par)) {
     doParallel::registerDoParallel(parallel::detectCores() - 1)
     `%dopar%` <- foreach::`%dopar%`
     ret <- foreach::foreach(i = 1:length(all_cols), .combine = c) %dopar% {
-      # col_max[i] <- max(indt[[all_cols[i]]], na.rm = TRUE)
       if (!is.infinite(col_max[i])) {
         peak_min <- col_max[i] * (1 - peak.percent)
-        indt_peak <- indt[get(all_cols[i]) >= peak_min, .SD, 
+        indt_peak <- indt[get(all_cols[i]) >= peak_min, .SD,
                           .SDcols = c(all_cols[i], "orig_row")
                           ]
         # find the center of mass
-        m_center <- sum(cumsum(indt_peak[, get(all_cols[i])]) <= 
+        m_center <- sum(cumsum(indt_peak[, get(all_cols[i])]) <=
                           0.5 * sum(indt_peak[, get(all_cols[i])])
         )
         row_has_max[i] <- indt_peak[m_center, orig_row]
@@ -90,14 +86,13 @@ volume_center <- function(
     doParallel::stopImplicitCluster()
   } else {
     for (i in seq_along(all_cols)) {
-      # col_max[i] <- max(indt[[all_cols[i]]], na.rm = TRUE)
       if (!is.infinite(col_max[i])) {
         peak_min <- col_max[i] * (1 - peak.percent)
-        indt_peak <- indt[get(all_cols[i]) >= peak_min, .SD, 
+        indt_peak <- indt[get(all_cols[i]) >= peak_min, .SD,
                           .SDcols = c(all_cols[i], "orig_row")
                           ]
         # find the center of mass
-        m_center <- sum(cumsum(indt_peak[, 1]) <= 
+        m_center <- sum(cumsum(indt_peak[, 1]) <=
                           0.5 * sum(indt_peak[, 1])
         )
         row_has_max[i] <- indt_peak[m_center, orig_row]
@@ -127,8 +122,8 @@ volume_center <- function(
 #' @param km.break get value for only every km.break
 #' @param master.tbl Master table
 #' @param param discharge/waterlevel
-#' @param peak.percent Percentage of the max to define the area for 
-#' volume-center calculating  
+#' @param peak.percent Percentage of the max to define the area for
+#' volume-center calculating
 #' @param do.par Parallel computing.
 #'
 #' @return a data.table
@@ -150,10 +145,11 @@ peak_time <- function(
   id_type <- ifelse(param == 'discharge', 'qID', 'wID')
   # get table of IDs of the segment from the master.tbl
   id_tbl <- get_segment_id_tbl(
+    param = param,
     river = river,
     from.km = from.km,
     to.km = to.km,
-    case.list = case.list, 
+    case.list = case.list,
     case.desc = case.desc,
     master.tbl = master.tbl)[ID_TYPE == id_type]
   if (!is.null(km.step)) {
@@ -163,7 +159,7 @@ peak_time <- function(
   setorder(id_tbl, km)
   # read data from cases
   for (i in case.list) {
-    indt_arg <- list(case.list = i, 
+    indt_arg <- list(case.list = i,
                      sobek.project = sobek.project,
                      idtype = id_tbl[case == i, ID_F],
                      param = param)
@@ -174,20 +170,20 @@ peak_time <- function(
     col_max_pos <- Rfast::colMaxs(as.matrix(indt[case == i, .SD,
                                                  .SDcols = all_cols]))
     case_ts <- indt[, ts]
-    col_max_time <- vector() 
+    col_max_time <- vector()
     for (j in seq_along(col_max_pos)) {
       col_max_time[j] <- case_ts[col_max_pos[j]]
     }
     id_tbl[case == i, Peak_Time := col_max_time]
     if (!is.null(peak.percent)) {
-      col_max_pos <- volume_center(indt[case == i], 
+      col_max_pos <- volume_center(indt[case == i],
                                    peak.percent = peak.percent,
                                    do.par = do.par)
       for (j in col_max_pos) {
         col_max_time[j] <- case_ts[col_max_pos[j]]
       }
       id_tbl[case == i, Volume_Center := col_max_time]
-    } 
+    }
   }
   id_tbl <- merge(id_tbl, case_tbl, by = 'case', sort = FALSE)
   return(id_tbl)
@@ -197,7 +193,7 @@ peak_time <- function(
 
 #' Plot peak time
 #'
-#' This function make ggplot and plotly for the peak time table (output from 
+#' This function make ggplot and plotly for the peak time table (output from
 #' peak_time function)
 #'
 #' @param indt data.table output from peak_time
@@ -224,7 +220,6 @@ plot_peak_time <- function(
   peak.type = c('peak', 'vc', 'both'),
   overlap = overlap_rhein
 ) {
-  # stopifnot('Peak_Time' %in% colnames(indt))
   peak.type = match.arg(peak.type, c('peak', 'vc', 'both'))
   if (!is.null(km.step)) {
     indt <- filter(indt, km %% km.step <= 0.2 | nchar(besonderheit) > 0) %>%
@@ -241,7 +236,7 @@ plot_peak_time <- function(
         overlap_nchar <- nchar(b_tick[overlap_i_pos -  1, besonderheit])
         b_tick[overlap_i_pos,
                besonderheit := str_replace(besonderheit, 'Polder_|DRV_', '')]
-        b_tick[overlap_i_pos, 
+        b_tick[overlap_i_pos,
                besonderheit := paste(str_dup(' ', 2 * overlap_nchar),
                                      '--', besonderheit)]
       }
@@ -257,18 +252,18 @@ plot_peak_time <- function(
   if (shape.by != 'Type') all_cols <- c(all_cols, shape.by)
   all_cols <- unique(all_cols)
   indt <- indt[, .SD, .SDcols = all_cols] %>%
-    melt(measure.vars = measure_cols, variable.name = 'Type', 
+    melt(measure.vars = measure_cols, variable.name = 'Type',
          value.name = 'Zeitpunkt')
   indt[, Zeitpunkt := as.POSIXct(Zeitpunkt, tz = "GMT", origin = '1970-01-01')]
-  g <- ggplot(data = indt, 
-              aes(x = km, y = Zeitpunkt, 
-                  color = !!ensym(color.by), 
+  g <- ggplot(data = indt,
+              aes(x = km, y = Zeitpunkt,
+                  color = !!ensym(color.by),
                   shape = !!ensym(shape.by)
                   )
               ) +
     scale_y_datetime(
       name = paste('Eintrittszeitpunkt (', date.labels, ')', sep = ''),
-      date_breaks = date.breaks, 
+      date_breaks = date.breaks,
       date_labels = date.labels) +
     geom_point(size = pt.size) + theme_grey() +
     scale_x_continuous(
@@ -295,41 +290,7 @@ plot_peak_time <- function(
         ),
       legend.position = 'bottom'
     ) +
-    # scale_shape_manual(values = c(1, 3)) +
     geom_vline(xintercept = indt[nchar(besonderheit) > 0, km],
                color = 'grey', size = 0.2)
-  # g
-  # p <- plotly::plot_ly(data = indt, 
-  #                      x = ~km,
-  #                      y = ~Zeitpunkt,
-  #                      color = ~case,
-  #                      symbol = ~Type
-  # ) %>%
-  #   plotly::add_markers(
-  #     xaxis = 'x2',
-  #   ) %>%
-  #   plotly::layout(
-  #     legend = list(orientation = 'h',
-  #                   yanchor = 'bottom'),
-  #     # xaxis = list(rangemode = "tozero"),
-  #     xaxis2 = list(
-  #       side = 'bottom',
-  #       # rangemode = "tozero",
-  #       anchor = "y",
-  #       # overlaying = "x",
-  #       ticktext = indt[nchar(besonderheit) > 0, besonderheit],
-  #       tickvals = indt[nchar(besonderheit) > 0, km]
-  #     ),
-  #     xaxis2 = list(
-  #       side = 'top',
-  #       # rangemode = "tozero",
-  #       anchor = "y",
-  #       # overlaying = "x",
-  #       ticktext = indt[nchar(besonderheit) > 0, besonderheit],
-  #       tickvals = indt[nchar(besonderheit) > 0, km]
-  #     ),
-  #     yaxis = list(dtick = 86400000 / 6)
-  #   )
-  # p
   return(g)
 }

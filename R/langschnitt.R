@@ -56,7 +56,7 @@ plot_drv <- function(
   reverse.x = FALSE,
   x.lab = 'Lage (KM)',
   y.lab = ifelse(param == 'discharge',
-                 'Abfluss (m³/s)', 'Wasserstand (m+NHN)'),
+                 'Abfluss [m³/s]', 'Wasserstand [m+NHN]'),
   to.upstream = 0,
   to.downstream = 0,
   y2.scale = NULL,
@@ -66,6 +66,7 @@ plot_drv <- function(
   text.x.top.angle = 90L,
   text.x.top.size = 8L,
   text.x.bottom.angle = 0L,
+  line.size = 1.0,
   ntick.x = 10L,
   ntick.y = 7L,
   a.fill =  exl_std[3],
@@ -213,7 +214,7 @@ plot_drv <- function(
     # searching for KM that delta calculation is possible
     km_4_delta <- unique(data_tbl[!is.na(scheitel)]$km)
     y2_name <- paste('Delta',
-                     ifelse(param == 'discharge', '(m³/s)', '(m)')
+                     ifelse(param == 'discharge', '[m³/s]', '(m)')
     )
     if (compare.by != group.by) {
       lt.by <- compare.by
@@ -346,7 +347,7 @@ plot_drv <- function(
                   color = !!ensym(color.by),
                   y = scheitel)
   ) +
-    theme_bw() +
+    theme_bw(base_size = text.size) +
     theme(legend.position = 'bottom',
           legend.key.width = unit(2, "cm"),
           axis.text.x.top =
@@ -385,7 +386,7 @@ plot_drv <- function(
         )
       )
   }
-  g <- g + geom_line(size = 1)
+  g <- g + geom_line(size = line.size)
   if (!is.null(man.colors)) {
     g <- g + scale_color_manual(values = c(man.colors, man.colors, 'black'))
   }
@@ -399,7 +400,7 @@ plot_drv <- function(
         color = delta_color,
         linetype = 'Delta'
       ),
-      size = 1
+      size = line.size
     ) +
       scale_y_continuous(
         breaks = y1_pretty,
@@ -485,9 +486,10 @@ plot_drv <- function(
 #' @param y2.zero if TRUE, a horizotal line at y2.zero will be plotted
 #' @param y2.round Decimal place for y2.scale
 #' @param plot.title Title of the graphic
-#' @param text.size Size of text
+#' @param text.size Base size for text
 #' @param text.x.top.angle Angle of text at top
 #' @param text.x.bottom.angle Angle of text at bottom
+#' @param line.size Size for lines
 #' @param ntick.x Minimum number of ticks on x-axis. Default = 10
 #' @param highlight A vector of two locations (km), ex. c(4, 10) to be highlighted
 #' @param a.fill Fill color of the highlight area
@@ -530,7 +532,7 @@ plot_longprofile <- function(
   reverse.x = FALSE,
   x.lab = 'Lage (KM)',
   y.lab = ifelse(param == 'discharge',
-                 'Abfluss (m³/s)', 'Wasserstand (m+NHN)'),
+                 'Abfluss [m³/s]', 'Wasserstand [m+NHN]'),
   y2.scale = NULL,
   y2.tick1 = NULL,
   y2.shift = NULL,
@@ -541,6 +543,7 @@ plot_longprofile <- function(
   text.x.top.angle = 90L,
   text.x.top.size = 8L,
   text.x.bottom.angle = 0L,
+  line.size = 1.0,
   ntick.x = 10L,
   ntick.y = 7L,
   highlight = NULL,
@@ -689,7 +692,7 @@ plot_longprofile <- function(
     # searching for KM that delta calculation is possible
     km_4_delta <- unique(data_tbl[!is.na(scheitel)]$km)
     y2_name <- paste('Delta',
-                     ifelse(param == 'discharge', '(m³/s)', '(m)')
+                     ifelse(param == 'discharge', '[m³/s]', '(m)')
     )
     if (compare.by != group.by) {
       lt.by <- compare.by
@@ -849,7 +852,7 @@ plot_longprofile <- function(
                   color = !!ensym(color.by),
                   y = scheitel)
   ) +
-    theme_bw() +
+    theme_bw(base_size = text.size) +
     theme(legend.position = 'bottom',
           legend.key.width = unit(2, "cm"),
           axis.text.x.top =
@@ -895,7 +898,7 @@ plot_longprofile <- function(
         )
       )
   }
-  g <- g + geom_line(size = 1)
+  g <- g + geom_line(size = line.size)
   if (talweg & param == 'waterlevel') {
     if (verbose) cat('Reading profile...\n')
     pf_tbl <- get_profile_tbl(
@@ -914,7 +917,7 @@ plot_longprofile <- function(
                          color = 'Talweg',
                          linetype = 'Talweg'
                        ),
-                       size = 1)
+                       size = line.size)
   }
   if (!delta) g <- g + scale_y_continuous(breaks = y1_pretty)
   if (!is.null(man.colors)) {
@@ -961,7 +964,7 @@ plot_longprofile <- function(
         color = delta_color,
         linetype = Linienart
       ),
-      size = 1
+      size = line.size
     ) +
       scale_y_continuous(
         breaks = y1_pretty,

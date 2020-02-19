@@ -329,6 +329,7 @@ sobek_copy <- function(
     }
     doParallel::stopImplicitCluster()
   } else {
+    n_case <- nrow(cmt_tbl)
     for (i in seq_along(cmt_tbl$case_name_new)) {
       old_cmt <- file.path(cmt_tbl[i, case_folder], 'casedesc.cmt')
       new_cmt <-  file.path(cmt_tbl[i, case_folder_new], 'casedesc.cmt')
@@ -350,20 +351,20 @@ sobek_copy <- function(
       new_files <- file.path(cmt_tbl[i, case_folder_new], old_files)
       old_files <- file.path(cmt_tbl[i, case_folder], old_files)
       dir.create(cmt_tbl[i, case_folder_new])
-      file.copy(old_files, new_files)
+      tot_file <- length(old_files)
       fwrite(x = case_cmt, file = new_cmt,
              col.names = FALSE, quote = FALSE,
              append = FALSE)
-      n_char <- floor((i / n_case) * 75)
-      txt <- paste0(
-        stri_pad_right(paste0(stri_dup('=', n_char), '> '),
-                       width = 77,
-        ),
-        floor(100 * i / n_case), '%')
-      cat(txt, '\n')
+      for (j in seq_along(old_files)) {
+        file.copy(from = old_files[j], to = new_files[j], overwrite = TRUE)
+        cat('Copying files....................',
+            str_pad(round(i * j * 100 / tot_file / n_case), 5, 'left'), '%\r'
+            )
+        flush.console()
+      }
     }
   }
-  cat('Copy all other files of the projects...\n')
+  cat('\nCopy all other files of the projects...\n')
   fwrite(cmt_new,
          file = cmt_file,
          quote = FALSE,
@@ -384,7 +385,7 @@ sobek_copy <- function(
       file.copy(from = file.path(p, a_f), to = dest, recursive = TRUE, overwrite = FALSE)
     }
   }
-  cat('Done.')
+  cat('Done.\n')
 }
 
 
@@ -447,18 +448,18 @@ sobek_overwrite <- function(
                    from_cmt[, .(case_name, from_folder)],
                    by = 'case_name')
   n_case <- nrow(cmt_tbl)
-  cat('Copying files, it will take probably a long time...')
-  cat(stri_pad_right('>', 77), '0 %\n')
+  cat('Copying files, it will take probably a long time...\n')
   for (i in seq.int(1, n_case, 1)) {
-    n_char <- floor((i / n_case) * 75)
     from_files <- list.files(cmt_tbl[i, from_folder], full.names = TRUE)
-    file.copy(from_files, cmt_tbl[i, to_folder], overwrite = TRUE)
-    txt <- paste0(
-      stri_pad_right(paste0(stri_dup('=', n_char), '> '),
-                     width = 77,
-      ),
-      floor(100 * i / n_case), '%')
-    cat(txt, '\n')
+    tot_file <- length(from_files)
+    for (j in seq_along(from_files)) {
+      file.copy(from = from_files[j], to = cmt_tbl[i, to_folder], overwrite = TRUE)
+      cat('Copying files....................',
+          str_pad(round(i * j * 100 / tot_file / n_case), 5, 'left'), '%\r'
+      )
+      flush.console()
+    }
   }
+  cat('\nDone.\n')
 }
 

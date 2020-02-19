@@ -29,15 +29,16 @@
 #' @param y2.lab Label for y2-axis, default = y.lab
 #' @param input.data a data.table as input, instead of reading from sobek
 #' @param p.caption Caption for the graphic. The IDs that were moved to second axis will have a small start (*) at the end of their names, a caption is about to explain that.
+#' @param line.size Size for the lines
 #' @param ... This is the ID parameter to be transferred to his_from_case function. It is normally idType = idList
 #' @return A ggplot2 graphic
 #' @export
 #' @import data.table
 plot_multi_lines <- function(
-  case.list = NULL,
+  case.list,
   case.desc = case.list,
   id.names = NULL,
-  sobek.project = NULL,
+  sobek.project,
   param = 'discharge',
   compare.by = 'zustand',
   facet.by = 'hwe',
@@ -61,9 +62,9 @@ plot_multi_lines <- function(
   text.x.angle = 90L,
   text.size = 12L,
   h.lines = NULL,
+  line.size = 1.0,
   ...
 ){
-  stopifnot(!is.null(case.list), !is.null(sobek.project))
   if (!is.null(y2.scale)) stopifnot(isTRUE(y2.scale > 0))
   if (!is.null(y2.ids)) {
     if (!is.numeric(y2.ids)) {
@@ -71,14 +72,15 @@ plot_multi_lines <- function(
     }
     y2.ids <- y2.ids + 1 # the first column is 'ts'
   }
-
   case_type <- parse_case(case.desc = case.desc, orig.name = case.list)
+  case_type[, compare__by := do.call(paste, .SD), .SDcols = compare.by]
+  case_type[, facet__by := do.call(paste, .SD), .SDcols = facet.by]
   if (is.null(y.lab)) {
     y.lab = switch(tolower(param),
                    'Value',
-                   discharge = 'Abfluss m³/s',
-                   waterlevel = 'Wasserstand (m+NHN)',
-                   'crest level' = 'Crest level (m+NHN)'
+                   discharge = 'Abfluss [m³/s]',
+                   waterlevel = 'Wasserstand [m+NHN]',
+                   'crest level' = 'Crest level [m+NHN]'
                    )
   }
   if (is.null(input.data)) {
@@ -142,15 +144,16 @@ plot_multi_lines <- function(
               aes(x = ts, y = value,
                   color = variable,
                   # quasiquotation, that's a great option from tidyverse
-                  linetype = !!ensym(compare.by)
+                  # linetype = !!ensym(compare.by)
+                  linetype = compare__by
               )
   ) +
     scale_x_datetime(
       date_breaks = date.breaks,
       date_labels = date.labels
     ) +
-    geom_line(size = 1) +
-    theme_bw() +
+    geom_line(size = line.size) +
+    theme_bw(base_size = text.size) +
     theme(
       legend.key.width = unit(2, "cm"),
       legend.position = 'bottom',
@@ -179,14 +182,13 @@ plot_multi_lines <- function(
     y2_pretty <- (y1_pretty - y2_shift) / y2.scale
     qt[variable %in% y2_cols, variable := paste(variable, '(*)') ]
     y2_cols <- paste(y2_cols, '(*)')
-    g <- g + geom_line(data = qt[variable %in% y2_cols], size = 1,
+    g <- g + geom_line(data = qt[variable %in% y2_cols], size = line.size,
                        mapping = aes(y = value * y2.scale + y2_shift)) +
       scale_y_continuous(
         breaks = y1_pretty,
         sec.axis =
           sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
                    breaks = y2_pretty,
-                   #labels = round(y2_pretty, 2),
                    name = y2.lab)
       )
   }
@@ -213,7 +215,7 @@ plot_multi_lines <- function(
                 hjust = 0, vjust = 0)
   }
   if (!is.null(facet.by)) {
-    g <- g + facet_wrap(c(facet.by), scales = facet.scale)
+    g <- g + facet_wrap(.~ facet__by, scales = facet.scale)
   }
   g$labels$colour <- color.name
   g$labels$linetype <- lt.name
@@ -254,6 +256,7 @@ plot_multi_lines <- function(
 #' @param y2.tick1 First value of the y2-axis, use this together with y2.scale to make it looks nice
 #' @param y2.lab Label for y2-axis, default = y.lab
 #' @param p.caption Caption for the graphic. The IDs that were moved to second axis will have a small start (*) at the end of their names, a caption is about to explain that.
+#' @param line.size Size for the lines
 #' @param ... This is the ID parameter to be transferred to his_from_case function. It is normally idType = idList
 #' @return A ggplot2 graphic
 #' @export
@@ -281,6 +284,7 @@ plot_lines <- function(
   p.caption = NULL,
   text.size = 12L,
   h.lines = NULL,
+  line.size = 1.0,
   ...
 ){
   stopifnot(!is.null(case.list), !is.null(sobek.project))
@@ -296,9 +300,9 @@ plot_lines <- function(
   if (is.null(y.lab)) {
     y.lab = switch(tolower(param),
                    'Value',
-                   discharge = 'Abfluss m³/s',
-                   waterlevel = 'Wasserstand (m+NHN)',
-                   'crest level' = 'Crest level (m+NHN)'
+                   discharge = 'Abfluss [m³/s]',
+                   waterlevel = 'Wasserstand [m+NHN]',
+                   'crest level' = 'Crest level [m+NHN]'
     )
   }
   qt <- his_from_case(case.list = case.list,
@@ -383,8 +387,8 @@ plot_lines <- function(
                   linetype = !!ensym(lt.by)
               )
   ) +
-    geom_line(size = 1) +
-    theme_bw() +
+    geom_line(size = line.size) +
+    theme_bw(base_size = text.size) +
     theme(
       legend.key.width = unit(2, "cm"),
       legend.position = 'bottom',

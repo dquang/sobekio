@@ -2,11 +2,11 @@
 
 
 #' Saving PNG image for potrait A4
-#' 
+#'
 #'  This is only a wraping for ggsave function. With default png, width 9,
 #'  height 6, dpi 350, and positions of 2 parameters `plot` and `file` are exchanged
 #'  If there is no file name given, it will take the plot parameter as name
-#'  
+#'
 #' @export
 save_polder <- function(plot, filename = NULL,
             device = "png", width = 9, height = 6, dpi = 350
@@ -19,11 +19,11 @@ save_polder <- function(plot, filename = NULL,
 
 
 #' Saving PNG image for landscape A4
-#' 
+#'
 #'  This is only a wraping for ggsave function. With default png, width 15,
 #'  height 10, dpi 350, and positions of 2 parameters `plot` and `file` are exchanged.
 #'  If there is no file name given, it will take the plot parameter as name
-#'  
+#'
 #' @export
 save_profile <- function(plot, filename = NULL,
                         device = "png", width = 18, height = 10, dpi = 350
@@ -35,6 +35,38 @@ save_profile <- function(plot, filename = NULL,
 }
 
 
+#' Saving WMF image for insert inline
+#'
+#'  This is only a wraping for ggsave function. With default device wmf, width 15,
+#'  height 8, and positions of 2 parameters `plot` and `file` are exchanged.
+#'  If there is no file name given, it will take the plot parameter as name
+#'
+#' @export
+save_wmf <- function(plot, filename = NULL,
+                         device = "wmf", width = 15, height = 8
+                         , ...){
+  f_args <- match.call(expand.dots = FALSE)
+  if (is.null(filename)) filename <- paste(f_args$plot, ".wmf", sep = "")
+  ggsave(filename = filename, plot = plot,
+         device = device, width = width, height = height, ...)
+}
+
+
+#' Saving WMF image for insert inline
+#'
+#'  This is only a wraping for ggsave function. With default device wmf, width 15,
+#'  height 8, and positions of 2 parameters `plot` and `file` are exchanged.
+#'  If there is no file name given, it will take the plot parameter as name
+#'
+#' @export
+save_svg <- function(plot, filename = NULL,
+                     device = "svg", width = 15, height = 8
+                     , ...){
+  f_args <- match.call(expand.dots = FALSE)
+  if (is.null(filename)) filename <- paste(f_args$plot, ".svg", sep = "")
+  ggsave(filename = filename, plot = plot,
+         device = device, width = width, height = height, ...)
+}
 
 #' Create new variable with suffix
 #'
@@ -58,4 +90,15 @@ new_suffix <- function(..., suffix = '_EreigOpt') {
       eval(cmd, envir = globalenv())
     }
   }
+}
+
+
+#'@export
+elbe_desc <- function(cases) {
+  case_desc <- vector(length = length(cases))
+  for (i in seq_along(cases)) {
+    case_find <- elbe_case_tbl[cases[i], case_desc]
+    case_desc[i] <- ifelse(!is.na(case_find), case_find, cases[i])
+  }
+  case_desc
 }

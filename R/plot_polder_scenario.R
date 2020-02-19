@@ -369,10 +369,10 @@ plot_polder_scenario_old <- function(
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
                              color = 'W in Maßnahme'),
                          size = 1)
-      y2_name <- 'Wasserstand (m+NHN)'
+      y2_name <- 'Wasserstand [m+NHN]'
     }
     if (isTRUE(q.in)) {
-      y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
+      y2_name <- 'Abfluss Einlass/Auslass [m³/s]'
       # adding Einlass lines
       if (length(einlass_cols) > 1) {
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
@@ -416,14 +416,14 @@ plot_polder_scenario_old <- function(
       geom_line(aes(y = Nach,  color = 'W nach Maßnahme'),
                 size = 1)
     if (isTRUE(w.canal)) {
-      y2_name <- 'Wasserstand (m+NHN)'
+      y2_name <- 'Wasserstand [m+NHN]'
       g <- g + geom_line(aes(y = W_innen,
                              color = 'W in Maßnahme'),
                          size = 1)
     }
     if (isTRUE(q.in)) {
       einlass_cols <- grep('Einlass', colnames(id_data), value = TRUE)
-      y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
+      y2_name <- 'Abfluss Einlass/Auslass [m³/s]'
       # adding Einlass lines
       if (length(einlass_cols) > 1) {
         id_data_einlass <- melt(id_data, measure.vars = einlass_cols,
@@ -443,7 +443,7 @@ plot_polder_scenario_old <- function(
       }
     }
     if (isTRUE(q.out)) {
-      y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
+      y2_name <- 'Abfluss Einlass/Auslass [m³/s]'
       if (length(auslass_cols) > 1) {
         id_data_auslass <- melt(id_data, measure.vars = auslass_cols,
                                 variable.name = 'Auslass',
@@ -610,7 +610,7 @@ plot_polder_scenario_old <- function(
     }
   }
   #----graphic layout----
-  y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
+  y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand [m+NHN]')
   if (is.null(plot.title)) {
     plot.title <- paste(str_extract(y1_label, 'Abfluss|Wasserstand'),
                         ' Ganglinien für Maßnahme: ', name,
@@ -660,15 +660,15 @@ plot_polder_scenario_old <- function(
                        id.vars = 'ts', value.name = 'value',
                        variable.name = 'Delta')
     delta_title <- ifelse(param == 'discharge',
-                          paste('Abfluss Differenz (',
-                                cmp_vars[1], " - ", cmp_vars[2], ")",
+                          paste('Abfluss Differenz [',
+                                cmp_vars[1], " - ", cmp_vars[2], "]",
                                 sep = ""),
-                          paste('Wasserstand Differenz (',
-                                cmp_vars[1], " - ", cmp_vars[2], ")",
+                          paste('Wasserstand Differenz [',
+                                cmp_vars[1], " - ", cmp_vars[2], "]",
                                 sep = ""))
     delta_ylab <- ifelse(param == 'discharge',
-                         'Abfluss Differenz (m³/s)',
-                         'Wasserstand Differenz (cm)'
+                         'Abfluss Differenz [m³/s]',
+                         'Wasserstand Differenz [cm]'
                          )
     if (param == 'waterlevel') delta_data[, value := round(value * 100, 1)]
     g2 <- ggplot(data = delta_data,
@@ -1244,10 +1244,10 @@ plot_polder_scenario <- function(
       g <- g + geom_line(aes(y = W_innen * y2.scale + y2_shift,
                              color = 'W in Maßnahme'),
                          size = 1)
-      y2_name <- 'Wasserstand (m+NHN)'
+      y2_name <- 'Wasserstand [m+NHN]'
     }
     if (isTRUE(q.in)) {
-      y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
+      y2_name <- 'Abfluss Einlass/Auslass [m³/s]'
       # adding Einlass lines
       if (length(einlass_cols) > 1) {
         id_data_einlass <- melt(data_tbl, measure.vars = einlass_cols,
@@ -1291,14 +1291,14 @@ plot_polder_scenario <- function(
       geom_line(aes(y = Nach,  color = 'W nach Maßnahme'),
                 size = 1)
     if (w.canal) {
-      y2_name <- 'Wasserstand (m+NHN)'
+      y2_name <- 'Wasserstand [m+NHN]'
       g <- g + geom_line(aes(y = W_innen,
                              color = 'W in Maßnahme'),
                          size = 1)
     }
     if (q.in) {
       einlass_cols <- grep('Einlass', colnames(data_tbl), value = TRUE)
-      y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
+      y2_name <- 'Abfluss Einlass/Auslass [m³/s]'
       # adding Einlass lines
       if (length(einlass_cols) > 1) {
         id_data_einlass <- melt(data_tbl, measure.vars = einlass_cols,
@@ -1318,7 +1318,7 @@ plot_polder_scenario <- function(
       }
     }
     if (q.out) {
-      y2_name <- 'Abfluss Einlass/Auslass (m³/s)'
+      y2_name <- 'Abfluss Einlass/Auslass [m³/s]'
       if (length(auslass_cols) > 1) {
         id_data_auslass <- melt(data_tbl, measure.vars = auslass_cols,
                                 variable.name = 'Auslass',
@@ -1479,7 +1479,7 @@ plot_polder_scenario <- function(
     }
   }
   #----graphic layout----
-  y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand (m+NHN)')
+  y1_label <- ifelse(param == 'discharge', 'Abfluss m³/s', 'Wasserstand [m+NHN]')
   if (is.null(plot.title)) {
     plot.title <- paste0(str_extract(y1_label, 'Abfluss|Wasserstand'),
                         ' Ganglinien für Maßnahme: ', name,
@@ -1535,8 +1535,8 @@ plot_polder_scenario <- function(
                                 cmp_vars[1], " - ", cmp_vars[2], ")",
                                 sep = ""))
     delta_ylab <- ifelse(param == 'discharge',
-                         'Abfluss Differenz (m³/s)',
-                         'Wasserstand Differenz (cm)'
+                         'Abfluss Differenz [m³/s]',
+                         'Wasserstand Differenz [cm]'
     )
     if (param == 'waterlevel') delta_data[, value := round(value * 100, 1)]
     g2 <- ggplot(data = delta_data,
