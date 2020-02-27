@@ -1,8 +1,8 @@
 #' Plot typical validation graphic for one Pegel
-#' 
+#'
 #' @param case.name Name of the case
 #' @param ... ID_TYPE = ID
-#' @param Parameter
+#' @param param Parameter
 #' @param sobek.project Path to sobek project
 #' @param messung Table of measured values
 #' @param date.breaks ggplot2 date_breaks
@@ -46,20 +46,20 @@ validate_pegel <- function(
   g1 <- ggplot(data_tbl[variable != 'Delta'], aes(x = ts, y = value, color = variable)) +
     scale_x_datetime(date_breaks = date.breaks, date_labels = date.labels) +
     xlab(x.lab) +
-    ylab(y.lab) + 
-    geom_line(size = 1) + 
+    ylab(y.lab) +
+    geom_line(size = 1) +
     theme(
       legend.key.width = unit(2, "cm"),
       legend.position = 'bottom',
       axis.text.x.bottom = xaxis.text,
       axis.text.y = yaxis.text
-    ) + 
+    ) +
     scale_y_continuous(breaks = y1_pretty, limits = range(y1_pretty))
   g1$labels$colour <- 'Farbe'
   g2 <- ggplot(data_tbl[variable == 'Delta'], aes(x = ts, y = value)) +
     scale_x_datetime(date_breaks = date.breaks, date_labels = date.labels) +
     xlab(x.lab) +
-    ylab('Delta') + 
+    ylab('Delta') +
     geom_line(size = 1) +
     geom_hline(yintercept = 0, linetype = 'dashed') +
     annotate('rect', ymin = -200, ymax = 200,

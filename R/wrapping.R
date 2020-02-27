@@ -102,3 +102,36 @@ elbe_desc <- function(cases) {
   }
   case_desc
 }
+
+#'@export
+vgf_label <- function(x, ms = FALSE) {
+  ret <- vector(mode = 'character', length = length(x))
+  for (i in seq_along(x)) {
+    ret[i] <- x[[i]]
+    if (isTRUE(grepl('vgf1', x[[i]], ignore.case = TRUE))) ret[i] <- 'Faktor 1,0'
+    if (isTRUE(grepl('mittel', x[[i]], ignore.case = TRUE))) ret[i] <- 'HQ Mittel'
+    if (isTRUE(grepl('selten', x[[i]], ignore.case = TRUE))) ret[i] <- 'HQ Selten'
+    if (ms)
+      ret[i] <- str_replace(str_replace(ret[i], 'HQ Mittel', 'Selten 1'),
+                            'HQ Selten',
+                            'Selten 2'
+      )
+  }
+  ret
+}
+
+#'@export
+zp_label <- function(x) {
+  ret <- vector(mode = 'character', length = length(x))
+  for (i in seq_along(x)) {
+    ret[i] <- switch(tolower(x[[i]]),
+                     zp0 = '(ohne)',
+                     ta = 'TA',
+                     wb = 'LW',
+                     lw = 'LW',
+                     zpk = 'Köln',
+                     zpw = 'Worms',
+                     x[[i]])
+  }
+  ret
+}

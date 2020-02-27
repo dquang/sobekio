@@ -219,6 +219,7 @@ get_segment_id_tbl <- function(
 #' @param verbose Should some message be displayed?
 #' @param do.par If TRUE, parallel computing will be executed
 #' @param ts.trim.left Default NULL. Number of days from the begining of simulation time to remove from timeseries (useful to remove "cold start period")
+#' @param remove.inf Remove ID that does not have data
 #' @return a data.table
 #' @export
 get_segment_data <- function(
@@ -233,7 +234,8 @@ get_segment_data <- function(
   master.tbl,
   verbose = TRUE,
   do.par = FALSE,
-  ts.trim.left = NULL
+  ts.trim.left = NULL,
+  remove.inf = FALSE
 ){
   param <- tolower(param)
   id_tbl <- get_segment_id_tbl(
@@ -372,7 +374,11 @@ get_segment_data <- function(
         }
       }
     }
-    segment_data[is.infinite(scheitel), scheitel := NA]
+    if (remove.inf) {
+      segment_data <- segment_data[!is.infinite(scheitel)]
+    } else {
+      segment_data[is.infinite(scheitel), scheitel := NA]
+    }
     segment_data <- merge(
       segment_data,
       id_tbl[, .SD, .SDcols = c('ID_F', 'besonderheit', 'km', 'river', 'case')],

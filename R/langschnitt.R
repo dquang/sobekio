@@ -504,6 +504,7 @@ plot_drv <- function(
 #' @param verbose Print some messages if TRUE
 #' @param do.par If TRUE, parallel computing will be executed
 #' @param ts.trim.left Default NULL. Number of days from the begining of simulation time to remove from timeseries (useful to remove "cold start period")
+#' @param remove.inf Remove segment without data
 #' @return a ggplot2 graphic
 #' @export
 plot_longprofile <- function(
@@ -559,7 +560,9 @@ plot_longprofile <- function(
   input.data = NULL,
   verbose = TRUE,
   do.par = FALSE,
-  ts.trim.left = NULL
+  ts.trim.left = NULL,
+  fav = TRUE,
+  remove.inf = FALSE
 ){
   # must evaluate lt.by and color.by to avoid problem with ggplot
   eval(lt.by)
@@ -639,7 +642,8 @@ plot_longprofile <- function(
       master.tbl = master.tbl,
       verbose = verbose,
       do.par = do.par,
-      ts.trim.left = ts.trim.left
+      ts.trim.left = ts.trim.left,
+      remove.inf = remove.inf
     )
     if (keep.data) {
       dta <- copy(data_tbl)
@@ -839,12 +843,8 @@ plot_longprofile <- function(
                                      levels = c(cmp_vars)
     )
   }
-  # data_tbl[, label := str_remove_all(besonderheit, 'M_|Lat_|Polder_|RHR_|RRE_')]
   b_tick[, label := str_remove(besonderheit, 'M_|Lat_|Polder_|RHR_|RRE_|DRV_')]
   b_tick_measure[, label := str_remove(besonderheit, 'Polder_|RHR_|RRE_|DRV_')]
-  # data_tbl[, mea_type := NA_character_]
-  # data_tbl[besonderheit %in% b_tick_measure$besonderheit, mea_type := 'gesteuert']
-  # data_tbl[grepl('DRV_', besonderheit), mea_type := 'ungesteuert']
   b_tick_river[, label := str_remove(besonderheit, 'Polder_|RHR_|RRE_|DRV_')]
   g_base <- ggplot(data = data_tbl,
               aes(x = km,
@@ -874,28 +874,28 @@ plot_longprofile <- function(
     x_above_breaks <- b_tick$km
     x_above_labels <- b_tick$besonderheit
   }
-
+  if (fav) {
+    sec_x_axis <- dup_axis(
+      breaks = x_above_breaks,
+      labels = x_above_labels,
+      name = 'Station'
+    )
+  } else {
+    sec_x_axis <- waiver()
+  }
   if (reverse.x) {
     g <- g_base +
       scale_x_reverse(
         name = x.lab,
         breaks = x_pretty,
-        sec.axis =  dup_axis(
-          breaks = x_above_breaks,
-          labels = x_above_labels,
-          name = 'Station'
-        )
+        sec.axis = sec_x_axis
       )
   } else {
     g <- g_base +
       scale_x_continuous(
         name = x.lab,
         breaks = x_pretty,
-        sec.axis =  dup_axis(
-          breaks = x_above_breaks,
-          labels = x_above_labels,
-          name = 'Station'
-        )
+        sec.axis = sec_x_axis
       )
   }
   g <- g + geom_line(size = line.size)
@@ -1034,23 +1034,26 @@ plot_longprofile <- function(
   }
   # ----adding besonderheit symbol----
   y_lims <-  ggplot_build(g)$layout$panel_params[[1]]$y.range
-  if (nrow(b_tick_river) > 0) {
+  if (nrow(b_tick_river) > 0 & fav) {
     g <- g + geom_point(
       data = data_tbl[km %in% b_tick_river$km],
       aes(x = km, y = -Inf),
-      color = 'blue', shape = '\u2191',
+      color = 'blue',
+      shape = '\u2191',
       show.legend = FALSE,
       size = 8
     ) +
-    geom_text(
-      data = data_tbl[km %in% b_tick_river$km][,
-                                               besonderheit :=
-                                                 str_remove_all(besonderheit, "M_|Lat_")],
-      aes(x = km, y = y_lims[1], label = besonderheit),
-      color = 'blue', size = 4, angle = 45,
-      hjust = 0.5, vjust = 0.5,
-      show.legend = FALSE
-    )
+      geom_text(
+        data = data_tbl[km %in% b_tick_river$km][,
+                  besonderheit := str_remove_all(besonderheit, "M_|Lat_")],
+        aes(x = km, y = y_lims[1], label = besonderheit),
+        color = 'blue',
+        size = 4,
+        angle = 45,
+        hjust = 0.5,
+        vjust = 0.5,
+        show.legend = FALSE
+      )
   }
 
   if (verbose) {

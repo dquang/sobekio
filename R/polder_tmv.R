@@ -1,5 +1,5 @@
 #' Search for a polder TMV
-#' 
+#'
 #' @param volume Volume of the Polder
 #' @param indt The discharge data.table. Only the first two columns will be used. It should have the format 'ts|value'
 #' @param n.days Maximum number of days under the flood peak should the topping value being searched
@@ -10,7 +10,7 @@
 #' @param ... If indt is NULL these parameters will be passed to his_from_case function for reading the discharge
 #' @export
 polder_tmw <- function(
-  volume = NULL,
+  volume,
   indt = NULL,
   n.days = 2,
   value.step = 0.1,
@@ -19,15 +19,13 @@ polder_tmw <- function(
   print.plot = FALSE,
   ...
 ){
-  if (is.null(indt)){
-    # print(substitute(his_from_case(...)))
+  if (is.null(indt)) {
     qt <- his_from_case(...)
     qt <- qt[, c(1, 2)]
   } else{
     qt <- indt[, c(1, 2)]
   }
   colnames(qt) <- c('ts', 'value')
-  # qt_peak <- max(qt$value, na.rm = TRUE)
   qt[, dt := shift(ts, 1)]
   qt <- qt[!is.na(dt)]
   qt[, t_step := difftime(ts, dt, units = 'secs')]
@@ -35,29 +33,25 @@ polder_tmw <- function(
   # finding value_max
   value_max <- max(qt$value, na.rm = TRUE)
   t_value_max <- qt[value == value_max, ts]
-  t_search_min <- t_value_max[[1]] - n.days*24*3600
+  t_search_min <- t_value_max[[1]] - n.days * 24 * 3600
   qt2 <- qt[ts > t_search_min]
   value_min <- min(qt2$value, na.rm = TRUE)
   q0_seq <- seq(value_min, value_max, value.step)
   q0_seq_length <- length(q0_seq)
   v_max <- 0
-  print('Searching for topping discharge q0....')
+  cat('Searching for topping discharge q0....\n')
   i_cur <- 0
-  # q0 <- q0_seq[i_cur]
   i_min <- 1
   i_max <- q0_seq_length
   i_cur <- (i_max - i_min + 1) %/% 2
   cont = TRUE
-  while (cont){
-    # print(i_cur)
+  while (cont) {
     q0 <- q0_seq[i_cur]
     ret <- qt2[value >= q0]
     ret <- ret[, qin := value - q0]
-    # ret[value <= selected.value, qin := 0]
     ret[, vt := qin*t_step]
     ret$cs <- cumsum(ret$vt)
     v_max <- ret[.N, cs]/10^6
-    # print(v_max)
     if (!near(v_max, volume, tolerance)){
       if (v_max > volume){
         # if v_max is bigger than volume, then going up, to reduce v_max
@@ -77,7 +71,7 @@ polder_tmw <- function(
   ret[, date := strftime(ts, format = '%d.%m.%Y', tz = 'GMT')]
   ret[, time := strftime(ts, format = '%H:%M:%S', tz = 'GMT')]
   ret <- ret[, .SD, .SDcols = c('date', 'time', 'qin')]
-  if (isTRUE(clipboard)){
+  if (isTRUE(clipboard)) {
     write.table(
       ret,
       'clipboard-4096',

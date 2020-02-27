@@ -74,7 +74,7 @@ plot_multi_lines <- function(
   }
   case_type <- parse_case(case.desc = case.desc, orig.name = case.list)
   case_type[, compare__by := do.call(paste, .SD), .SDcols = compare.by]
-  case_type[, facet__by := do.call(paste, .SD), .SDcols = facet.by]
+  if(!is.null(facet.by)) case_type[, facet__by := do.call(paste, .SD), .SDcols = facet.by]
   if (is.null(y.lab)) {
     y.lab = switch(tolower(param),
                    'Value',
