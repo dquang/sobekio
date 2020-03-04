@@ -1,4 +1,5 @@
 .RData
+!*data.RData
 ^.*Rhistory
 .git
 .Rproj.user/
@@ -8,3 +9,4 @@
 ^\.Rproj\.user$
 ^doc$
 ^Meta$
+draft.*

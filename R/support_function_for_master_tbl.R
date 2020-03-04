@@ -355,6 +355,7 @@ get_segment_data <- function(
     segment_data[, ts_left := min(ts, na.rm = TRUE) +
                    ts.trim.left * 3600 * 24, by = case]
     segment_data <- segment_data[ts >= ts_left]
+    segment_data[, ts_left := NULL]
   }
   if (isTRUE(get.max)) {
     if (isTRUE(verbose)) cat('Calculating max values....\n')

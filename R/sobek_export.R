@@ -139,7 +139,9 @@ sobek_copy <- function(
   prefix = NULL,
   dest,
   do.par = FALSE,
-  as.suffix = FALSE
+  as.suffix = FALSE,
+  his.only = FALSE,
+  segsub = TRUE
 ) {
   do.par <- isTRUE(do.par)
   as.suffix <- isTRUE(as.suffix)
@@ -314,11 +316,18 @@ sobek_copy <- function(
       new_name <- paste0('#', cmt_tbl[i, case_name_new])
       case_cmt[1, V1 := new_name]
       # change case number
-      old_pat <- paste0("..\\", cmt_tbl[i, case_number], "\\")
-      new_pat <- paste0("..\\", cmt_tbl[i, case_number_new], "\\")
+      old_pat <- paste0("\\", cmt_tbl[i, case_number], "\\")
+      new_pat <- paste0("\\", cmt_tbl[i, case_number_new], "\\")
       case_cmt[, V1 := stri_replace_first_fixed(V1, pattern = old_pat,
                                                 replacement = new_pat)]
       old_files <- list.files(path = cmt_tbl[i, case_folder])
+      old_files <- old_files[!grepl('casedesc\\.cmt', old_files, ignore.case = TRUE)]
+      if (his.only) {
+        old_files <- old_files[grepl('his$|hia$', old_files, ignore.case = TRUE)]
+      }
+      if (!segsub) {
+        old_files <- old_files[!grepl('rsegsub', old_files, ignore.case = TRUE)]
+      }
       new_files <- file.path(cmt_tbl[i, case_folder_new], old_files)
       old_files <- file.path(cmt_tbl[i, case_folder], old_files)
       dir.create(cmt_tbl[i, case_folder_new])
@@ -343,11 +352,18 @@ sobek_copy <- function(
       new_name <- paste0('#', cmt_tbl[i, case_name_new])
       case_cmt[1, V1 := new_name]
       # change case number
-      old_pat <- paste0("..\\", cmt_tbl[i, case_number], "\\")
-      new_pat <- paste0("..\\", cmt_tbl[i, case_number_new], "\\")
+      old_pat <- paste0("\\", cmt_tbl[i, case_number], "\\")
+      new_pat <- paste0("\\", cmt_tbl[i, case_number_new], "\\")
       case_cmt[, V1 := stri_replace_first_fixed(V1, pattern = old_pat,
                                                 replacement = new_pat)]
       old_files <- list.files(path = cmt_tbl[i, case_folder])
+      old_files <- old_files[!grepl('casedesc\\.cmt', old_files, ignore.case = TRUE)]
+      if (his.only) {
+        old_files <- old_files[grepl('his$|hia$', old_files, ignore.case = TRUE)]
+      }
+      if (!segsub) {
+        old_files <- old_files[!grepl('rsegsub', old_files, ignore.case = TRUE)]
+      }
       new_files <- file.path(cmt_tbl[i, case_folder_new], old_files)
       old_files <- file.path(cmt_tbl[i, case_folder], old_files)
       dir.create(cmt_tbl[i, case_folder_new])
