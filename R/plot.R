@@ -41,13 +41,15 @@ plot_multi_lines <- function(
   sobek.project,
   param = 'discharge',
   compare.by = 'zustand',
-  facet.by = 'hwe',
+  group.by = compare.by,
+  facet.by = NULL,
   facet.scale = 'free',
+  delta = FALSE,
   color.name = 'Farbe',
   lt.name = 'Linienart',
   peak.nday = NULL,
   peak.col = NULL,
-  p.title = 'Ganglinien an der Orten',
+  p.title = ggplot2::waiver(),
   x.lab = 'Zeit',
   y.lab = NULL,
   y.ntick = 7L,
@@ -56,15 +58,28 @@ plot_multi_lines <- function(
   y2.tick1 = 0,
   y2.lab = y.lab,
   input.data = NULL,
-  p.caption = NULL,
+  p.caption = ggplot2::waiver(),
   date.breaks = '3 days',
   date.labels = "%d.%m.%Y",
   text.x.angle = 90L,
-  text.size = 12L,
+  text.size = 20L,
+  text.tbl.size = 5L,
   h.lines = NULL,
-  line.size = 1.0,
+  line.size = 1.3,
+  legend.nrow = 2,
+  col_values = col_vibrant,
   ...
 ){
+  eval({
+    p.caption
+    p.title
+    })
+  for (a_k in c(compare.by, group.by)) {
+    if (!a_k %in% c("zustand", "zielpegel", "hwe", "vgf", "notiz")) {
+      stop("group.by and compare.by must be a single or combination value of ",
+           paste("zustand", "zielpegel", "hwe", "vgf", "notiz", sep = ", "))
+    }
+  }
   if (!is.null(y2.scale)) stopifnot(isTRUE(y2.scale > 0))
   if (!is.null(y2.ids)) {
     if (!is.numeric(y2.ids)) {
@@ -72,9 +87,34 @@ plot_multi_lines <- function(
     }
     y2.ids <- y2.ids + 1 # the first column is 'ts'
   }
+  if (!is.null(input.data)) {
+    if (missing(case.list)) case.list <- unique(input.data$case)
+    if (missing(case.desc)) case.desc <- case.list
+  }
+  cmp_grp_equal <- identical(sort(compare.by), sort(group.by))
+  if (cmp_grp_equal) group.by <- compare.by
   case_type <- parse_case(case.desc = case.desc, orig.name = case.list)
-  case_type[, compare__by := do.call(paste, .SD), .SDcols = compare.by]
-  if(!is.null(facet.by)) case_type[, facet__by := do.call(paste, .SD), .SDcols = facet.by]
+  case_type[, compare__by := do.call(paste0, .SD), .SDcols = compare.by]
+  case_type[, group__by := do.call(paste0, .SD), .SDcols = group.by]
+  if (!is.null(facet.by)) {
+    case_type[, facet__by := do.call(paste0, .SD), .SDcols = facet.by]
+  } else {
+    case_type[, facet__by := NA]
+  }
+  if (delta) {
+    # check if compare.by and group.by make unique combination to case
+    n_case <- length(unlist(case.list))
+    cmp_vars <- case_type[, unique(compare__by)]
+    grp_vars <- case_type[, unique(group__by)]
+    stopifnot(length(cmp_vars) == 2)
+    if (!is.null(facet.by)) {
+      n_grp <- length(case_type[, unique(paste0(compare__by, group__by, facet__by))])
+    } else {
+      n_grp <- length(case_type[, unique(paste0(compare__by, group__by))])
+    }
+    # if (cmp_grp_equal) n_grp <- n_grp / 2
+    stopifnot(n_case == n_grp)
+  }
   if (is.null(y.lab)) {
     y.lab = switch(tolower(param),
                    'Value',
@@ -99,7 +139,8 @@ plot_multi_lines <- function(
   }
   if (!is.null(id.names)) {
     if (length(id.names) == ncol(qt) - 2) {
-      colnames(qt) <- c('ts', id.names, 'case')
+      setcolorder(qt, c("ts", "case"))
+      colnames(qt) <- c('ts', 'case', id.names)
     } else{
       warning("id.names is not same length as id.list. Names were not changed")
     }
@@ -136,38 +177,70 @@ plot_multi_lines <- function(
   # data transformation for graphic
   qt <- melt(qt, id.vars = c('ts', 'case'))
   qt <- merge(qt, case_type, by = 'case', sort = FALSE)
+  lt_vars <- unique(c(compare.by, group.by))
+  qt[, Linetype := do.call(paste0, .SD), .SDcols = lt_vars]
   y1_min <- qt[!variable %in% y2_cols, min(value, na.rm = TRUE)]
   y1_max <- qt[!variable %in% y2_cols, max(value, na.rm = TRUE)]
   y1_pretty <- pretty(y1_min:y1_max, y.ntick, y.ntick)
+
+# Delta -------------------------------------------------------------------
+  if (delta) {
+    qt_max <- qt[, max(value, na.rm = TRUE), by = c("variable", "case")]
+    qt_delta <- merge(qt_max,
+                      case_type[, c("case", "compare__by", "group__by", "facet__by")],
+                      by = "case", sort = FALSE)
+    if (cmp_grp_equal) {
+      qt_delta <- dcast(qt_delta, facet__by + variable ~ compare__by,
+                        value.var = "V1")
+      qt_delta[, group__by := NA]
+    } else {
+      qt_delta <- dcast(qt_delta, facet__by + variable + group__by ~ compare__by,
+                        value.var = "V1")
+    }
+    qt_delta[, Delta := get(cmp_vars[2]) - get(cmp_vars[1])]
+    n_round <- ifelse(param == "discharge", 0, 2)
+    qt_delta[, Delta := round(Delta, n_round)]
+    delta_col_nm <- ifelse(param == "discharge", "Delta [m³/s]", "Delta [m]")
+    qt_delta <- qt_delta[, c("variable", "group__by", "Delta", "facet__by")]
+    colnames(qt_delta)[1:3] <- c("Standort", "Group", delta_col_nm)
+    lage_lvl <- levels(qt_delta$Standort)
+    n_char_max <- max(nchar(as.character(qt_delta$Standort)), na.rm = TRUE)
+    qt_delta[, Standort := stri_pad_right(str_trim(Standort), width = n_char_max)]
+    lage_lvl <- stri_pad_right(str_trim(lage_lvl), width = n_char_max)
+    qt_delta[, Standort := factor(Standort, lage_lvl)]
+    setorder(qt_delta, Group, Standort)
+  }
+
   # graphic---------------------------------------------------------------------
   g <- ggplot(qt[!variable %in% y2_cols],
               aes(x = ts, y = value,
                   color = variable,
-                  # quasiquotation, that's a great option from tidyverse
-                  # linetype = !!ensym(compare.by)
-                  linetype = compare__by
+                  linetype = Linetype
               )
   ) +
     scale_x_datetime(
       date_breaks = date.breaks,
-      date_labels = date.labels
+      date_labels = date.labels,
+      expand = expansion(0.02)
     ) +
     geom_line(size = line.size) +
     theme_bw(base_size = text.size) +
     theme(
-      legend.key.width = unit(2, "cm"),
+      title = element_text(size = text.size),
+      text = element_text(size = text.size),
+      legend.key.width = unit(1.5, "cm"),
+      legend.key.height = unit(0.9, "cm"),
       legend.position = 'bottom',
-      text = element_text(
-        size = text.size
-      ),
-      axis.text.x = element_text(
-        angle = text.x.angle
-      )
+      panel.grid.major = element_line(size = 0.3, color = "grey60"),
+      panel.grid.minor = element_line(size = 0.15, color = "grey"),
+      axis.text = element_text(size = text.size - 2, angle = text.x.angle),
+      axis.title = element_text(size = text.size -2, angle = text.x.angle),
+      strip.text = element_text(size = text.size)
     ) +
-    ggtitle(p.title) +
-    xlab(x.lab) + ylab(y.lab) +
+    labs(x = x.lab, y = y.lab, title =  p.title, caption = p.caption) +
     scale_y_continuous(breaks = y1_pretty)
   if (length(y2_cols) > 0) {
+    delta <- FALSE
     if (is.null(y2.tick1)) {
       y2_shift <- y1_pretty[1]
     } else {
@@ -192,7 +265,32 @@ plot_multi_lines <- function(
                    name = y2.lab)
       )
   }
-
+  if (delta) {
+    if (!is.null(facet.by)) {
+      tbl_lst <- list()
+      for (a_facet in unique(qt_delta$facet__by)) {
+        tbl_lst[[a_facet]] <- dplyr::filter(qt_delta, facet__by == a_facet)
+        tbl_lst[[a_facet]][["facet__by"]] <- NULL
+        rm_grp <- length(unique(tbl_lst[[a_facet]][["Group"]])) == 1
+        if (rm_grp) tbl_lst[[a_facet]][["Group"]] <- NULL
+      }
+    } else {
+      tbl_lst <- list(qt_delta)
+      rm_grp <- length(unique(tbl_lst[[1]][["Group"]])) == 1
+      if (rm_grp) tbl_lst[[1]][["Group"]] <- NULL
+      tbl_lst[[1]][["facet__by"]] <- NULL
+    }
+    qt_lbl <- dplyr::tibble(
+      x = rep(-Inf, length(tbl_lst)),
+      y = rep(Inf, length(tbl_lst)),
+      facet__by = unique(qt_delta$facet__by),
+      lbl = tbl_lst
+    )
+    g <- g + ggpmisc::geom_table_npc(aes(npcx = x, npcy = y),
+                            size = text.tbl.size,
+                            label = tbl_lst,
+                            data = qt_lbl)
+  }
 # horizontal lines --------------------------------------------------------
 
   if (!is.null(h.lines)) {
@@ -215,13 +313,20 @@ plot_multi_lines <- function(
                 hjust = 0, vjust = 0)
   }
   if (!is.null(facet.by)) {
-    g <- g + facet_wrap(.~ facet__by, scales = facet.scale)
+    # lt_vars <- unique(c(compare.by, group.by))
+    # lt_vars <- lt_vars[!grepl(facet.by, lt_vars)]
+    # qt[, Linetype := do.call(paste, .SD), .SDcols = lt_vars]
+    # lt_values <- unique(qt[, c("Linetype", "facet__by")])
+    # lt_values[, grp := 1:.N, by = facet__by]
+    # ltv <- vector()
+    # for (i in seq_along(lt_values$Linetype)) ltv[[lt_values$Linetype[i]]] <- lt_values$grp[i]
+    g <- g + facet_grid(cols = vars(facet__by), scales = facet.scale)
   }
-  g$labels$colour <- color.name
-  g$labels$linetype <- lt.name
-  if (!is.null(p.caption)) {
-    g <- g + labs(caption = p.caption)
-  }
+  g <- g + guides(
+    color = guide_legend(title = color.name, nrow = legend.nrow),
+    linetype = guide_legend(title = lt.name, nrow = legend.nrow)
+  )
+  if (!is.null(col_values)) g <- g + scale_color_manual(values = col_values)
   return(g)
 }
 

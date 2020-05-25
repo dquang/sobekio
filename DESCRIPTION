@@ -1,7 +1,7 @@
 Type: Package
 Package: sobekio
 Title: Pre- and Post-Processing support tool for SOBEK V2
-Version: 0.2.1.2
+Version: 0.2.1.3
 Authors@R: person("D. Quang", "Duong", , "duong@bafg.de", c("aut", "cre"))
 Description: This package provides functions to work with SOBEK V2 
   read the .HIS files, create .DAT files, plot graphics from the output, and more.
@@ -11,18 +11,21 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 Imports:
 	data.table (>= 1.12.0),
 	XML,
 	ggplot2 (>= 3.0.0),
+	ggpmisc,
 	dplyr,
 	stringr,
 	stringi,
 	grid,
+	gridExtra,
 	htmlTable,
 	kableExtra,
 	cowplot,
+	patchwork,
 	xlsx
 Suggests:
   testthat,

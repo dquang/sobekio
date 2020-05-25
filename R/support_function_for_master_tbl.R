@@ -72,7 +72,7 @@ get_id_tbl <- function(
   drv = 'auto',
   to.upstream = 0,
   to.downstream = 0,
-  master.tbl = NULL
+  master.tbl
 ){
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   id_tbl <- master.tbl[grepl(name, besonderheit)]
@@ -228,15 +228,16 @@ get_segment_data <- function(
   to.km = Inf,
   case.list,
   case.desc = case.list,
-  param = NULL,
+  param,
   sobek.project,
   get.max = TRUE,
   master.tbl,
   verbose = TRUE,
   do.par = FALSE,
   ts.trim.left = NULL,
+  donau.wehr = FALSE,
   remove.inf = FALSE
-){
+) {
   param <- tolower(param)
   id_tbl <- get_segment_id_tbl(
     river = river,
@@ -326,9 +327,8 @@ get_segment_data <- function(
       }
     }
   }
-  segment_data <- rbindlist(segment_data_list,
-                            use.names = TRUE, fill = TRUE
-  )
+  segment_data <- rbindlist(segment_data_list, use.names = TRUE, fill = TRUE)
+  rm(segment_data_list)
   # processing river segment that are divided in two or more branches
   # to sum discharge at reaches that have same chainages along branches together
   q_dup_new_col <- vector(mode = 'character')
@@ -336,15 +336,20 @@ get_segment_data <- function(
   if (param == 'discharge') {
     for (i in seq_along(case.list)) {
       # get list of qIDs for this case
-      qid = id_tbl[case == case.list[[i]], list(km, ID_F)]
+      qid <- id_tbl[case == case.list[[i]], list(km, ID_F)]
       # finding the IDs that have duplicated km
-      km_dup = qid[duplicated(km), km]
+      km_dup <- qid[duplicated(km), km]
       for (k in km_dup) {
         qid_k <- qid[km == k, ID_F]
         segment_data[case == case.list[[i]],
                      eval(qid_k[1]) := rowSums(.SD, na.rm = TRUE),
                      .SDcols = qid_k
                      ]
+      }
+      # we have to run this for twice, to avoid removing ID
+      # that are used more than one time for many km
+      for (k in km_dup) {
+        qid_k <- qid[km == k, ID_F]
         segment_data[case == case.list[[i]],
                      c(qid_k[-1]) := as.list(rep(NA, length(qid_k[-1])))
                      ]
@@ -356,6 +361,31 @@ get_segment_data <- function(
                    ts.trim.left * 3600 * 24, by = case]
     segment_data <- segment_data[ts >= ts_left]
     segment_data[, ts_left := NULL]
+  }
+  if (donau.wehr & param == "waterlevel") {
+    # manually defined peak area of the HW2013 and HW2005
+    ts_2005_begin <-  c(as.POSIXct("2005-07-01 00:00", tz = "GMT"),
+                        as.POSIXct("2005-08-20 23:00", tz = "GMT"))
+    ts_2005_end <-  c(as.POSIXct("2005-08-29 00:00", tz = "GMT"),
+                      as.POSIXct("2005-12-31 00:00", tz = "GMT"))
+    ts_2013_begin <- c(as.POSIXct("2013-05-01 00:00", tz = "GMT"),
+                       as.POSIXct("2013-06-03 00:00", tz = "GMT"))
+    ts_2013_end <- c(as.POSIXct("2013-06-04 00:00", tz = "GMT"),
+                     as.POSIXct("2013-12-31 00:00", tz = "GMT"))
+    for (a_case in case.list) {
+      if (grepl("2013|2005", case.desc[case.list == a_case])) {
+        wehr_ids <- id_tbl[km %between% c(2203, 2212) & ID_TYPE == "wID" &
+                             case == a_case, ID_F]
+        segment_data[ts %between% ts_2013_begin &
+                       case == a_case, (wehr_ids) := NA]
+        segment_data[ts %between% ts_2005_begin &
+                       case == a_case, (wehr_ids) := NA]
+        segment_data[ts %between% ts_2013_end &
+                       case == a_case, (wehr_ids) := NA]
+        segment_data[ts %between% ts_2005_end &
+                       case == a_case, (wehr_ids) := NA]
+      }
+    }
   }
   if (isTRUE(get.max)) {
     if (isTRUE(verbose)) cat('Calculating max values....\n')
@@ -638,13 +668,14 @@ get_polder_data <- function(
 
 
 #' Get total volume for one measure
+#'
 #' @param name Name of the measure
 #' @param case.list List of the cases
 #' @param case.desc Case name standardized
 #' @param param Parameter discharge/waterlevel
 #' @param sobek.project Path to sobek project
 #' @param master.tbl Master table
-#' @param verbose Should some message be displayed?
+#' @param get.max Return only max value (by case)
 #' @return a data.table
 #' @export
 get_polder_volume <- function(
@@ -652,35 +683,59 @@ get_polder_volume <- function(
   case.list,
   case.desc = case.list,
   sobek.project,
-  master.tbl
+  sub.v0 = FALSE,
+  do.par = TRUE,
+  master.tbl,
+  get.max = TRUE
 ){
-  # get results for each case
+  case.list <- unlist(case.list)
+  n_case <- length(case.list)
   id_tbl <- get_id_tbl(name = name, case.list = case.list,
-                        case.desc = case.desc, master.tbl = master.tbl
+                       case.desc = case.desc, master.tbl = master.tbl
   )
   id_vol <- id_tbl[grepl('.*_Vol', besonderheit) & ID_TYPE == 'wID']
-  id_data_list <- list()
-  for (i in seq_along(case.list)) {
-    id_tbl_tmp <- id_vol[case == case.list[i]]
-    if (nrow(id_tbl_tmp) > 0) {
-      id_vol_args <- list(case.list = case.list[[i]],
-                          sobek.project = sobek.project,
-                          wID = id_vol$ID_F,
-                          param = 'Volume',
-                          verbose = FALSE)
-      id_data_tmp <- do.call(his_from_case, id_vol_args)
-      id_data_tmp <- id_data_tmp[, rowSums(.SD, na.rm = TRUE), by = case,
-                                 .SDcols = -c('ts')]
-      id_data_tmp <- id_data_tmp[, round(max(V1)/10^6, 2), by = case]
-      colnames(id_data_tmp) <- c('case', 'Volume_max')
-    } else{
-      id_data_tmp <- data.table(case = case.list[[i]], Volume_max = 'k.A.')
+  case_tbl <- data.table(case = case.list, case_desc = case.desc)
+  case_tbl[, his_file := sapply(case, get_file_path,
+                                sobek.project = sobek.project, type ="calcpnt.his")]
+  if (do.par) {
+    doParallel::registerDoParallel(parallel::detectCores() - 1)
+    `%dopar%` <- foreach::`%dopar%`
+    vol_tbl <- foreach::foreach(i = 1:n_case, .combine = rbind) %dopar% {
+      this_case_name <- case_tbl$case[[i]]
+      this_case_desc <- case_tbl$case_desc[[i]]
+      this_case_hfile <- case_tbl$his_file[[i]]
+      this_case_ids <- id_vol$ID_F[id_vol$case == this_case_name]
+      his_data <- sobekio::his_from_list(
+        his.file = this_case_hfile, id.list = this_case_ids, param = "Volume"
+      )
+      his_data$case <- this_case_desc
+      his_data
     }
-    id_data_list[[i]] <- id_data_tmp
+    doParallel::stopImplicitCluster()
+  } else {
+    vol_tbl <- list()
+    for (i in seq_along(case.list)) {
+      this_case_name <- case_tbl$case[[i]]
+      this_case_desc <- case_tbl$case_desc[[i]]
+      this_case_hfile <- case_tbl$his_file[[i]]
+      this_case_ids <- id_vol[case == this_case_name, ID_F]
+      vol_tbl[[i]] <- sobekio::his_from_list(
+        his.file = this_case_hfile, id.list = this_case_ids, param = "Volume"
+      )
+      vol_tbl[[i]]$case <- this_case_desc
+    }
+    vol_tbl <- rbindlist(vol_tbl, use.names = TRUE)
   }
-  id_data_vol <- rbindlist(id_data_list)
-  rm(id_data_list, id_data_tmp)
-  return(id_data_vol)
+  vol_tbl <- vol_tbl[, rowSums(.SD, na.rm = TRUE), by = case,
+                     .SDcols = -c('ts')]
+  if (sub.v0) {
+    vol_tbl[, V1 := V1 - V1[[1]]]
+  }
+  if (get.max) {
+    vol_tbl <- vol_tbl[, round(max(V1)/10^6, 2), by = case]
+    colnames(vol_tbl) <- c('case', 'Volume_max')
+  }
+  return(vol_tbl)
 }
 
 

@@ -93,7 +93,7 @@ his_from_case <- function(
   }
   if (!'case_desc' %in% colnames(clist)) {
     clist[, case_desc := case_name]
-  } 
+  }
   id_list <- unlist(id_args, use.names = FALSE)
   if (length(id_list) == 1 && file.exists(id_list)) {
     id_tbl <- read.table(
@@ -157,7 +157,7 @@ his_from_case <- function(
     paste0(id_type, '.HIS') # take id_type as file prefix
   )
   clist[, case_folder := file.path(sobek.project, case_number)]
-  clist$his_file <- sapply(clist$case_folder, 
+  clist$his_file <- sapply(clist$case_folder,
                            function(x) file_path(name = his_fname, path = x))
   if (isTRUE(do.par)) {
     # parallel computing here
@@ -189,6 +189,11 @@ his_from_case <- function(
     result <- rbindlist(result_list)
     rm(result_list)
   }
+  if (length(id.names) == length(id_list)) {
+    colnames(result) <- c('ts', id.names, 'case')
+  } else {
+    if (!is.null(id.names)) warning('id.names is not same length as list of IDs, names were not set')
+  }
   # get the max values if get.max == TRUE, only for one type of ID
   if (isTRUE(get.max)) {
       result <- result[, lapply(.SD, max,
@@ -197,7 +202,7 @@ his_from_case <- function(
       by = case]
   }
   if (isTRUE(get.abs.max)) {
-    result <- result[, 
+    result <- result[,
                      lapply(.SD, function(x) {
                        x_abs <- abs(x)
                        i_max <- which.max(x_abs)
@@ -213,11 +218,6 @@ his_from_case <- function(
                      .SDcols = -c('ts'),
                      by = case]
   }
-  if (length(id.names) == length(id_list)) {
-    colnames(result) <- c('ts', id.names, 'case')
-  } else {
-    if (!is.null(id.names)) warning('id.names is not same length as list of IDs, names were not set')
-  }
-    
+
   return(result)
 }

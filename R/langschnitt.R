@@ -1166,6 +1166,7 @@ plot_longprofile <- function(
   ntick.y = 7L,
   a.fill = 'grey',
   a.alpha = 0.5,
+  x.expand = expansion(0.02),
   man.colors = six_colors,
   hqs = NULL,
   keep.data = FALSE,
@@ -1179,8 +1180,8 @@ plot_longprofile <- function(
   # processing parameters ---------------------------------------------------
   if (!delta) dband <- FALSE
   param <- tolower(param)
-  stopifnot(length(unique(case.list)) == length(case.list))
-  stopifnot(is.numeric(from.km) & is.numeric(to.km))
+  stopifnot(length(unique(case.desc)) == length(case.desc))
+  stopifnot(is.numeric(from.km) && is.numeric(to.km))
   stopifnot(to.km > from.km)
   case_tbl <- parse_case(case.desc = case.desc, orig.name = case.list)
   if (!is.null(compare.by)) {
@@ -1208,12 +1209,12 @@ plot_longprofile <- function(
     grp_vars <- unique(case_tbl[, group__by])
   }
   if (delta) {
-    if (is.null(compare.by) | is.null(group.by)) {
+    if (is.null(compare.by) || is.null(group.by)) {
       stop('For caculating delta, compare.by and group.by must be specified!')
     }
     total_case <- unique(as.vector(outer(cmp_vars, grp_vars, paste)))
-    if (length(total_case) != length(case.list)) {
-      cat("Combination of compare.by and group.by does not have the same length as case.list\n")
+    if (length(total_case) != length(case.desc)) {
+      cat("Combination of compare.by and group.by does not have the same length as case.desc\n")
       cat('Hint: notiz can be modified and used as a groupping parameter\n')
       stop('Groupping by ', paste(group.by, collapse = ' & '),
            ' is not unique for calculating delta between ',
@@ -1276,6 +1277,8 @@ plot_longprofile <- function(
                              variable.name = 'group__by',
                              value.name = 'delta',
                              sort = FALSE)
+      round_digit <- ifelse(param == "discharge", 1, 2)
+      data_tbl_delta[, delta := round(delta, round_digit)]
       data_tbl <- merge(data_tbl, data_tbl_delta, by = c('km', 'group__by'),
                         all = TRUE,
                         sort = FALSE)
@@ -1295,6 +1298,7 @@ plot_longprofile <- function(
     }
     data_tbl[, delta := round(delta, 3)]
     y2_range <- range(data_tbl_delta$delta, na.rm = TRUE)
+    if (y2_range[2] - y2_range[1] == 0) y2_range[2] <- y2_range[1] + 1
     if (dband) {
       round_nr <- ifelse(param == 'discharge', 0, y2.round)
       d_min <- round(min(data_tbl$delta, na.rm = TRUE), round_nr)
@@ -1326,12 +1330,14 @@ plot_longprofile <- function(
     g <- g_base +
       scale_x_reverse(
         name = x.lab,
+        expand = x.expand,
         breaks = pretty(from.km:to.km, ntick.x, ntick.x)
       )
   } else {
     g <- g_base +
       scale_x_continuous(
         name = x.lab,
+        expand = x.expand,
         breaks = pretty(from.km:to.km, ntick.x, ntick.x)
       )
   }
@@ -1365,7 +1371,7 @@ plot_longprofile <- function(
       values = mcolor_v
     )
   }
-  y1_range <- range(data_tbl$scheitel, na.rm = TRUE)
+  y1_range <- range(data_tbl[!is.infinite(scheitel), scheitel], na.rm = TRUE)
   y1_breaks <- pretty(y1_range[1]:y1_range[2], ntick.y, ntick.y)
   # +++add delta lines -------------------------------------------------------
   # processing y2 scale
@@ -1373,7 +1379,8 @@ plot_longprofile <- function(
     delta_lt_vars <- paste('Delta', case_tbl[, unique(get(delta.lt))])
     y1_length <- abs(y1_range[2] - y1_range[1])
     y2_length <- abs(y2_range[2] - y2_range[1])
-    y2_scale <- ifelse(is.null(y2.scale), pretty(y1_length / y2_length)[1], y2.scale)
+    y2_scale <- ifelse(is.null(y2.scale),
+                       pretty(y1_length / y2_length)[1], y2.scale)
     y2_shift <- ifelse(is.null(y2.shift), y1_breaks[1], y2.shift)
     y1_range <- range(y1_range, y2_range * y2_scale + y2_shift)
     y1_breaks <- pretty(y1_range[1]:y1_range[2], ntick.y, ntick.y)

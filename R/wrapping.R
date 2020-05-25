@@ -104,17 +104,17 @@ elbe_desc <- function(cases) {
 }
 
 #'@export
-vgf_label <- function(x, ms = FALSE) {
+vgf_label <- function(x, ms = TRUE) {
   ret <- vector(mode = 'character', length = length(x))
   for (i in seq_along(x)) {
     ret[i] <- x[[i]]
     if (isTRUE(grepl('vgf1', x[[i]], ignore.case = TRUE))) ret[i] <- 'Faktor 1,0'
-    if (isTRUE(grepl('mittel', x[[i]], ignore.case = TRUE))) ret[i] <- 'HQ Mittel'
-    if (isTRUE(grepl('selten', x[[i]], ignore.case = TRUE))) ret[i] <- 'HQ Selten'
+    if (isTRUE(grepl('mittel$', x[[i]], ignore.case = TRUE))) ret[i] <- 'HQmittel (HQselten1)'
+    if (isTRUE(grepl('selten$', x[[i]], ignore.case = TRUE))) ret[i] <- 'HQselten (HQselten2)'
     if (ms)
-      ret[i] <- str_replace(str_replace(ret[i], 'HQ Mittel', 'Selten 1'),
-                            'HQ Selten',
-                            'Selten 2'
+      ret[i] <- str_replace(str_replace(ret[i], 'HQmittel$', 'HQselten1'),
+                            'HQselten$',
+                            'HQselten2'
       )
   }
   ret

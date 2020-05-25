@@ -17,14 +17,14 @@ set_nur_neben_fluss <- function(
   # set Nahe on
   set_nahe_on(case.list = case.list, sobek.project = sobek.project)
   nhwsp_rhein_river_weirs <- c(
-    'guntersblum_zu', 'worringer_zu', 'orsoy_zu', 
+    'guntersblum_zu', 'worringer_zu', 'orsoy_zu',
     'lohrwardt_zu_1', 'lohrwardt_zu_2'
   )
   nhwsp_rhein_weirs <- c(
-    'guntersblum_ab', 'worringer_ab', 'orsoy_ab', 
+    'guntersblum_ab', 'worringer_ab', 'orsoy_ab',
     'lohrwardt_ab'
   )
-  
+
   for (case in case.list){
     # set Main on
     switch_DRV(
@@ -44,13 +44,13 @@ set_nur_neben_fluss <- function(
     )
     # reading struct.dat & struct.def
     st_dat_f <- get_file_path(
-      case.name = case, 
-      sobek.project = sobek.project, 
+      case.name = case,
+      sobek.project = sobek.project,
       type = "struct.dat"
     )
     st_def_f <- get_file_path(
-      case.name = case, 
-      sobek.project = sobek.project, 
+      case.name = case,
+      sobek.project = sobek.project,
       type = "struct.def"
     )
     st_dat <- .get_struct_dat(st_dat_f)
@@ -74,7 +74,7 @@ set_nur_neben_fluss <- function(
     fwrite(st_dat[, .(V1)], file = st_dat_f, quote = FALSE, col.names = FALSE)
     fwrite(st_def[, .(V1)], file = st_def_f, quote = FALSE, col.names = FALSE)
   }
-  
+
 }
 
 
@@ -208,7 +208,7 @@ set_nahe_off <- function(
     st_def_f <- get_file_path(case.name = case,
                               sobek.project = sobek.project,
                               type = 'struct.def')
-    # changing STRUCT.DEF for opening sponsheim_wehr_in and sponsheim_wehr_out
+    # changing STRUCT.DEF for closing sponsheim_wehr_in and sponsheim_wehr_out
     set_weir_info(
       w.id = 'sponsheim_wehr_in',
       struct.def = st_def_f,
@@ -230,7 +230,7 @@ set_nahe_off <- function(
     )
     dat_tbl <- p_def$dat
     def_tbl <- p_def$def
-    # changing PROFILE.DAT to open Bretzenheim
+    # changing PROFILE.DAT to close Bretzenheim
     dat_tbl[dat_id == 'bretz_50',
             dat_file := str_replace(dat_file, " rl [^ ]* rs [^ ]* ", " rl 200 rs 299.96 ")]
     dat_tbl[dat_id == 'bretz_1450',
@@ -261,4 +261,28 @@ set_nahe_off <- function(
     fwrite(def_tbl[, .(def_file)],
            file = p_def_f, quote = FALSE, col.names = FALSE)
   }
+}
+
+#' @export
+add_zpw_main <- function(tbl) {
+  case_tbl <- parse_case(tbl[, unique(case)])
+  case_tbl[, zustand := str_replace(zustand, "Nur *", "Nur ")]
+  case_tbl[grepl("Planz", zustand), zustand := "Alle Maßnahmen"]
+  tbl <- merge(tbl, case_tbl, by = "case")
+  # add ZPW
+  tbl_zpw <- tbl[vgf == "VGF1" & hwe %in% c("HW1988", "HW1995",  "HW2003")]
+  tbl_zpw[, zielpegel := "ZPW"]
+  tbl_zpw[, vgf := "Mittel"]
+  m_rows <- nrow(tbl_zpw)
+  tbl_zpw <- rbind(tbl_zpw, tbl_zpw)
+  tbl_zpw[1:m_rows, vgf := "Selten"]
+  tbl <- rbind(tbl, tbl_zpw)
+  tbl_nf <- tbl[grepl("Alle", zustand)]
+  tbl_nf[, zustand := "Nur NF"]
+  tbl_nr <- tbl[zustand == "Bezugszustand"]
+  tbl_nr[, zustand := "Nur Rhein"]
+  tbl <- rbind(tbl, tbl_nf, tbl_nr)
+  tbl[, case := paste(zustand, zielpegel, hwe, vgf, sep = "_")]
+  tbl[, c("zustand", "zielpegel", "hwe", "vgf", "notiz", "case_desc") := rep(NULL, 6)]
+  tbl
 }

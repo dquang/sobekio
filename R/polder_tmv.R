@@ -52,8 +52,8 @@ polder_tmw <- function(
     ret[, vt := qin*t_step]
     ret$cs <- cumsum(ret$vt)
     v_max <- ret[.N, cs]/10^6
-    if (!near(v_max, volume, tolerance)){
-      if (v_max > volume){
+    if (!near(v_max, volume, tolerance)) {
+      if (v_max > volume) {
         # if v_max is bigger than volume, then going up, to reduce v_max
         i_min <- i_cur
         i_cur <- (i_max - i_min + 1) %/% 2 + i_cur
@@ -63,11 +63,18 @@ polder_tmw <- function(
         i_cur <- (i_max - i_min + 1) %/% 2
       }
     } else{
-      print(paste('Found!, q0 = ', round(q0, 1), ". V_in = ", round(v_max, 3),
-                  sep = ""))
+      cat(paste('Found!, q0 = ', round(q0, 1), ". V_in = ", round(v_max, 3),
+                "\n", sep = ""))
       cont = FALSE
     }
   }
+  # ts_step <- ret[2, t_step] - ret[1, ts]
+  ret_ts_be <- ret[c(1, .N), ]
+  ret_ts_be[, qin := 0]
+  ret_ts_be[1, ts := ts - t_step]
+  ret_ts_be[2, ts := ts + t_step]
+  ret <- rbind(ret_ts_be, ret)
+  setorder(ret, ts)
   ret[, date := strftime(ts, format = '%d.%m.%Y', tz = 'GMT')]
   ret[, time := strftime(ts, format = '%H:%M:%S', tz = 'GMT')]
   ret <- ret[, .SD, .SDcols = c('date', 'time', 'qin')]
