@@ -401,7 +401,8 @@ get_segment_data <- function(
         km_dup = qid[duplicated(km), km]
         for (k in km_dup) {
           qid_k <- qid[km == k, ID_F]
-          segment_data <- segment_data[!(case == case.list[[i]] & ID_F %in% qid_k[-1])]
+          segment_data <- segment_data[!(case == case.list[[i]] &
+                                           ID_F %in% qid_k[-1])]
         }
       }
     }

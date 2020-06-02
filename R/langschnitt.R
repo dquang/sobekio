@@ -362,7 +362,10 @@ plot_drv <- function(
     ) +
     labs(title = plot.title) +
     ylab(y.lab) +
-    scale_y_continuous(breaks = y1_pretty)
+    scale_y_continuous(
+      breaks = y1_pretty,
+      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
+      )
   if (reverse.x) {
     g <- g +
       scale_x_reverse(
@@ -404,12 +407,12 @@ plot_drv <- function(
     ) +
       scale_y_continuous(
         breaks = y1_pretty,
-        labels = y1_pretty,
+        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
         sec.axis =
           sec_axis(
             trans = ~ (. - y2_shift) / y2.scale,
             breaks = y2_pretty,
-            labels = round(y2_pretty, 3),
+            labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
             name = y2_name
           )
       )
@@ -921,7 +924,10 @@ plot_longprofile_old <- function(
                        ),
                        size = line.size)
   }
-  if (!delta) g <- g + scale_y_continuous(breaks = y1_pretty)
+  if (!delta) g <- g + scale_y_continuous(
+    breaks = y1_pretty,
+    labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
+    )
   if (!is.null(man.colors)) {
     g <- g + scale_color_manual(values = c(man.colors, man.colors))
   }
@@ -970,11 +976,12 @@ plot_longprofile_old <- function(
     ) +
       scale_y_continuous(
         breaks = y1_pretty,
+        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
         sec.axis =
           sec_axis(
             trans = ~ (. - y2_shift) / y2.scale,
             breaks = y2_pretty,
-            labels = format(round(y2_pretty, round_nr), nsmall = round_nr),
+            labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
             name = y2_name
           )
       )
@@ -1277,7 +1284,7 @@ plot_longprofile <- function(
                              variable.name = 'group__by',
                              value.name = 'delta',
                              sort = FALSE)
-      round_digit <- ifelse(param == "discharge", 1, 2)
+      round_digit <- ifelse(param == "discharge", 1, 3)
       data_tbl_delta[, delta := round(delta, round_digit)]
       data_tbl <- merge(data_tbl, data_tbl_delta, by = c('km', 'group__by'),
                         all = TRUE,
@@ -1399,8 +1406,10 @@ plot_longprofile <- function(
       scale_y_continuous(
         name = y.lab,
         breaks = y1_breaks,
+        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
         sec.axis = sec_axis(
           name = y2_name,
+          labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
           trans = ~(. - y2_shift) / y2_scale,
           breaks = y2_breaks
         )
@@ -1435,6 +1444,7 @@ plot_longprofile <- function(
   } else {
     g <- g + scale_y_continuous(
       name = y.lab,
+      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
       breaks = y1_breaks
     )
   }

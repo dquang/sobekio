@@ -1,18 +1,26 @@
+#' @export
+#'
 cal_delta <- function(
   dta,
   cmp = "zustand",
   grp = c("hwe", "vgf", "zielpegel"),
   orig.value = TRUE,
   parse.case = TRUE,
-  lage.name = "lage"
+  lage.name = "lage",
+  reform = parse.case
 ) {
   if (parse.case) {
     case_tbl <- parse_case(dta[, unique(case)])
     case_tbl[, zustand := str_replace(zustand, "Planzustand", "Alle Maßnahmen")]
     case_tbl[, zustand := str_replace(zustand, "Nur *", "Nur ")]
-    dta <- melt(dta, id.vars = "case", value.name = "scheitel",
-                variable.name = lage.name)
     dta <- merge(dta, case_tbl, by = "case")
+  }
+  if (reform) {
+    id_vars <- colnames(dta)
+    id_vars <- id_vars[id_vars %in% c("case", "case_desc", "zustand",
+                                      "zielpegel", "hwe", "vgf", "notiz")]
+    dta <- melt(dta, id.vars = id_vars, value.name = "scheitel",
+                variable.name = lage.name)
   }
   dta[, group__by := do.call(paste, .SD), .SDcols = grp]
   dta[, compare__by := do.call(paste, .SD), .SDcols = cmp]
@@ -51,8 +59,10 @@ cal_delta <- function(
     sort = FALSE
   )
   dta[, delta := round(delta, 2)]
-  dta[, c("group__by", "compare__by", "merge__by",
-          "case_desc", "notiz", "case") := rep(NULL, 6)]
+  col_2_remove <- c("group__by", "compare__by", "merge__by",
+                    "case_desc", "notiz", "case")
+  col_2_remove <- col_2_remove[col_2_remove %in% colnames(dta)]
+  dta[,  c(col_2_remove) := rep(NULL, length(col_2_remove))]
   if (orig.value) {
     col_vec <- c("zustand", "hwe", "zielpegel", "vgf" )
     dta_tbl <- dcast(dta, zustand + hwe + zielpegel + vgf ~ get(lage.name),
@@ -67,17 +77,6 @@ cal_delta <- function(
     dta_tbl <- dcast(dta, zustand + hwe + zielpegel + vgf ~ lage,
                      value.var = "delta")
   }
-  setorder(dta_tbl, zustand, hwe, -zielpegel, vgf)
-  dta_vgf1 <- dta_tbl[vgf == "VGF1"]
-  dta_skl <- dta_tbl[vgf != "VGF1"]
-  dta_skl[vgf == "Selten", vgf := "selten2"]
-  dta_skl[vgf == "Mittel", vgf := "selten1"]
-  dta_tbl <- rbind(dta_vgf1, dta_skl)
-  dta_tbl[, hwe := str_remove(hwe, "HW")]
-  dta_tbl[zielpegel == "ZPW", zielpegel := "WO"]
-  dta_tbl[zielpegel == "ZPK", zielpegel := "KÖ"]
-  dta_tbl[, hwe := paste(hwe, vgf, zielpegel, sep = "_")]
-  dta_tbl[, hwe := str_remove(hwe, "_VGF1_ZP0")]
-  dta_tbl[, c("zielpegel", "vgf") := c(NULL, NULL)]
+
   dta_tbl
 }

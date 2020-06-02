@@ -141,6 +141,7 @@ sobek_copy <- function(
   do.par = FALSE,
   as.suffix = FALSE,
   his.only = FALSE,
+  rm.str = NULL,
   segsub = TRUE
 ) {
   do.par <- isTRUE(do.par)
@@ -205,6 +206,10 @@ sobek_copy <- function(
     cmt_tbl_list[[i]] <- this_cmt
   }
   cmt_tbl <- rbindlist(cmt_tbl_list)
+  if (!is.null(rm.str)) {
+    cmt_tbl[, case_name_new := stringi::stri_replace_all_regex(case_name_new,
+                                                               rm.str, "")]
+  }
   n_case <- nrow(cmt_tbl)
   if (n_case != length(unique(cmt_tbl$case_name_new))) stop('Naming conflict, check prefix')
   # checking uniqueness of case.name
@@ -301,6 +306,7 @@ sobek_copy <- function(
   # changing case description
   cat('Copying files for cases, it will take probably a long time...\n')
   if (do.par) {
+    cat('Your computer will be overloaded. Please be patient...\n')
     doParallel::registerDoParallel(parallel::detectCores() - 1)
     `%dopar%` <- foreach::`%dopar%`
     foreach::foreach(i = 1:length(cmt_tbl$case_name_new)) %dopar% {
@@ -373,11 +379,16 @@ sobek_copy <- function(
              append = FALSE)
       for (j in seq_along(old_files)) {
         file.copy(from = old_files[j], to = new_files[j], overwrite = TRUE)
-        cat('Copying files....................',
-            str_pad(round(i * j * 100 / tot_file / n_case), 5, 'left'), '%\r'
+        cat('Copying files for case:', str_pad(i, 5, 'left'),
+            '.....',
+            str_pad(round(j * 100 / tot_file), 5, 'left'),
+            '%. Total: ',
+            str_pad(round(i * 100 / n_case), 5, 'left'),
+            '%\r'
             )
         flush.console()
       }
+      flush.console()
     }
   }
   cat('\nCopy all other files of the projects...\n')
@@ -402,6 +413,7 @@ sobek_copy <- function(
     }
   }
   cat('Done.\n')
+  return(cmt_tbl)
 }
 
 
@@ -470,12 +482,18 @@ sobek_overwrite <- function(
     tot_file <- length(from_files)
     for (j in seq_along(from_files)) {
       file.copy(from = from_files[j], to = cmt_tbl[i, to_folder], overwrite = TRUE)
-      cat('Copying files....................',
-          str_pad(round(i * j * 100 / tot_file / n_case), 5, 'left'), '%\r'
+      cat('Copying files for case:', str_pad(i, 5, 'left'),
+          '.....',
+          str_pad(round(j * 100 / tot_file), 5, 'left'),
+          '%. Total: ',
+          str_pad(round(i * 100 / n_case), 5, 'left'),
+          '%\r'
       )
       flush.console()
     }
+    flush.console()
   }
   cat('\nDone.\n')
+  return(cmt_tbl)
 }
 

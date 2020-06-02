@@ -63,6 +63,7 @@ plot_multi_lines <- function(
   date.labels = "%d.%m.%Y",
   text.x.angle = 90L,
   text.size = 20L,
+  ts.trim.left = NULL,
   text.tbl.size = 5L,
   h.lines = NULL,
   line.size = 1.3,
@@ -94,10 +95,13 @@ plot_multi_lines <- function(
   cmp_grp_equal <- identical(sort(compare.by), sort(group.by))
   if (cmp_grp_equal) group.by <- compare.by
   case_type <- parse_case(case.desc = case.desc, orig.name = case.list)
-  case_type[, compare__by := do.call(paste0, .SD), .SDcols = compare.by]
-  case_type[, group__by := do.call(paste0, .SD), .SDcols = group.by]
+  case_type[, compare__by := do.call(paste, c(.SD, sep = " - ")),
+            .SDcols = compare.by]
+  case_type[, group__by := do.call(paste, c(.SD, sep = " - ")),
+            .SDcols = group.by]
   if (!is.null(facet.by)) {
-    case_type[, facet__by := do.call(paste0, .SD), .SDcols = facet.by]
+    case_type[, facet__by := do.call(paste, c(.SD, sep = " - ")),
+              .SDcols = facet.by]
   } else {
     case_type[, facet__by := NA]
   }
@@ -108,9 +112,9 @@ plot_multi_lines <- function(
     grp_vars <- case_type[, unique(group__by)]
     stopifnot(length(cmp_vars) == 2)
     if (!is.null(facet.by)) {
-      n_grp <- length(case_type[, unique(paste0(compare__by, group__by, facet__by))])
+      n_grp <- length(case_type[, unique(paste(compare__by, group__by, facet__by))])
     } else {
-      n_grp <- length(case_type[, unique(paste0(compare__by, group__by))])
+      n_grp <- length(case_type[, unique(paste(compare__by, group__by))])
     }
     # if (cmp_grp_equal) n_grp <- n_grp / 2
     stopifnot(n_case == n_grp)
@@ -146,6 +150,12 @@ plot_multi_lines <- function(
     }
   }
   y2_cols <- colnames(qt)[y2.ids]
+  if (!is.null(ts.trim.left)) {
+    qt[, ts_min := min(ts, na.rm = TRUE), by = case]
+    qt[, ts_min := ts_min + 24 * 3600 * ts.trim.left]
+    qt <- qt[ts >= ts_min]
+    qt[, ts_min := NULL]
+  }
   # cut table to peak.nday
   if (!is.null(peak.nday)) {
     cols <- colnames(qt[, .SD, .SDcols = -c('ts', 'case')])
@@ -178,7 +188,7 @@ plot_multi_lines <- function(
   qt <- melt(qt, id.vars = c('ts', 'case'))
   qt <- merge(qt, case_type, by = 'case', sort = FALSE)
   lt_vars <- unique(c(compare.by, group.by))
-  qt[, Linetype := do.call(paste0, .SD), .SDcols = lt_vars]
+  qt[, Linetype := do.call(paste, c(.SD, sep = " - ")), .SDcols = lt_vars]
   y1_min <- qt[!variable %in% y2_cols, min(value, na.rm = TRUE)]
   y1_max <- qt[!variable %in% y2_cols, max(value, na.rm = TRUE)]
   y1_pretty <- pretty(y1_min:y1_max, y.ntick, y.ntick)
@@ -238,7 +248,10 @@ plot_multi_lines <- function(
       strip.text = element_text(size = text.size)
     ) +
     labs(x = x.lab, y = y.lab, title =  p.title, caption = p.caption) +
-    scale_y_continuous(breaks = y1_pretty)
+    scale_y_continuous(
+      breaks = y1_pretty,
+      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
+      )
   if (length(y2_cols) > 0) {
     delta <- FALSE
     if (is.null(y2.tick1)) {
@@ -259,9 +272,11 @@ plot_multi_lines <- function(
                        mapping = aes(y = value * y2.scale + y2_shift)) +
       scale_y_continuous(
         breaks = y1_pretty,
+        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
         sec.axis =
           sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
                    breaks = y2_pretty,
+                   labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
                    name = y2.lab)
       )
   }
@@ -312,14 +327,10 @@ plot_multi_lines <- function(
                 data = data_hline, color = 'black', check_overlap = TRUE,
                 hjust = 0, vjust = 0)
   }
+
+# facetting ---------------------------------------------------------------
+
   if (!is.null(facet.by)) {
-    # lt_vars <- unique(c(compare.by, group.by))
-    # lt_vars <- lt_vars[!grepl(facet.by, lt_vars)]
-    # qt[, Linetype := do.call(paste, .SD), .SDcols = lt_vars]
-    # lt_values <- unique(qt[, c("Linetype", "facet__by")])
-    # lt_values[, grp := 1:.N, by = facet__by]
-    # ltv <- vector()
-    # for (i in seq_along(lt_values$Linetype)) ltv[[lt_values$Linetype[i]]] <- lt_values$grp[i]
     g <- g + facet_grid(cols = vars(facet__by), scales = facet.scale)
   }
   g <- g + guides(
@@ -477,11 +488,11 @@ plot_lines <- function(
     y1_pretty <- y1_pretty / 100
   }
   if (length(unlist(lt.by)) > 1) {
-    qt[, Linientype := do.call(paste, c(.SD, sep = " ")), .SDcols = lt.by]
+    qt[, Linientype := do.call(paste, c(.SD, sep = " - ")), .SDcols = lt.by]
     lt.by <- 'Linientype'
   }
   if (length(unlist(color.by)) > 1) {
-    qt[, Farbe := do.call(paste, c(.SD, sep = " ")), .SDcols = color.by]
+    qt[, Farbe := do.call(paste, c(.SD, sep = " - ")), .SDcols = color.by]
     color.by <- 'Farbe'
   }
   # graphic---------------------------------------------------------------------
@@ -504,7 +515,9 @@ plot_lines <- function(
     ) +
     ggtitle(p.title) +
     xlab(x.lab) + ylab(y.lab) +
-    scale_y_continuous(breaks = y1_pretty)
+    scale_y_continuous(
+      breaks = y1_pretty,
+      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","))
 
   # horizontal lines --------------------------------------------------------
 
