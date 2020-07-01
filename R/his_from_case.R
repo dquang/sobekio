@@ -110,7 +110,7 @@ his_from_case <- function(
   }
   n_case <- length(case.list)
   # check SOBEK project
-  sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
+  sobek_cmt <- file.path(sobek.project, 'caselist.cmt')
   if (is.na(sobek_cmt)) {
     stop("Sobek Caselist.cmt does not exist! Check sobek.project Folder")
   }
@@ -126,6 +126,7 @@ his_from_case <- function(
                                   colClasses = c('character', 'character'),
                                   col.names = c("case_number", "case_name")
                                   )
+  sobek_clist[, case_name := remove_dbl_quote(case_name)]
   sobek_clist <- sobek_clist[case_number != 0]
   clist <- merge(clist, sobek_clist, by = 'case_name', sort = FALSE,
                  all.x = TRUE)
@@ -156,9 +157,8 @@ his_from_case <- function(
     SHID = 'GSEDHIS.HIS',
     paste0(id_type, '.HIS') # take id_type as file prefix
   )
-  clist[, case_folder := file.path(sobek.project, case_number)]
-  clist$his_file <- sapply(clist$case_folder,
-                           function(x) file_path(name = his_fname, path = x))
+  clist[, case_folder := paste0(sobek.project, "\\", case_number)]
+  clist[, his_file := paste0(case_folder, "\\", his_fname)]
   if (isTRUE(do.par)) {
     # parallel computing here
     doParallel::registerDoParallel(parallel::detectCores() - 1)

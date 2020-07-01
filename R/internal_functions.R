@@ -14,7 +14,7 @@ param_name_2_id <- function(param.name, param.df) {
     if (length(param_long_check) == 1) {
       rel <- param_long_check[[1]]
       } else{
-        warning('parameter with name: ', param.name, 
+        warning('parameter with name: ', param.name,
                 ' is ambiguous or not found')
         rel <- NA_integer_
         }
@@ -54,7 +54,7 @@ his_df <- function(his.file) {
 
 
 #' Get all time steps in the .HIS file
-#' 
+#'
 #' @param his.file Path to .HIS file, string
 #' @return a single column data.frame of timeserie (POSXCt)
 his_time_df <- function(his.file) {
@@ -99,7 +99,7 @@ his_time_df <- function(his.file) {
 
 
 #' Get parameter table from .HIS & .HIA files
-#' 
+#'
 #' @param his.file Path to the .HIS file
 #' @return a data.table with two column: location & sobek.id
 his_parameter <- function(his.file = "") {
@@ -123,8 +123,9 @@ his_parameter <- function(his.file = "") {
   his.params <- data.table(cbind(param_id, str_trim(param_name)))
   colnames(his.params) <- c("param_id", "param_short")
   # try to read .hia
-  hia_file <- paste(substr(his.file, start = 1, stop = nchar(his.file) - 4),
-                    ".HIA", sep = "")
+  hia_file <- stri_replace_last_fixed(
+    his.file, ".his", ".hia",
+    opts_fixed = stri_opts_fixed(case_insensitive = TRUE))
   if (file.exists(hia_file)) {
     hia_dt <- fread(
       file = hia_file,
@@ -224,30 +225,4 @@ id_type_tbl <- data.table(
     'Results from Gsedhis.his',
     'HIS file name without \'.HIS\'. Ex. reachvol = c(\'ID1\', \'ID2\')'
   )
-) 
-
-
-#' Finding correct file path
-#' 
-#' This function find the case-sensitive file path to a file
-#' 
-#' @param name Name of the file
-#' @param path Path to parent folder
-#' @param f_tbl Table of file name and path
-#' @return A character string or NA_character_ if not found
-file_path <- function(name = NULL, path = NULL, f_tbl = NULL) {
-  if (is.null(f_tbl)) {
-    f_list <- list.files(path = path, all.files = TRUE, 
-                         include.dirs = FALSE,
-                         full.names = TRUE, recursive = FALSE,
-                         no.. = TRUE)
-    f_name_list <- toupper(list.files(path = path, all.files = TRUE, 
-                              include.dirs = FALSE,
-                              full.names = FALSE, recursive = FALSE,
-                              no.. = TRUE))
-    f_tbl <- data.table(cs_path = f_list, f_name_upper = f_name_list)
-  }
-  ret <- f_tbl[f_name_upper == toupper(name), cs_path]
-  if (length(ret) != 1) ret <- NA_character_
-  return(ret)
-}
+)

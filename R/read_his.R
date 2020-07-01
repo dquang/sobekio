@@ -41,11 +41,9 @@ his_location <- function(his.file) {
     sobek.id = str_trim(loc_name, side = 'both')
   )
   # try to read .HIA
-  hia_file <- stri_replace_first_regex(
-    his.file,
-    "\\.his$",  "\\.hia",
-    opts_regex = stri_opts_regex(case_insensitive = TRUE))
-  hia_file <- file_path(hia_file, dirname(his.file))
+  hia_file <- stri_replace_last_fixed(
+    his.file, ".his", ".hia",
+    opts_fixed = stri_opts_fixed(case_insensitive = TRUE))
   if (file.exists(hia_file)) {
     hia_dt <- fread(
       file = hia_file,

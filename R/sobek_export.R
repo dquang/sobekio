@@ -21,7 +21,7 @@ sobek_export <- function(case.list,
     )
     case.list <- case.list$V1
   }
-  sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
+  sobek_cmt <- file.path(sobek.project, 'caselist.cmt')
   sobek_clist <- fread(file = sobek_cmt,
                        header = FALSE,
                        sep = " ",

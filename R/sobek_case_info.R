@@ -12,7 +12,7 @@ sobek_case_info <- function(
 	info = NULL
 ) {
 	# check SOBEK project
-	sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
+	sobek_cmt <- paste0(sobek.project, '\\caselist.cmt')
 	if (!file.exists(sobek_cmt)) {
 		stop("Case list or Sobek Caselist.cmt does not exist!")
 	}
@@ -49,8 +49,7 @@ sobek_case_info <- function(
 	                   struct.def = "STRUCT.DEF",
 	                   'NA'
 	)
-	his_file <- file_path(name = his_file, 
-	                      path = paste(sobek.project, case_number, sep = '/'))
+	his_file <- paste0(sobek.project, case_number, his_file, sep = "\\")
 	if (tolower(info) == "location") {
 		tmp <- his_location(his.file = his_file)
 		return(tmp)
@@ -89,7 +88,7 @@ get_file_path <- function(case.name = NULL,
                           sobek.project = NULL,
                           type = NULL){
   # check SOBEK project
-  sobek_cmt <- file_path(name = 'caselist.cmt', path = sobek.project)
+  sobek_cmt <- paste0(sobek.project, "\\caselist.cmt")
   if (!file.exists(sobek_cmt)) {
     stop("Case list or Sobek Caselist.cmt does not exist!")
   }
@@ -127,8 +126,6 @@ get_file_path <- function(case.name = NULL,
                      struct.def = "STRUCT.DEF",
                      type # if type is not one of the keywords, returns itself.
                      )
-  his_file <- file_path(name = his_file, 
-                        path = file.path(sobek.project, case_number)
-                        )
+  his_file <- normalizePath(file.path(sobek.project, case_number, his_file))
   return(his_file)
 }

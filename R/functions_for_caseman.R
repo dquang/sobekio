@@ -143,46 +143,6 @@ init_sbk_cmt <- function(
   invisible(orig_fix)
 }
 
-
-expand_sobek_path <- function(
-  path,
-  tmp.folder,
-  case.folder,
-  expand = c("work", "case"),
-  sobek.path,
-  fix.data = NULL,
-  dest = file.path(tmp.folder, "CMTWORK")
-) {
-  if (!file.exists(path)) return(FALSE)
-  f_ini <- fread(file = path, sep = "\n", header = FALSE)
-  expand <- match.arg(expand, c("work", "case"))
-  if (expand == "work")
-    pat <- "..\\WORK\\"
-  else
-    pat <- paste0(case.folder, "\\")
-  f_ini[grepl("@", V1),
-        V1 := stri_replace_first_fixed(V1, "@", pat)]
-  f_ini[grepl("^NetDir", V1), V1 := paste0("NetDir=", sobek.path)]
-  f_ini[grepl("^LocalDir", V1),
-        V1 := paste0("LocalDir=",
-                     stri_replace_first_regex(sobek.path, "^.{1}:", ""))]
-  f_ini[grepl("@event", V1), V1 := "EventFile=..\\WORK\\settings.dat"]
-  if (is.null(fix.data)) {
-    fix.data <- paste0(dirname(case.folder), "\\fixed")
-  }
-  fix.data <- normalizePath(fix.data)
-  fix.data <- stri_replace_all_fixed(fix.data, "\\", "\\\\")
-  fix.data <- paste0("=", fix.data)
-  f_ini[grepl("\\\\fixed", V1, ignore.case = TRUE),
-        V1 := stri_replace_first_regex(
-          V1, "=.*\\\\fixed",
-          fix.data,
-          opts_regex = stri_opts_regex(case_insensitive = TRUE))]
-  fwrite(f_ini, file.path(dest, basename(path)), sep = "\n", quote = FALSE,
-         col.names = FALSE)
-}
-
-
 replace_ini_fixed <- function(f_ini, fix.data) {
   f_chk <- FALSE
   if (!is.data.table(f_ini)) {
@@ -463,6 +423,7 @@ expand_sobek_path <- function(
   fix.data = NULL,
   dest = file.path(tmp.folder, "CMTWORK")
 ) {
+  if (!file.exists(path)) return(FALSE)
   f_ini <- fread(file = path, sep = "\n", header = FALSE)
   expand <- match.arg(expand, c("work", "case"))
   if (expand == "work")
@@ -473,17 +434,20 @@ expand_sobek_path <- function(
         V1 := stri_replace_first_fixed(V1, "@", pat)]
   f_ini[grepl("^NetDir", V1), V1 := paste0("NetDir=", sobek.path)]
   f_ini[grepl("^LocalDir", V1),
-            V1 := paste0("LocalDir=",
-                         stri_replace_first_regex(sobek.path, "^.{1}:", ""))]
+        V1 := paste0("LocalDir=",
+                     stri_replace_first_regex(sobek.path, "^.{1}:", ""))]
   f_ini[grepl("@event", V1), V1 := "EventFile=..\\WORK\\settings.dat"]
   if (is.null(fix.data)) {
     fix.data <- paste0(dirname(case.folder), "\\fixed")
   }
-  f_ini[grepl("\\.\\.\\\\fixed", V1, ignore.case = TRUE),
-        V1 := stri_replace_first_fixed(
-          V1, "..\\fixed",
+  fix.data <- normalizePath(fix.data)
+  fix.data <- stri_replace_all_fixed(fix.data, "\\", "\\\\")
+  fix.data <- paste0("=", fix.data)
+  f_ini[grepl("\\\\fixed", V1, ignore.case = TRUE),
+        V1 := stri_replace_first_regex(
+          V1, "=.*\\\\fixed",
           fix.data,
-          opts_fixed = stringi::stri_opts_fixed(case_insensitive = TRUE))]
+          opts_regex = stri_opts_regex(case_insensitive = TRUE))]
   fwrite(f_ini, file.path(dest, basename(path)), sep = "\n", quote = FALSE,
          col.names = FALSE)
 }
