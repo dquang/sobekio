@@ -126,6 +126,7 @@ his_from_case <- function(
                                   colClasses = c('character', 'character'),
                                   col.names = c("case_number", "case_name")
                                   )
+  sobek_clist[, case_name := remove_dbl_quote(case_name)]
   sobek_clist <- sobek_clist[case_number != 0]
   clist <- merge(clist, sobek_clist, by = 'case_name', sort = FALSE,
                  all.x = TRUE)

@@ -1,5 +1,5 @@
-# This function changes the simulation start and ending time in a sobek setting
-# The input time is an POSIXCt or an object that is coerceable to POSIXCt
+#' This function changes the simulation start and ending time in a sobek setting
+#' The input time is an POSIXCt or an object that is coerceable to POSIXCt
 .set_time <- function(sfile = "", begin.time = NULL, end.time = NULL){
   s_dat <- utils::read.table(sfile,
                              header = FALSE,
@@ -55,7 +55,7 @@
     s_dat$dat <- sub("^BeginMinute=[0-9]{1,2}", start_M, s_dat$dat)
     s_dat$dat <- sub("^BeginSecond=[0-9]{1,2}", start_S, s_dat$dat)
   }
- 
+
   if(!is.null(begin.time)){
     end_t <- try(as.POSIXct(x = end.time,
                             tz = "GMT",
@@ -117,6 +117,7 @@
 
 
 #' Create new Sobek Case from existing Case
+#'
 #' @param old.name Name of the old case, case-sensitive
 #' @param new.name Name of the new case
 #' @param sobek.project Sobek Project folder
@@ -150,7 +151,7 @@ create_case <- function(
     blank.lines.skip = TRUE,
     col.names = c("case_number", "case_name")
   )
-  sobek_clist[, case_name := gsub('"', '', case_name, fixed = TRUE)]
+  sobek_clist[, case_name := remove_dbl_quote(case_name)]
   if (old.name %in% sobek_clist$case_name) {
     if (new.name %in% sobek_clist$case_name) stop("Case: ", new.name, " existed!")
 
@@ -388,9 +389,9 @@ change_case_info <- function(
   )
   sobek_clist[, case_name := gsub('"|\'', '', case_name)]
   if (!old.name %in% sobek_clist$case_name) stop('case name ', old.name, 'not found' )
-  case_folder <- paste(sobek.project, 
+  case_folder <- paste(sobek.project,
                       sobek_clist[case_name == old.name, case_number],
-                      sep = "/") 
+                      sep = "/")
     # changing time
   if (!is.null(new.begin) | !is.null(new.end)) {
     setting_dat <-
@@ -398,7 +399,7 @@ change_case_info <- function(
     .set_time(sfile = setting_dat,
               begin.time = new.begin,
               end.time = new.end)
-    
+
   }
   # changing case description
   if (!is.null(new.name) | !is.null(new.desc)) {
@@ -502,17 +503,17 @@ change_case_info <- function(
 }
 
 
-buil_case_list <- function(
+build_case_list <- function(
   sobek.project
 ) {
   cmt_f <- file.path(sobek.project, 'caselist.cmt')
-  case_folder_list <- list.files(sobek.project, full.names = TRUE, 
+  case_folder_list <- list.files(sobek.project, full.names = TRUE,
                                  pattern = "\\d$", recursive = FALSE)[-1]
   case_names <- vector()
   for (i in seq_along(case_folder_list)) {
     cmt_f <- file.path(case_folder_list[[i]], 'casedesc.cmt')
     if (file.exists(cmt_f)) {
-      cmt <- fread(file = cmt_f, 
+      cmt <- fread(file = cmt_f,
                    strip.white = FALSE,
                    encoding = 'Latin-1',
                    header = FALSE, sep = '\n', nrows = 1)[1]
@@ -525,59 +526,3 @@ buil_case_list <- function(
 }
 
 
-#' Create new cases with new boundary.dat and lateral.dat from one old case
-#' 
-#' This function tries to find VGF and HWE in new case names. An error with  be raised if there is no correct information found.
-#' 
-#' @param old.name Name of the template case
-#' @param new.name Names of the new cases
-#' @param hwe.tbl Table of HWE (hwe, begin, end)
-#' @param sobek.project Path to sobek.project
-#' @param new.desc New case description, must be same length as new.name
-#' @param id.file Path to ID file
-#' @param data.file Path to data file
-#' @param bnd.header Path to boundary header
-#' @param lat.header Path to lateral header
-#' @export
-create_case_vgf <- function(
-  old.name,
-  new.name,
-  hwe.tbl = hwe_tbl,
-  sobek.project,
-  new.desc = new.name,
-  id.file,
-  data.file,
-  bnd.header,
-  lat.header
-) {
-  for (i in seq_along(new.name)) {
-    vgf <- str_match_all(new.name[i], '_(\\d{4})_')
-    if (length(vgf) > 1 | is.na(vgf[[1]][2])) {
-      stop('Wrong format with VGF for case: ', new.name[i])
-    }
-    vgf <- as.numeric(vgf[[1]][2]) / 1000
-    hwe_year <- str_match(new.name[i], '_HW(\\d{4})_')[, 2]
-    if (is.na(hwe_year)) {
-      stop('Wrong format with HWE for case: ', new.name[i])
-    }
-    new_begin <- hwe.tbl[hwe == hwe_year, begin]
-    new_end <- hwe.tbl[hwe == hwe_year, end]
-    create_case(
-      old.name = old.name,
-      new.name = new.name[i],
-      sobek.project = sobek.project,
-      new.desc = new.desc[i],
-      new.begin = new_begin,
-      new.end = new_end
-    )
-    # create dat
-    create_dat(
-      id.file = id.file,
-      data.file = data.file,
-      bnd.header = bnd.header,
-      lat.header = lat.header,
-      factor = vgf,
-      output.case = c(new.name[i], sobek.project)
-    )
-  }
-}
