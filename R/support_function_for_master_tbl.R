@@ -232,6 +232,7 @@ get_segment_data <- function(
   sobek.project,
   get.max = TRUE,
   master.tbl,
+  agg.fun = NULL,
   verbose = TRUE,
   do.par = FALSE,
   ts.trim.left = NULL,
@@ -239,6 +240,7 @@ get_segment_data <- function(
   remove.inf = FALSE
 ) {
   param <- tolower(param)
+  if (!is.null(agg.fun)) get.max = FALSE
   id_tbl <- get_segment_id_tbl(
     river = river,
     from.km = from.km,
@@ -414,6 +416,40 @@ get_segment_data <- function(
     segment_data <- merge(
       segment_data,
       id_tbl[, .SD, .SDcols = c('ID_F', 'besonderheit', 'km', 'river', 'case')],
+      by = c('case', 'ID_F'),
+      sort = FALSE
+    )
+  }
+  #TODO: rewrite, remove get.max
+  if (!is.null(agg.fun)) {
+    if (isTRUE(verbose)) cat('Aggregating values....\n')
+    segment_data <- segment_data[, lapply(.SD, agg.fun, na.rm = TRUE),
+                                 .SDcols = -c('ts'), by = case] %>%
+      melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
+    # removing ID_F that were aggregated to the first ID_F at the duplicated KM
+    if (param == 'discharge') {
+      for (i in seq_along(case.list)) {
+        # get list of qIDs for this case
+        qid = id_tbl[case == case.list[[i]], list(km, ID_F)]
+        # finding the IDs that have duplicated km
+        km_dup = qid[duplicated(km), km]
+        for (k in km_dup) {
+          qid_k <- qid[km == k, ID_F]
+          segment_data <- segment_data[!(case == case.list[[i]] &
+                                           ID_F %in% qid_k[-1])]
+        }
+      }
+    }
+    if (remove.inf) {
+      segment_data <- segment_data[!is.infinite(scheitel)]
+    } else {
+      segment_data[is.infinite(scheitel), scheitel := NA]
+    }
+    id_tbl_cols <- colnames(id_tbl)
+    id_tbl_cols <- id_tbl_cols[id_tbl_cols %in% c('ID_F', 'besonderheit', 'km', 'river', 'case')]
+    segment_data <- merge(
+      segment_data,
+      id_tbl[, .SD, .SDcols = id_tbl_cols],
       by = c('case', 'ID_F'),
       sort = FALSE
     )

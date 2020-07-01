@@ -34,6 +34,15 @@ save_profile <- function(plot, filename = NULL,
          device = device, width = width, height = height, dpi = dpi, ...)
 }
 
+#' @export
+save_a4_potrait <- function(plot, filename = NULL,
+                            device = "png", width = 14.6,
+                            height = 7, dpi = 350, ...){
+  f_args <- match.call(expand.dots = FALSE)
+  if (is.null(filename)) filename <- paste(f_args$plot, ".png", sep = "")
+  ggplot2::ggsave(filename = filename, plot = plot,
+         device = device, width = width, height = height, dpi = dpi, ...)
+}
 
 #' Saving WMF image for insert inline
 #'

@@ -47,6 +47,8 @@ plot_multi_lines <- function(
   delta = FALSE,
   color.name = 'Farbe',
   lt.name = 'Linienart',
+  lt.by = unique(c(compare.by, group.by)),
+  color.by = "variable",
   peak.nday = NULL,
   peak.col = NULL,
   p.title = ggplot2::waiver(),
@@ -187,8 +189,9 @@ plot_multi_lines <- function(
   # data transformation for graphic
   qt <- melt(qt, id.vars = c('ts', 'case'))
   qt <- merge(qt, case_type, by = 'case', sort = FALSE)
-  lt_vars <- unique(c(compare.by, group.by))
-  qt[, Linetype := do.call(paste, c(.SD, sep = " - ")), .SDcols = lt_vars]
+  # lt_vars <- lt.by
+  qt[, Linienart := do.call(paste, c(.SD, sep = " - ")), .SDcols = lt.by]
+  qt[, Farbe := do.call(paste, c(.SD, sep = " - ")), .SDcols = color.by]
   y1_min <- qt[!variable %in% y2_cols, min(value, na.rm = TRUE)]
   y1_max <- qt[!variable %in% y2_cols, max(value, na.rm = TRUE)]
   y1_pretty <- pretty(y1_min:y1_max, y.ntick, y.ntick)
@@ -222,10 +225,13 @@ plot_multi_lines <- function(
   }
 
   # graphic---------------------------------------------------------------------
+  txt_def <- element_text(size = text.size, family = "serif")
+  txt_def_angle <- element_text(size = text.size, family = "serif",
+                                angle = text.x.angle)
   g <- ggplot(qt[!variable %in% y2_cols],
               aes(x = ts, y = value,
-                  color = variable,
-                  linetype = Linetype
+                  color = Farbe,
+                  linetype = Linienart
               )
   ) +
     scale_x_datetime(
@@ -236,16 +242,20 @@ plot_multi_lines <- function(
     geom_line(size = line.size) +
     theme_bw(base_size = text.size) +
     theme(
-      title = element_text(size = text.size),
-      text = element_text(size = text.size),
+      title = txt_def,
+      text = txt_def,
       legend.key.width = unit(1.5, "cm"),
       legend.key.height = unit(0.9, "cm"),
       legend.position = 'bottom',
       panel.grid.major = element_line(size = 0.3, color = "grey60"),
       panel.grid.minor = element_line(size = 0.15, color = "grey"),
-      axis.text = element_text(size = text.size - 2, angle = text.x.angle),
-      axis.title = element_text(size = text.size -2, angle = text.x.angle),
-      strip.text = element_text(size = text.size)
+      axis.text.y = txt_def,
+      axis.text.x = txt_def_angle,
+      axis.title = txt_def,
+      legend.text = txt_def,
+      axis.title.x = txt_def,
+      axis.title.y = txt_def,
+      strip.text = txt_def
     ) +
     labs(x = x.lab, y = y.lab, title =  p.title, caption = p.caption) +
     scale_y_continuous(

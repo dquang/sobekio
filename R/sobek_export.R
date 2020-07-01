@@ -413,7 +413,7 @@ sobek_copy <- function(
     }
   }
   cat('Done.\n')
-  return(cmt_tbl)
+  invisible(cmt_tbl)
 }
 
 

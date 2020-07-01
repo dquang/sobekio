@@ -1,9 +1,9 @@
 #' Get location table from .HIS file
-#' 
+#'
 #' Locations are SOBEK's internal index of the node/reach IDs
 #' sobek.id are IDs of nodes/reaches in the River Network
 #' sobek.id are automatically truncated to max. length of 20 characters by SOBEK
-#' 
+#'
 #' @param his.file Path to the .HIS file
 #' @return a data.table with two column: location & sobek.id
 #' @export
@@ -31,7 +31,7 @@ his_location <- function(his.file) {
   # get locations table
   for (i in 1:total_loc) {
     seek(con, 4, "current")
-    loc_name[i] <- stri_conv(readBin(con, what = "raw", n = 20), 
+    loc_name[i] <- stri_conv(readBin(con, what = "raw", n = 20),
                              from = 'windows-1252')
     seek(con, where = 168 + 20 * param_nr + 24 * i, origin = "start")
   }
@@ -41,12 +41,10 @@ his_location <- function(his.file) {
     sobek.id = str_trim(loc_name, side = 'both')
   )
   # try to read .HIA
-  hia_file <- paste(str_sub(his.file, start = 1, end = nchar(his.file) - 4),
-                    ".HIA", sep = "")
-  hia_file <- paste(
-    str_sub(basename(his.file), start = 1, end = nchar(basename(his.file)) - 4), 
-    ".hia", sep = ""
-    )
+  hia_file <- stri_replace_first_regex(
+    his.file,
+    "\\.his$",  "\\.hia",
+    opts_regex = stri_opts_regex(case_insensitive = TRUE))
   hia_file <- file_path(hia_file, dirname(his.file))
   if (file.exists(hia_file)) {
     hia_dt <- fread(
@@ -117,7 +115,7 @@ his_info <- function(his.file) {
   }
   con <- file(his.file, open = "rb", encoding = "native.enc")
   # first 160 bytes are characters for the title part
-  txt_title <- stri_conv(readBin(con, what = "raw", n = 160), 
+  txt_title <- stri_conv(readBin(con, what = "raw", n = 160),
                          from = 'windows-1252')
   his_title <- str_extract_all(txt_title, ".{40}", simplify = TRUE)
   # bytes 160-167 are for 2 int
@@ -194,7 +192,7 @@ his_from_list <- function(
     pardf <- his_parameter(his.file)
     par_int <- param_name_2_id(param, pardf)
     if (is.na(par_int)) {
-      print('List of Parameters in the .HIS file')
+      cat('List of Parameters in the .HIS file\n')
       print(pardf)
       stop('Parameter: ', param, ' not found')
     }

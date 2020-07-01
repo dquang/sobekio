@@ -707,7 +707,7 @@ plot_longprofile_old <- function(
       lt.by <- compare.by
       color.by <- group.by
       data_tbl_delta <-
-        dcast.data.table(data_tbl[!is.na(scheitel) & km %in% km_4_delta],
+        dcast(data_tbl[!is.na(scheitel) & km %in% km_4_delta],
                          km ~ get(compare.by) + get(group.by),
                          value.var = 'scheitel')
       for (i in grp_vars) {
@@ -1143,7 +1143,7 @@ plot_longprofile <- function(
   master.tbl,
   param = 'discharge',
   compare.by = 'zustand',
-  group.by = c('hwe', 'vgf'),
+  group.by = compare.by,
   lt.by = 'zustand',
   delta.lt = 'vgf',
   color.name = 'Farbe',
@@ -1163,12 +1163,13 @@ plot_longprofile <- function(
   y2.shift = NULL,
   y2.zero = FALSE,
   y2.round = 2L,
+  y2.name = "Scheitelreduktion",
   plot.title = NULL,
   txt.size = 12L,
   txt.top = element_text(angle = 90, size = txt.size),
   txt.bottom = element_text(angle = 0, size = txt.size),
   line.size = 1.0,
-  delta.size = 1.0,
+  delta.size = line.size,
   ntick.x = 10L,
   ntick.y = 7L,
   a.fill = 'grey',
@@ -1182,6 +1183,9 @@ plot_longprofile <- function(
   do.par = FALSE,
   ts.trim.left = NULL,
   fav = TRUE,
+  agg.fun = NULL,
+  get.max = TRUE,
+  talweg = FALSE,
   remove.inf = TRUE
 ) {
   # processing parameters ---------------------------------------------------
@@ -1219,8 +1223,8 @@ plot_longprofile <- function(
     if (is.null(compare.by) || is.null(group.by)) {
       stop('For caculating delta, compare.by and group.by must be specified!')
     }
-    total_case <- unique(as.vector(outer(cmp_vars, grp_vars, paste)))
-    if (length(total_case) != length(case.desc)) {
+    total_case <- length(unique(as.vector(outer(cmp_vars, grp_vars, paste)))) / 2
+    if (total_case != length(case.desc)) {
       cat("Combination of compare.by and group.by does not have the same length as case.desc\n")
       cat('Hint: notiz can be modified and used as a groupping parameter\n')
       stop('Groupping by ', paste(group.by, collapse = ' & '),
@@ -1246,7 +1250,8 @@ plot_longprofile <- function(
       case.list = case.list,
       case.desc = case.desc,
       param = param,
-      get.max = TRUE,
+      get.max = get.max,
+      agg.fun = agg.fun,
       sobek.project = sobek.project,
       master.tbl = master.tbl,
       verbose = verbose,
@@ -1316,7 +1321,12 @@ plot_longprofile <- function(
       data_tbl[is.infinite(dband_max), dband_max := NA]
     }
   }
-  data_tbl[, delta_lt := paste('Delta', get(delta.lt))]
+  if (!is.null(delta.lt)) {
+    data_tbl[, delta_lt := paste('Delta', get(delta.lt))]
+  } else {
+    data_tbl[, delta_lt := "Delta"]
+  }
+
   #----add graphic----
   if (verbose) cat('Preparing graphic...\n')
   g_base <- ggplot(data = data_tbl,
@@ -1380,10 +1390,33 @@ plot_longprofile <- function(
   }
   y1_range <- range(data_tbl[!is.infinite(scheitel), scheitel], na.rm = TRUE)
   y1_breaks <- pretty(y1_range[1]:y1_range[2], ntick.y, ntick.y)
+  if (talweg & param == 'waterlevel') {
+    if (verbose) cat('Reading profile...\n')
+    pf_tbl <- get_profile_tbl(
+      case = case.list[[1]],
+      sobek.project = sobek.project
+    )[, c('def_id', 'zb')]
+    data_tbl <- merge(data_tbl, pf_tbl, by.x = 'ID_F', by.y = 'def_id',
+                      sort = FALSE)
+    y1_range <- range(y1_range, data_tbl$zb, na.rm = TRUE)
+    y1_pretty <- pretty(y1_range[1]:y1_range[2], ntick.y, ntick.y)
+    # if (delta) y2_pretty <- (y1_pretty - y2_shift) / y2.scale
+    g <- g + geom_line(data = data_tbl,
+                       aes(
+                         y = zb,
+                         color = 'Talweg',
+                         linetype = 'Talweg'
+                       ),
+                       size = line.size)
+  }
   # +++add delta lines -------------------------------------------------------
   # processing y2 scale
   if (delta) {
-    delta_lt_vars <- paste('Delta', case_tbl[, unique(get(delta.lt))])
+    if (!is.null(delta.lt)) {
+      delta_lt_vars <- paste('Delta', case_tbl[, unique(get(delta.lt))])
+    } else {
+      delta_lt_vars <- 'Delta'
+    }
     y1_length <- abs(y1_range[2] - y1_range[1])
     y2_length <- abs(y2_range[2] - y2_range[1])
     y2_scale <- ifelse(is.null(y2.scale),
@@ -1393,7 +1426,7 @@ plot_longprofile <- function(
     y1_breaks <- pretty(y1_range[1]:y1_range[2], ntick.y, ntick.y)
     y2_breaks <- (y1_breaks - y2_shift) / y2_scale
     y2_breaks <- unique(c(0, y2_breaks))
-    y2_name <- paste0('Scheitelreduktion [',
+    y2_name <- paste0(y2.name, ' [',
                      ifelse(param == 'discharge', 'm³/s', 'm'),
                      ']'
                      )

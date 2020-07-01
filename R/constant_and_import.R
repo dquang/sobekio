@@ -3,9 +3,8 @@
 #' @import ggplot2
 #' @importFrom xlsx createWorkbook createSheet addDataFrame
 #' @importFrom xlsx saveWorkbook autoSizeColumn createRow createCell Font Alignment addMergedRegion setCellStyle
+#' @import stringi
 #' @import stringr
-#' @importFrom stringi stri_conv stri_pad_left stri_pad_right stri_dup stri_trim_both stri_replace_first_fixed
-#' @importFrom stringi stri_replace_all_fixed stri_split_fixed stri_match_first_regex stri_extract_first_regex
 #' @importFrom dplyr %>% select starts_with near filter filter_at mutate_at
 #' @importFrom purrr map_dbl map_int
 #' @import data.table
