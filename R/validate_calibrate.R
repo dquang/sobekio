@@ -54,7 +54,9 @@ validate_pegel <- function(
       axis.text.x.bottom = xaxis.text,
       axis.text.y = yaxis.text
     ) +
-    scale_y_continuous(breaks = y1_pretty, limits = range(y1_pretty))
+    scale_y_continuous(breaks = y1_pretty,
+                       labels = fm_nr,
+                       limits = range(y1_pretty))
   g1$labels$colour <- 'Farbe'
   g2 <- ggplot(data_tbl[variable == 'Delta'], aes(x = ts, y = value)) +
     scale_x_datetime(date_breaks = date.breaks, date_labels = date.labels) +
@@ -72,7 +74,9 @@ validate_pegel <- function(
       axis.text.x = element_blank(),
       axis.text.y = yaxis.text
     ) +
-    scale_y_continuous(breaks = y1_pretty_delta, limits = range(y1_pretty_delta))
+    scale_y_continuous(breaks = y1_pretty_delta,
+                       labels = fm_nr,
+                       limits = range(y1_pretty_delta))
   g <- cowplot::plot_grid(g1, g2, align = 'v', axis = 'l', nrow = 2,
                           rel_heights = c(0.7, 0.3))
   g
@@ -248,26 +252,21 @@ plot_pegel <- function(
       ) +
         scale_y_continuous(
           breaks = y_breaks,
-          # limits = y_range,
           sec.axis = dup_axis(trans = ~ (. - y2.shift) / y2.scale,
                               name = y2_name,
                               breaks = (y_breaks - y2.shift) / y2.scale),
-          labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
-        )
+          labels = fm_nr
+          )
     } else {
       g <- g + geom_line(
         mapping = aes(x = ts, y = Delta, color = "Delta", linetype = "Delta"),
         data = tbl[compare__by == cmp_vars[1]],
         size = lt.size
       ) +
-        scale_y_continuous(
-          labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
-        )
+        scale_y_continuous(labels = fm_nr)
     }
   } else {
-    g <- g + scale_y_continuous(
-      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
-    )
+    g <- g + scale_y_continuous(labels = fm_nr)
   }
   if (!is.null(lt)) {
     g <- g + scale_linetype_manual(values = lt)

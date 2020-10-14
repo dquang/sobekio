@@ -132,7 +132,7 @@ plot_station_elbe <- function(
   y_limits <- range(y_limits[c(drv_chk, drv_chk, hwr_chk, hwr_chk, p_chk, p_chk, m_chk, m_chk)])
   g <- g + scale_y_continuous(
     limits = y_limits, name = "",
-    labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
+    labels = fm_nr
     )
   g + scale_shape_manual(
     breaks = c("Pegel", "Muendung", 'Polder'),
@@ -173,10 +173,10 @@ plot_station <- function(
   p_txt_size = 4,
   d_txt_size = 5,
   hwr_txt_size = 5,
-  p_angle = 90,
+  p_angle = 270,
   hwr_angle = 0,
   drv_angle = 0,
-  m_angle = 90,
+  m_angle = 270,
   m_txt_repel = FALSE,
   mea_same = FALSE,
   p2move = NULL,
@@ -195,7 +195,7 @@ plot_station <- function(
   # FP - Flusspolder (DRV)
   dta[, km_txt := km]
   drv_dta <- dta[type == "d"]
-  drv_chk <- ifelse(nrow(drv_dta) > 0, TRUE, FALSE)
+  drv_chk <- nrow(drv_dta) > 0
   if (drv_chk) {
     drv_dta[, x_end := max(km, na.rm = TRUE), by = label]
     drv_dta <- drv_dta[km != x_end]
@@ -203,15 +203,15 @@ plot_station <- function(
   # HWR
   hwr_dta <- dta[type == "gs" & !is.na(akz)]
   hwr_dta[akz %in% hwr2move, km_txt := km + dhwr]
-  hwr_chk <- ifelse(nrow(hwr_dta) > 0, TRUE, FALSE)
+  hwr_chk <- nrow(hwr_dta) > 0
   # Zufluss
   m_dta <- dta[type == "m"]
   m_dta[akz %in% m2move, km_txt := km + dm]
-  m_chk <- ifelse(nrow(m_dta) > 0, TRUE, FALSE)
+  m_chk <- nrow(m_dta) > 0
   # Pegel
   p_dta <- dta[type == "p"]
   p_dta[akz %in% p2move, km_txt := km + dp]
-  p_chk <- ifelse(nrow(p_dta) > 0, TRUE, FALSE)
+  p_chk <- nrow(p_dta) > 0
   g <- ggplot(
     data = dta,
     mapping = aes(x = km)
@@ -313,7 +313,7 @@ plot_station <- function(
     }
   }
   if (p_chk) {
-    p_hjust <- ifelse(p_angle == 90, 0, 0.5)
+    p_hjust <- ifelse(p_angle == 90, 0, 1)
     g <- g +
       # add pegel
       geom_point(aes(y = p_pts, shape = "Pegel"),
@@ -346,7 +346,7 @@ plot_station <- function(
                 size = m_txt_size,
 				segment.color = 'white',
                 angle = m_angle,
-                vjust = 0.5, hjust = 0,
+                vjust = 0.5, hjust = 1,
                 data = m_dta
       )
     } else {
@@ -355,7 +355,7 @@ plot_station <- function(
                       show.legend = FALSE,
                       angle = m_angle,
                       size = m_txt_size,
-                      vjust = 0.5, hjust = 0,
+                      vjust = 0.5, hjust = 1,
                       data = m_dta
       )
     }
@@ -363,7 +363,7 @@ plot_station <- function(
   y_limits <- range(y_limits[c(drv_chk, drv_chk, hwr_chk, hwr_chk, p_chk, p_chk, m_chk, m_chk)])
   g <- g + scale_y_continuous(
     limits = y_limits, name = "",
-    labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+    labels = fm_nr,
     ) +
     scale_shape_manual(
     breaks = c("Pegel", "Muendung", 'Polder'),
@@ -378,7 +378,7 @@ format_elbe_long <- function(g, txt_size = 16, mpos = 500, fix_y = TRUE) {
     g <- g +
       scale_y_continuous(
         breaks = pretty(0:6000, 10, 10),
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+        labels = fm_nr,
         limits = c(0, 6000)
       )
   }
@@ -465,7 +465,7 @@ add_fav <- function(g,
                           ppos = NULL,
                           pvjust = 1,
                           p2move = "EM",
-                          pmove = dmove,
+                          pmove = 0.0068,
                           y_lims = NULL,
                           y_breaks = NULL,
                           y_expand = c(0.02, 0.02),
@@ -491,14 +491,22 @@ add_fav <- function(g,
   gbld <- ggplot_build(g)
   color_lbl <- gbld$plot$labels$colour
   lt_lbl <- gbld$plot$labels$linetype
-  if (is.null(lt_breaks)) lt_breaks <- gbld$plot$scales$get_scales("linetype")$get_breaks()
-  if (is.null(y_lims)) y_lims <- range(gbld$layout$panel_params[[1]]$y.range)
-  if (!is.null(hqs)) y_lims <- range(y_lims, hqs[, max(value, na.rm = TRUE)])
-  if (is.null(y_breaks)) y_breaks <- pretty(y_lims, 7, 7)
-  if (is.null(x_lims)) x_lims <- gbld$layout$panel_params[[1]]$x.range
-  if (is.null(x_breaks)) x_breaks <- gbld$layout$panel_params[[1]]$x$breaks
-  if (is.null(ppos)) ppos <- max(y_lims)
-  if (is.null(ptxt)) ptxt <- ppos - 300
+  if (is.null(lt_breaks))
+    lt_breaks <- gbld$plot$scales$get_scales("linetype")$get_breaks()
+  if (is.null(y_lims))
+    y_lims <- range(gbld$layout$panel_params[[1]]$y.range)
+  if (!is.null(hqs))
+    y_lims <- range(y_lims, hqs[, max(value, na.rm = TRUE)])
+  if (is.null(y_breaks))
+    y_breaks <- pretty(y_lims, 7, 7)
+  if (is.null(x_lims))
+    x_lims <- gbld$layout$panel_params[[1]]$x.range
+  if (is.null(x_breaks))
+    x_breaks <- gbld$layout$panel_params[[1]]$x$breaks
+  if (is.null(ppos))
+    ppos <- max(y_lims)
+  if (is.null(ptxt))
+    ptxt <- ppos - 300
   if (x_reverse) {
     g <- g + scale_x_reverse(
       breaks = x_breaks,
@@ -597,7 +605,7 @@ add_fav <- function(g,
       ) +
       scale_y_continuous(
         limits = y_lims, breaks = y_breaks,
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+        labels = fm_nr,
         expand = y_expand) +
       scale_color_manual(
         # values = c(exl_std[c(9, 6, 7, 3, 2, 10)]),
@@ -695,6 +703,7 @@ plot_rhein_long <- function(
     case_tbl <- parse_case(case.desc, case.list)
     dta <- merge(dta, case_tbl, by = "case")
   }
+  # dta[, zielpegel := sub("^Z", "S", zielpegel)]
   # dta[zustand == "Planzustand", zustand := "Alle Maßnahmen"]
   # dta[, vgf := stri_replace_all_fixed(vgf, "Selten", "Selten 2")]
   # dta[, vgf := stri_replace_all_fixed(vgf, "Mittel", "Selten 1")]
@@ -705,9 +714,10 @@ plot_rhein_long <- function(
   dta[hwe == "HW1988" & zielpegel == "ZP0" & km > 838,
       scheitel := approx(.I, scheitel, .I)$y, by = case]
   if (!is.null(lubw_long)) {
-    lubw_long[, case_desc := paste(zustand, zielpegel, hwe, vgf)]
+    # lubw_long[, zielpegel := sub("^Z", "S", zielpegel)]
     lubw_long[zielpegel == "Köln", zielpegel := "ZPK"]
     lubw_long[zielpegel == "Worms", zielpegel := "ZPW"]
+    lubw_long[, case_desc := paste(zustand, zielpegel, hwe, vgf, sep = "_")]
     dta <- rbind(
       dta,
       lubw_long[paste(zustand, zielpegel, hwe, vgf, sep = "_") %in% cdesc_lst]
@@ -732,7 +742,7 @@ plot_rhein_long <- function(
     delta_skl <- cal_delta_4_plot(dta[zielpegel != "ZP0"], compare.by, group.by)
     legend_pos <- ifelse(rm_legend, "none", "bottom")
     y_lbl <- ifelse(rm_legend, "Scheitelreduktion [m]", "")
-    txt_format <- element_text(family = "Times New Roman", size = txt_size)
+    txt_format <- element_text(family = "sans", size = txt_size)
     g_skl <- ggplot(data = delta_skl[zustand == "Bezugszustand" &
                                        km %between% x_lims],
                     aes(x = km)) +
@@ -751,7 +761,7 @@ plot_rhein_long <- function(
         name = y_lbl,
         limits = y_lims,
         breaks = y_breaks,
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+        labels = fm_nr,
         expand = y_expand) +
       theme_bw(base_size = txt_size) +
       theme(
@@ -764,11 +774,16 @@ plot_rhein_long <- function(
         legend.title =  txt_format,
         panel.grid.major = element_line(color = "grey60", size = 0.3),
         panel.grid.minor = element_line(color = "grey60", size = 0.2),
+        strip.text = element_text(family = txt_format$family, size = txt_format$size,
+                                  angle = 270),
+        axis.title.y = element_text(family = txt_format$family, size = txt_format$size,
+                                    angle = 270),
         panel.spacing = unit(0.75, "cm"),
         legend.key.width = unit(1.2, "cm")
         ) +
-      scale_color_manual(name = "Zielpegel",
+      scale_color_manual(name = "Skalierungspegel",
                          breaks = color_breaks,
+                         label = function(x) {stri_replace_first_regex(x, "^Z", "S")},
                          values = color) +
       scale_linetype_manual(name = "Skalierung",
                          breaks = lt_breaks,
@@ -807,7 +822,7 @@ plot_rhein_long <- function(
       scale_y_continuous(
         limits = y_range,
         breaks = y_breaks,
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+        labels = fm_nr,
         expand = y_expand
         ) +
       theme_bw(base_size = txt_size) +
@@ -1097,7 +1112,7 @@ plot_long_inn <- function(
     ) +
     scale_y_continuous(
       breaks = pretty(y_lims, 7, 7),
-      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+      labels = fm_nr,
       expand = y_expand, limits = y_lims)
   if (!is.null(facet.by)) g <- g + facet_grid(rows = vars(get(facet.by)))
   if (!is.null(fav)) {
@@ -1267,7 +1282,7 @@ plot_long_delta <- function(
   g <- g + scale_y_continuous(
     name = y.lab,
     limits = y.lim,
-    labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+    labels = fm_nr,
     breaks = pretty(y.lim, 4), expand = y_expand)
   g
 }
@@ -1338,7 +1353,8 @@ plot_long <- function(
   cdesc_lst <- dta[, unique(paste(zustand, zielpegel, hwe, vgf, sep = "_"))]
   # processing unstability of the model by HW1988, ZP0
   if (grepl("rhein", x_title[[1]], ignore.case = TRUE)) {
-    dta[hwe == "HW1988" & zielpegel == "ZP0" & km %between% c(838.8, 865.5), scheitel := NA]
+    dta[hwe == "HW1988" & zielpegel == "ZP0" & km %between% c(838.8, 865.5),
+        scheitel := NA]
     dta[hwe == "HW1988" & zielpegel == "ZP0" & km > 838,
         scheitel := approx(.I, scheitel, .I)$y, by = case]
   }
@@ -1384,7 +1400,7 @@ plot_long <- function(
                          breaks = x_breaks) +
       scale_y_continuous(
         name = y_lbl, limits = y_lims,
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+        labels = fm_nr,
         breaks = y_breaks) +
       theme_bw(base_size = txt_size) +
       theme(
@@ -1421,7 +1437,8 @@ plot_long <- function(
     delta_his <- cal_delta_4_plot(dta_his, "zustand", "hwe")
     if (rm_legend) legend_pos <- "none" else legend_pos <- c(0.5, 0.15)
 
-    g_his <- ggplot(data = delta_his[zustand == "Bezugszustand" & km %between% x_lims],
+    g_his <- ggplot(data = delta_his[zustand == "Bezugszustand" &
+                                       km %between% x_lims],
                     aes(x = km)) +
       geom_line(aes(
         x = km,
@@ -1434,7 +1451,7 @@ plot_long <- function(
                          breaks = x_breaks) +
       scale_y_continuous(
         limits = y_range, breaks = y_breaks,
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")) +
+        labels = fm_nr) +
       theme_bw(base_size = txt_size) +
       theme(legend.position = legend_pos,
             title = txt_format,

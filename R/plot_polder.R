@@ -455,7 +455,7 @@ plot_polder <- function(
         vjust = 1
       )
   }
-  
+
   if (!is.null(h.lines)) {
     id_hlines <- id_data[, min(ts), by = case]
     # id_hlines with 2 cols: V1, case
@@ -486,13 +486,15 @@ plot_polder <- function(
   }
   if ((param == 'discharge' & isTRUE(w.canal)) | isTRUE(q.in)) {
     y2_pretty <- (y1_pretty - y2_shift)/y2.scale
+    y2_pretty <- round(y2_pretty, 2)
     g <-  g +
       scale_y_continuous(
         breaks = y1_pretty,
+        labels = fm_nr,
         sec.axis =
           sec_axis(trans = ~.*1/y2.scale - y2_shift/y2.scale,
                    breaks = y2_pretty,
-                   labels = round(y2_pretty, 2),
+                   labels = fm_nr,
                    name = y2_name)
       )
   }

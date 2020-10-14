@@ -1,5 +1,5 @@
 #' This function changes the simulation start and ending time in a sobek setting
-#' The input time is an POSIXCt or an object that is coerceable to POSIXCt
+#' The input time is an POSIXCt or an object that is coercible to POSIXCt
 set_time <- function(sfile = "", begin.time = NULL, end.time = NULL){
   s_dat <- utils::read.table(sfile,
                              header = FALSE,
@@ -30,24 +30,18 @@ set_time <- function(sfile = "", begin.time = NULL, end.time = NULL){
     if (class(start_t)[[1]] == "try-error") {
       stop("Cannot regconize time string. Simulation time was not set!")
     }
-    start_Y <- paste("BeginYear=",
-                     strftime(start_t,format = "%Y", tz = "GMT"),
-                     sep = "")
-    start_m <- paste("BeginMonth=",
-                     strftime(start_t, format = "%m", tz = "GMT"),
-                     sep = "")
-    start_d <- paste("BeginDay=",
-                     strftime(start_t, format = "%d", tz = "GMT"),
-                     sep = "")
-    start_H <- paste("BeginHour=",
-                     strftime(start_t, format = "%H", tz = "GMT"),
-                     sep = "")
-    start_M <- paste("BeginMinute=",
-                     strftime(start_t, format = "%M", tz = "GMT"),
-                     sep = "")
-    start_S <- paste("BeginSecond=",
-                     strftime(start_t, format = "%S", tz = "GMT"),
-                     sep = "")
+    start_Y <- paste0("BeginYear=",
+                     strftime(start_t,format = "%Y", tz = "GMT"))
+    start_m <- paste0("BeginMonth=",
+                     strftime(start_t, format = "%m", tz = "GMT"))
+    start_d <- paste0("BeginDay=",
+                     strftime(start_t, format = "%d", tz = "GMT"))
+    start_H <- paste0("BeginHour=",
+                     strftime(start_t, format = "%H", tz = "GMT"))
+    start_M <- paste0("BeginMinute=",
+                     strftime(start_t, format = "%M", tz = "GMT"))
+    start_S <- paste0("BeginSecond=",
+                     strftime(start_t, format = "%S", tz = "GMT"))
     s_dat$dat <- sub("^BeginYear=[0-9]{1,4}", start_Y, s_dat$dat)
     s_dat$dat <- sub("^BeginMonth=[0-9]{1,2}", start_m, s_dat$dat)
     s_dat$dat <- sub("^BeginDay=[0-9]{1,2}", start_d, s_dat$dat)
@@ -81,24 +75,18 @@ set_time <- function(sfile = "", begin.time = NULL, end.time = NULL){
         stop("new.end must be a moment after new.begin")
       }
     }
-    end_Y <- paste("EndYear=",
-                   strftime(end_t, format = "%Y", tz = "GMT"),
-                   sep = "")
-    end_m <- paste("EndMonth=",
-                   strftime(end_t, format = "%m", tz = "GMT"),
-                   sep = "")
-    end_d <- paste("EndDay=",
-                   strftime(end_t, format = "%d", tz = "GMT"),
-                   sep = "")
-    end_H <- paste("EndHour=",
-                   strftime(end_t, format = "%H", tz = "GMT"),
-                   sep = "")
-    end_M <- paste("EndMinute=",
-                   strftime(end_t, format = "%M", tz = "GMT"),
-                   sep = "")
-    end_S <- paste("EndSecond=",
-                   strftime(end_t, format = "%S", tz = "GMT"),
-                   sep = "")
+    end_Y <- paste0("EndYear=",
+                   strftime(end_t, format = "%Y", tz = "GMT"))
+    end_m <- paste0("EndMonth=",
+                   strftime(end_t, format = "%m", tz = "GMT"))
+    end_d <- paste0("EndDay=",
+                   strftime(end_t, format = "%d", tz = "GMT"))
+    end_H <- paste0("EndHour=",
+                   strftime(end_t, format = "%H", tz = "GMT"))
+    end_M <- paste0("EndMinute=",
+                   strftime(end_t, format = "%M", tz = "GMT"))
+    end_S <- paste0("EndSecond=",
+                   strftime(end_t, format = "%S", tz = "GMT"))
     s_dat$dat <- sub("^EndYear=[0-9]{1,4}", end_Y, s_dat$dat)
     s_dat$dat <- sub("^EndMonth=[0-9]{1,2}", end_m, s_dat$dat)
     s_dat$dat <- sub("^EndDay=[0-9]{1,2}", end_d, s_dat$dat)
@@ -168,16 +156,16 @@ create_case <- function(
     # make a copy of old case folder
     dir.create(paste(sobek.project, new_folder, sep = "/"))
     file.copy(
-      from = list.files(paste(sobek.project, "/", old_folder, "/", sep = ""),
+      from = list.files(paste0(sobek.project, "/", old_folder),
                         full.names = TRUE),
-      to = paste(sobek.project, "/", new_folder, "/", sep = ""),
+      to = paste0(sobek.project, "/", new_folder, "/"),
       recursive = TRUE,
       overwrite = FALSE
     )
     # update settings.dat
     if (!is.null(new.begin) && !is.null(new.end)) {
       file.copy(from = paste(sobek.project, old_folder, "settings.dat", sep = "/"),
-                to = paste(sobek.project, "/", new_folder, "/", sep = ""))
+                to = paste0(sobek.project, "/", new_folder, "/"))
       setting_dat <- paste(sobek.project, new_folder, "settings.dat", sep = "/")
       try_settime <- try(set_time(sfile = setting_dat, begin = new.begin, end = new.end),
                          silent = FALSE)
@@ -199,11 +187,10 @@ create_case <- function(
     )
     # "SUFHYD 1" is the line of casedesc.cmt right after the case description
     cdesc_begin <- which(cdesc$old == "SUFHYD 1")
-    new_cdesc <- paste(sobek.project, "/", new_folder,
-    									 "/", "casedesc.cmt", sep = "")
+    new_cdesc <- paste0(sobek.project, "/", new_folder, "/casedesc.cmt")
 
     write.table(
-      paste("#", new.name, sep = ""),
+      paste0("#", new.name),
       file = new_cdesc,
       quote = FALSE,
       col.names = FALSE,
@@ -221,7 +208,7 @@ create_case <- function(
         sep = ""
       )
       write.table(
-        paste("#", new.desc, sep = ""),
+        paste0("#", new.desc),
         file = new_cdesc,
         append = TRUE,
         quote = FALSE,
@@ -246,8 +233,8 @@ create_case <- function(
       )
     }
     cdesc$old <- gsub(
-      paste("\\\\", old_folder, "\\\\", sep = ""),
-      paste("\\\\", new_folder, "\\\\", sep = ""),
+      paste0("\\\\", old_folder, "\\\\"),
+      paste0("\\\\", new_folder, "\\\\"),
       cdesc$old
     )
     write.table(
@@ -261,7 +248,7 @@ create_case <- function(
     )
     # update caselist.cmt
     write.table(
-      paste(new_folder, " ", "\'", new.name, "\'", sep = ""),
+      paste0(new_folder, " ", "\'", new.name, "\'"),
       file = sobek_cmt,
       append = TRUE,
       quote = FALSE,
@@ -273,7 +260,7 @@ create_case <- function(
     fc_reg <- paste(sobek.project, "register.cmt", sep = "/")
     file.copy(
       from = fc_reg,
-      to = paste(fc_reg, ".bk", sep = ""),
+      to = paste0(fc_reg, ".bk"),
       overwrite = TRUE
     )
     c_reg <- data.table::fread(file = fc_reg,
@@ -285,7 +272,7 @@ create_case <- function(
     case_flist <- list.files(path = paste(sobek.project, new_folder, sep = "/"),
     												 full.names = FALSE)
     case_flist <- case_flist[tolower(case_flist) != "casedesc.cmt"]
-    case_flist <- paste("1 ..\\", new_folder, "\\", case_flist, sep = "")
+    case_flist <- paste0("1 ..\\", new_folder, "\\", case_flist)
     n_files <- n_files + length(case_flist)
     data.table::fwrite(as.list(n_files), file = fc_reg,
     									 sep = "\n",
@@ -338,7 +325,7 @@ change_output_ntstep <- function(
                                col.names = c("dat")
     )
     s_dat$dat <- sub("^NrOfTimesteps=[0-9]{1,}",
-                     paste("NrOfTimesteps=", n.tstep, sep = ""), s_dat$dat)
+                     paste0("NrOfTimesteps=", n.tstep), s_dat$dat)
     try_set <- try(write.table(s_dat$dat,
                                            file = sfile,
                                            sep = "\n",
@@ -353,7 +340,8 @@ change_output_ntstep <- function(
 }
 
 
-#' Rename a Sobek Case
+#' Change Sobek case information
+#'
 #' @param old.name Name of the old case, case-sensitive
 #' @param new.name Name of the new case
 #' @param new.begin New simulation starting time (in format dd.mm.yyyy hh:mm:ss)
@@ -404,7 +392,7 @@ change_case_info <- function(
   # changing case description
   if (!is.null(new.name) | !is.null(new.desc)) {
     cdesc <- utils::read.table(
-      file = paste(case_folder, "casedesc.cmt", sep = "/"),
+      file = paste0(case_folder, "/casedesc.cmt"),
       header = FALSE,
       sep = "\n",
       quote = "",
@@ -414,15 +402,13 @@ change_case_info <- function(
       col.names = c("old")
     )
     # "SUFHYD 1" is the line of casedesc.cmt right after the case description
-    cdesc_begin <- which(cdesc$old == "SUFHYD 1")
-    new_cdesc <- paste(case_folder,
-                       "/", "casedesc.cmt", sep = "")
+    cdesc_begin <- grep("^SUFHYD \\d{1}", cdesc$old, ignore.case = TRUE)
+    new_cdesc <- paste0(case_folder, "/casedesc.cmt")
     if (!is.null(new.name)){
       if (new.name %in% sobek_clist$case_name) stop("Case: ", new.name, " existed!")
       # update caselist.cmt
       sobek_clist[case_name == old.name, case_name := new.name]
-      sobek_clist[, clist_out := paste(case_number, " ", "'", case_name, "'",
-                                       sep = "")]
+      sobek_clist[, clist_out := paste0(case_number, " '", case_name, "'",)]
       write.table(
         sobek_clist[, c('clist_out')],
         file = sobek_cmt,
@@ -433,7 +419,7 @@ change_case_info <- function(
         sep = ""
       )
       write.table(
-        paste("#", new.name, sep = ""),
+        paste0("#", new.name),
         file = new_cdesc,
         quote = FALSE,
         append = FALSE,
@@ -443,7 +429,7 @@ change_case_info <- function(
       )
     } else{
       write.table(
-        paste("#", old.name, sep = ""),
+        paste0("#", old.name),
         file = new_cdesc,
         quote = FALSE,
         append = FALSE,
@@ -463,7 +449,7 @@ change_case_info <- function(
         sep = ""
       )
       write.table(
-        paste("#", new.desc, sep = ""),
+        paste0("#", new.desc),
         file = new_cdesc,
         append = TRUE,
         quote = FALSE,

@@ -379,11 +379,11 @@ sobek_copy <- function(
              append = FALSE)
       for (j in seq_along(old_files)) {
         file.copy(from = old_files[j], to = new_files[j], overwrite = TRUE)
-        cat('Copying files for case:', str_pad(i, 5, 'left'),
+        cat('Copying files for case:', stri_pad_left(i, 5),
             '.....',
-            str_pad(round(j * 100 / tot_file), 5, 'left'),
+            stri_pad_left(round(j * 100 / tot_file), 5),
             '%. Total: ',
-            str_pad(round(i * 100 / n_case), 5, 'left'),
+            stri_pad_left(round(i * 100 / n_case), 5),
             '%\r'
             )
         flush.console()
@@ -482,11 +482,11 @@ sobek_overwrite <- function(
     tot_file <- length(from_files)
     for (j in seq_along(from_files)) {
       file.copy(from = from_files[j], to = cmt_tbl[i, to_folder], overwrite = TRUE)
-      cat('Copying files for case:', str_pad(i, 5, 'left'),
+      cat('Copying files for case:', stri_pad_left(i, 5),
           '.....',
-          str_pad(round(j * 100 / tot_file), 5, 'left'),
+          stri_pad_left(round(j * 100 / tot_file), 5),
           '%. Total: ',
-          str_pad(round(i * 100 / n_case), 5, 'left'),
+          stri_pad_left(round(i * 100 / n_case), 5),
           '%\r'
       )
       flush.console()

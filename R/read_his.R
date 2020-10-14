@@ -23,7 +23,6 @@ his_location <- function(his.file) {
   # read total number of locations
   total_loc <- readBin(con, what = "int", n = 1, size = 4)
   # initialize location -id and -name vectors
-  loc_id <- vector(mode = "integer", length = total_loc)
   loc_id <- seq.int(from = 1, to = total_loc, by = 1)
   loc_name <- vector(mode = "character", length = total_loc)
   # 160 for the title, 4 + 4 for param_nr,total_loc, and 20*param_nr for params
@@ -31,62 +30,28 @@ his_location <- function(his.file) {
   # get locations table
   for (i in 1:total_loc) {
     seek(con, 4, "current")
-    loc_name[i] <- stri_conv(readBin(con, what = "raw", n = 20),
-                             from = 'windows-1252')
+    loc_name[i] <- stri_trim_both(stri_conv(readBin(con, what = "raw", n = 20),
+                             from = 'windows-1252'))
     seek(con, where = 168 + 20 * param_nr + 24 * i, origin = "start")
   }
   close(con)
   his_locs <- data.table(
     location = loc_id,
-    sobek.id = str_trim(loc_name, side = 'both')
+    sobek.id = loc_name
   )
   # try to read .HIA
   hia_file <- stri_replace_last_fixed(
     his.file, ".his", ".hia",
     opts_fixed = stri_opts_fixed(case_insensitive = TRUE))
   if (file.exists(hia_file)) {
-    hia_dt <- fread(
-      file = hia_file,
-      sep = "\n",
-      header = F,
-      col.names = "V1",
-      na.strings = "",
-      data.table = TRUE,
-      strip.white = FALSE,
-      encoding = 'Latin-1',
-      blank.lines.skip = TRUE,
-      quote = ""
-    )
-    # remove blank lines
-    hia_dt <- na.omit(hia_dt)
-    hia_dt <- hia_dt[!grepl("^\\ {1,}$", V1), ]
-    # check if there is a Long Location Section
-    hia_check <- TRUE %in% grepl("^\\[Long Locations]", hia_dt$V1)
-    # check if Long Locations is the last section, and empty?
-    if (hia_check) {
-      long_loc_pos <- which(hia_dt$V1 == "[Long Locations]")
-      if (long_loc_pos >= length(hia_dt$V1)) hia_check <- FALSE
-    }
-    # check if Long Locations is an empty section in between
-    if (hia_check) {
-      # get the first character of the next line after the "[Long Locations]
-      first_char <- str_sub(hia_dt$V1[long_loc_pos + 1], 1, 1)
-      if (first_char == "[") hia_check <- FALSE
-    }
-    # finally get Long Locations if till here hia_check is TRUE
-    if (hia_check) {
-      hia_sbegin <- grep("^\\[", hia_dt$V1) + 1
-      hia_send <- data.table::shift(hia_sbegin, type = "lead",
-                                    fill = length(hia_dt$V1) + 2) - 2
-      pos_long_loc <- grep("^\\[Long Locations]", hia_dt$V1)
-      i_long_loc <- which(hia_sbegin == pos_long_loc + 1)
-      if (length(i_long_loc) > 0) {
-        long_loc <- hia_dt[hia_sbegin[i_long_loc]:hia_send[i_long_loc], ]
-        long_loc[, c("location", "sobek.id") := tstrsplit(V1, "=", fixed = TRUE)]
-        long_loc[, V1 := NULL]
-        his_locs <- rbind(long_loc, his_locs)
-      }
-    }
+    hia_dt <- ini::read.ini(hia_file)
+    long_loc <- hia_dt[["Long Locations"]]
+    long_loc_tbl <- data.table(location = names(long_loc),
+                               sobek.id = unlist(long_loc, use.names = FALSE)
+                               )
+    if (nrow(long_loc_tbl) > 0)
+      his_locs <- rbind(his_locs[!location %in% long_loc_tbl$location],
+                        long_loc_tbl)
   }
   his_locs[, location := as.integer(location)]
   setkey(his_locs, sobek.id)
@@ -115,7 +80,7 @@ his_info <- function(his.file) {
   # first 160 bytes are characters for the title part
   txt_title <- stri_conv(readBin(con, what = "raw", n = 160),
                          from = 'windows-1252')
-  his_title <- str_extract_all(txt_title, ".{40}", simplify = TRUE)
+  his_title <- stri_extract_all_regex(txt_title, ".{40}", simplify = TRUE)
   # bytes 160-167 are for 2 int
   seek(con, where = 160, origin = "start")
   param_nr <- readBin(con, what = "int", size = 4, endian = "little")
@@ -127,9 +92,8 @@ his_info <- function(his.file) {
   # each parameter name is stored in a fixed string having length = 20
   param_names <- vector(mode = "character", length = param_nr)
   # removing padding strings at the end
-  for (i in 1:param_nr) param_names[i] <- str_sub(params_str,
-                                                 start = 20 * (i - 1) + 1,
-                                                 end = 20 * i)
+  for (i in 1:param_nr)
+    param_names[i] <- stri_sub(params_str, 20 * (i - 1) + 1, 20 * i)
   close(con)
   # The rest is for numerical data with the following structure
   data_bytes <- file.size(his.file) -
@@ -140,7 +104,7 @@ his_info <- function(his.file) {
   # int(4) for time, double(4) for data
   total_tstep <- data_bytes / (4 + 4 * param_nr * total_loc)
   # searching the case name
-  case_name <- str_sub(his_title[3], start = 8, end = nchar(his_title[3]))
+  case_name <- stri_sub(his_title[3], 8, nchar(his_title[3]))
   # searching the start time (t0) and time step (dt) in title
   t0_pattern <- "[0-9]{4}.[0-9]{2}.[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}"
   dt_pattern <- "scu=[[:space:]]{1,}([0-9]{1,})s"
@@ -168,9 +132,10 @@ his_info <- function(his.file) {
 
 
 #' Export data for nodes/reaches using IDs from a list
+#'
 #' @param his.file Path to the .HIS file, string
 #' @param id.list List of Sobek IDs
-#' @param param Index or Name of the Paramter to get the data, default = 1.
+#' @param param Index or Name of the Parameter to get the data, default = 1.
 #' @return A data.table
 #' @export
 his_from_list <- function(
@@ -185,7 +150,8 @@ his_from_list <- function(
   seek(con, 160)
   param_nr <- readBin(con, 'int', n = 1L, size = 4)
   close(con)
-  if (!is.vector(id.list)) stop("id must be a vector")
+  if (!is.vector(id.list))
+    stop("id must be a vector")
   if (!is.numeric(param)) {
     pardf <- his_parameter(his.file)
     par_int <- param_name_2_id(param, pardf)
@@ -201,14 +167,18 @@ his_from_list <- function(
     }
   }
   locdf <- his_location(his.file)
+  # setkey(locdf, sobek.id)
+  # locs <- locdf[sobek.id %in% id.list, location]
   locs <- locdf[id.list, location]
   hisdf <- his_df(his.file)
   matrix_chk <- FALSE
-  if (nrow(hisdf) == 1) matrix_chk <- TRUE
+  if (nrow(hisdf) == 1)
+    matrix_chk <- TRUE
   # creating a mask for the matrix, to get only columns for the param
   cols_mask <- par_int + param_nr * (locs - 1)
   hisdf <- hisdf[, cols_mask]
-  if (matrix_chk) hisdf <- matrix(hisdf, nrow = 1)
+  if (matrix_chk)
+    hisdf <- matrix(hisdf, nrow = 1)
   tsdf <- his_time_df(his.file = his.file)
   df_out <- data.table(tsdf, hisdf)
   colnames(df_out) <- c('ts', id.list)
@@ -256,4 +226,54 @@ his_from_file <- function(
     colnames(df_out) <- c("ts", id.list[, 2])
   }
   return(df_out)
+}
+
+
+#' Export data matrix of one parameter for nodes/reaches using IDs from a list
+#'
+#' @param his.file Path to the .HIS file, string
+#' @param id.list List of Sobek IDs
+#' @param param Index or Name of the Parameter to get the data, default = 1.
+#' @return A matrix
+#' @export
+his_matrix <- function(
+  his.file,
+  id.list,
+  param = 1L) {
+  id.list <- as.character(unlist(id.list))
+  if (!file.exists(his.file)) {
+    stop("HIS file: ", his.file, " does not exist!")
+  }
+  con <- file(his.file, 'rb')
+  seek(con, 160)
+  param_nr <- readBin(con, 'int', n = 1L, size = 4)
+  close(con)
+  if (!is.vector(id.list))
+    stop("id must be a vector")
+  if (!is.numeric(param)) {
+    pardf <- his_parameter(his.file)
+    par_int <- param_name_2_id(param, pardf)
+    if (is.na(par_int)) {
+      cat('List of Parameters in the .HIS file\n')
+      print(pardf)
+      stop('Parameter: ', param, ' not found')
+    }
+  } else {
+    par_int <- as.integer(param)
+    if (!par_int %in% seq.int(1, param_nr, 1)) {
+      stop('Parameter: ', param, ' out of range(1, ', param_nr,')')
+    }
+  }
+  locdf <- his_location(his.file)
+  locs <- locdf[sobek.id %in% id.list, location]
+  hisdf <- his_df(his.file)
+  matrix_chk <- FALSE
+  if (nrow(hisdf) == 1)
+    matrix_chk <- TRUE
+  # creating a mask for the matrix, to get only columns for the param
+  cols_mask <- par_int + param_nr * (locs - 1)
+  hisdf <- hisdf[, cols_mask]
+  if (matrix_chk)
+    hisdf <- matrix(hisdf, nrow = 1)
+  return(hisdf)
 }

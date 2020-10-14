@@ -1,31 +1,16 @@
 # Convert parameter name to parameter index
 param_name_2_id <- function(param.name, param.df) {
   # using exact matching to prevent potential problem caused by special characters
-  param_short_check <- grep(tolower(param.name), tolower(param.df$param_short),
-                      fixed = TRUE)
-  if (length(param_short_check) == 1) {
-    # stop('parameter with name: ', param.name, ' is ambiguous or not found')
-    rel <- param_short_check[[1]]
-  } else {
-    rel <- NA_integer_
-    param_long_check <- grep(tolower(param.name),
-                             tolower(param.df$param_long),
-                             fixed = TRUE)
-    if (length(param_long_check) == 1) {
-      rel <- param_long_check[[1]]
-      } else{
-        warning('parameter with name: ', param.name,
-                ' is ambiguous or not found')
-        rel <- NA_integer_
-        }
-    }
-  return(rel)
+  ret <- param.df[grepl(param.name, param_name, ignore.case = TRUE), unique(param_id)]
+  if (length(ret) != 1) ret <- NA_integer_ else ret <- as.integer(ret)
+  return(ret)
 }
 
 
-# Get data matrix of the .HIS file
-# @param his.file Path to .HIS file, string
-# @return a numeric matrix with ncol = total_loc*total_param, nrow = total_tstep
+#' Get data matrix of the .HIS file
+#'
+#' @param his.file Path to .HIS file, string
+#' @return a numeric matrix with ncol = total_loc*total_param, nrow = total_tstep
 his_df <- function(his.file) {
   con <- file(his.file, open = "rb", encoding = "native.enc")
   seek(con, 160)
@@ -120,8 +105,8 @@ his_parameter <- function(his.file = "") {
     seek(con, where = 168 + 20 * i, origin = "start")
   }
   close(con)
-  his.params <- data.table(cbind(param_id, str_trim(param_name)))
-  colnames(his.params) <- c("param_id", "param_short")
+  param_tbl <- data.table(cbind(param_id, stri_trim_both(param_name)))
+  colnames(param_tbl)[2] <- "param_name"
   # try to read .hia
   hia_file <- stri_replace_last_fixed(
     his.file, ".his", ".hia",
@@ -134,62 +119,28 @@ his_parameter <- function(his.file = "") {
       col.names = "V1",
       na.strings = "",
       data.table = TRUE,
-      strip.white = FALSE,
+      strip.white = TRUE,
       encoding = 'Latin-1',
       blank.lines.skip = TRUE,
       quote = ""
     )
     # remove blank lines
-    hia_dt <- na.omit(hia_dt)
-    # check if there is a Long Parameters Section
-    hia_check <- TRUE %in% grepl("^\\[Long Parameters]", hia_dt$V1)
-    # check if Long Parameters is the last section, and empty?
-    if (hia_check) {
-      long_loc_pos <- hia_dt[V1 == "[Long Parameters]", which = TRUE]
-      if (long_loc_pos > length(hia_dt$V1)) hia_check <- FALSE
+    hia_dt <- hia_dt[!is.na(V1)]
+    hia_dt[, seg := stri_match_first_regex(V1, "\\[(.+)]")[, 2]]
+    hia_dt[, seg := seg[1], by = .(cumsum(!is.na(seg)))]
+    param_long_tbl <- hia_dt[grepl("Long Parameters", seg, ignore.case = TRUE),
+                             c("V1")]
+    if (nrow(param_long_tbl) > 1) {
+      param_long_tbl[, c("param_id", "param_name") := tstrsplit(V1, "=")]
+      param_long_tbl[, V1 := NULL]
+      param_tbl <- rbind(param_tbl, param_long_tbl[-1])
     }
-    # check if Long Parameters is an empty section in between
-    if (hia_check) {
-      # get the first character of the next line after the "[Long Parameters]
-      first_char <- substr(hia_dt$V1[long_loc_pos + 1], 1, 1)
-      if (first_char == "[") hia_check <- FALSE
-    }
-    # finally get Long Parameters if till here hia_check is TRUE
-    if (hia_check) {
-      hia_sbegin <- grep("^\\[", hia_dt$V1) + 1
-      hia_send <- shift(hia_sbegin, type = "lead",
-                                    fill = length(hia_dt$V1) + 2) - 2
-      pos_long_loc <- grep("^\\[Long Parameters]", hia_dt$V1)
-      i_long_loc <- which(hia_sbegin == pos_long_loc + 1)
-      if (length(i_long_loc) > 0) {
-        long_loc <- hia_dt[hia_sbegin[i_long_loc]:hia_send[i_long_loc], ]
-        long_loc[, c("param_id", "param_long") := tstrsplit(V1, "=", fixed = TRUE)]
-        long_loc[, V1 := NULL]
-        his.params <- merge(his.params, long_loc, all.x = TRUE,
-                          by = "param_id",
-                          sort = FALSE)
-        his.params[which(is.na(param_long)), param_long := param_short]
-      }
-    }
-  }
-  # make sure his.params always has 3 columns
-  if (!"param_long" %in% colnames(his.params)) {
-    his.params[, param_long := '']
   }
   # correcting the 'water level' instead of 'waterlevel' in measstat.his
-  his.params[, param_short := sub('water level|w.level',
-                                  'Waterlevel',
-                                  ignore.case = TRUE,
-                                  param_short
-                                  )
+  param_tbl[, param_name := gsub('water level|w\\.level', 'Waterlevel',
+                                  param_name, ignore.case = TRUE)
              ]
-  his.params[, param_long := sub('water level|w.level',
-                                  'Waterlevel',
-                                 param_long,
-                                 ignore.case = TRUE
-  )
-  ]
-  return(his.params)
+  return(param_tbl)
 }
 
 

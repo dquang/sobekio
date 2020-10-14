@@ -260,7 +260,7 @@ plot_multi_lines <- function(
     labs(x = x.lab, y = y.lab, title =  p.title, caption = p.caption) +
     scale_y_continuous(
       breaks = y1_pretty,
-      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
+      labels = function(x) format(x, big.mark = ".", decimal.mark = ",")
       )
   if (length(y2_cols) > 0) {
     delta <- FALSE
@@ -282,11 +282,11 @@ plot_multi_lines <- function(
                        mapping = aes(y = value * y2.scale + y2_shift)) +
       scale_y_continuous(
         breaks = y1_pretty,
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+        labels = function(x) format(x, big.mark = ".", decimal.mark = ","),
         sec.axis =
           sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
                    breaks = y2_pretty,
-                   labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+                   labels = function(x) format(x, big.mark = ".", decimal.mark = ","),
                    name = y2.lab)
       )
   }
@@ -527,7 +527,7 @@ plot_lines <- function(
     xlab(x.lab) + ylab(y.lab) +
     scale_y_continuous(
       breaks = y1_pretty,
-      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","))
+      labels = function(x) format(x, big.mark = ".", decimal.mark = ","))
 
   # horizontal lines --------------------------------------------------------
 

@@ -12,7 +12,8 @@ save_polder <- function(plot, filename = NULL,
             device = "png", width = 9, height = 6, dpi = 350
             , ...){
   f_args <- match.call(expand.dots = FALSE)
-  if (is.null(filename)) filename <- paste(f_args$plot, ".png", sep = "")
+  if (is.null(filename))
+    filename <- paste(f_args$plot, ".png", sep = "")
   ggsave(filename = filename, plot = plot,
          device = device, width = width, height = height, dpi = dpi, ...)
 }
@@ -29,7 +30,8 @@ save_profile <- function(plot, filename = NULL,
                         device = "png", width = 18, height = 10, dpi = 350
                         , ...){
   f_args <- match.call(expand.dots = FALSE)
-  if (is.null(filename)) filename <- paste(f_args$plot, ".png", sep = "")
+  if (is.null(filename))
+    filename <- paste(f_args$plot, ".png", sep = "")
   ggsave(filename = filename, plot = plot,
          device = device, width = width, height = height, dpi = dpi, ...)
 }
@@ -39,7 +41,8 @@ save_a4_potrait <- function(plot, filename = NULL,
                             device = "png", width = 14.6,
                             height = 7, dpi = 350, ...){
   f_args <- match.call(expand.dots = FALSE)
-  if (is.null(filename)) filename <- paste(f_args$plot, ".png", sep = "")
+  if (is.null(filename))
+    filename <- paste(f_args$plot, ".png", sep = "")
   ggplot2::ggsave(filename = filename, plot = plot,
          device = device, width = width, height = height, dpi = dpi, ...)
 }
@@ -55,7 +58,8 @@ save_wmf <- function(plot, filename = NULL,
                          device = "wmf", width = 15, height = 8
                          , ...){
   f_args <- match.call(expand.dots = FALSE)
-  if (is.null(filename)) filename <- paste(f_args$plot, ".wmf", sep = "")
+  if (is.null(filename))
+    filename <- paste(f_args$plot, ".wmf", sep = "")
   ggsave(filename = filename, plot = plot,
          device = device, width = width, height = height, ...)
 }
@@ -72,7 +76,8 @@ save_svg <- function(plot, filename = NULL,
                      device = "svg", width = 15, height = 8
                      , ...){
   f_args <- match.call(expand.dots = FALSE)
-  if (is.null(filename)) filename <- paste(f_args$plot, ".svg", sep = "")
+  if (is.null(filename))
+    filename <- paste(f_args$plot, ".svg", sep = "")
   ggsave(filename = filename, plot = plot,
          device = device, width = width, height = height, ...)
 }
@@ -143,4 +148,8 @@ zp_label <- function(x) {
                      x[[i]])
   }
   ret
+}
+
+fm_nr <- function(x) {
+  format(x, decimal.mark = ",")
 }

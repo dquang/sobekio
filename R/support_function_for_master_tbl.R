@@ -194,7 +194,7 @@ get_segment_id_tbl <- function(
   id_tbl$case_desc <- NULL
   if (param == 'waterlevel') {
     id_tbl <- id_tbl[ID_TYPE == 'wID']
-  } else if (param == 'discharge') {
+  } else if (param %in% c('discharge', 'velocity')) {
     id_tbl <- id_tbl[ID_TYPE == 'qID']
   } else {
     stop('wrong parameter.')
@@ -237,7 +237,8 @@ get_segment_data <- function(
   do.par = FALSE,
   ts.trim.left = NULL,
   donau.wehr = FALSE,
-  remove.inf = FALSE
+  remove.inf = FALSE,
+  km.as.col = FALSE
 ) {
   param <- tolower(param)
   if (!is.null(agg.fun)) get.max = FALSE
@@ -250,14 +251,19 @@ get_segment_data <- function(
     master.tbl = master.tbl,
     param = param
   )
-  if (nrow(id_tbl) == 0) stop('No ID found! Check master.tbl, name of river or from.km, to.km')
+  if (nrow(id_tbl) == 0)
+    stop('No ID found! Check master.tbl, name of river or from.km, to.km')
+  id_tbl[, km_col := ID_F]
+  if (km.as.col) {
+    id_tbl[, km_col := paste0("km_", km, "_i", .I)]
+  }
   # param == 'waterlevel' -> does not accept duplicated KM in the same case
-  if (param != 'discharge') {
+  if (param == 'waterlevel') {
     for (i in seq_along(case.list)) {
       # get list of qIDs for this case
-      wid = id_tbl[case == case.list[[i]], list(km, ID_F)]
+      wid <- id_tbl[case == case.list[[i]], list(km, ID_F)]
       # finding the IDs that have duplicated km
-      km_dup = wid[duplicated(km), km]
+      km_dup <- unique(wid[duplicated(km), km])
       if (length(km_dup) > 0) {
         warning('There are more than one wIDs for the same KM at KM(s): ',
                 paste(km_dup, collapse = ', '),
@@ -278,11 +284,12 @@ get_segment_data <- function(
     `%dopar%` <- foreach::`%dopar%`
     segment_data_list <-
       foreach::foreach(i = 1:length(case.list)) %dopar% {
-      if (param == 'discharge') {
+      if (param %in% c('discharge', 'velocity')) {
           tmp <- his_from_case(
             case.list = case.list[[i]],
             sobek.project = sobek.project,
             param = param,
+            id.names = id_tbl[case == case.list[[i]], km_col],
             qID = id_tbl[case == case.list[[i]], ID_F],
             verbose = FALSE
           )
@@ -291,6 +298,7 @@ get_segment_data <- function(
             case.list = case.list[[i]],
             sobek.project = sobek.project,
             param = param,
+            id.names = id_tbl[case == case.list[[i]], km_col],
             wID = id_tbl[case == case.list[[i]], ID_F],
             verbose = FALSE
           )
@@ -307,13 +315,14 @@ get_segment_data <- function(
       cat('Try it with do.par = TRUE if you have more than one case and so many IDs\n')
       cat('Please be patient...\n')
     }
-    if (param == 'discharge') {
+    if (param %in% c('discharge', 'velocity')) {
       for (i in seq_along(case.list)) {
         segment_data_list[[i]] <- his_from_case(
           case.list = case.list[[i]],
           sobek.project = sobek.project,
           param = param,
           qID = id_tbl[case == case.list[[i]], ID_F],
+          id.names = id_tbl[case == case.list[[i]], km_col],
           verbose = FALSE
         )
       }
@@ -324,6 +333,7 @@ get_segment_data <- function(
           sobek.project = sobek.project,
           param = param,
           wID = id_tbl[case == case.list[[i]], ID_F],
+          id.names = id_tbl[case == case.list[[i]], km_col],
           verbose = FALSE
         )
       }
@@ -338,11 +348,11 @@ get_segment_data <- function(
   if (param == 'discharge') {
     for (i in seq_along(case.list)) {
       # get list of qIDs for this case
-      qid <- id_tbl[case == case.list[[i]], list(km, ID_F)]
+      qid <- id_tbl[case == case.list[[i]], list(km, km_col)]
       # finding the IDs that have duplicated km
-      km_dup <- qid[duplicated(km), km]
+      km_dup <- unique(qid[duplicated(km), km])
       for (k in km_dup) {
-        qid_k <- qid[km == k, ID_F]
+        qid_k <- qid[km == k, km_col]
         segment_data[case == case.list[[i]],
                      eval(qid_k[1]) := rowSums(.SD, na.rm = TRUE),
                      .SDcols = qid_k
@@ -351,10 +361,33 @@ get_segment_data <- function(
       # we have to run this for twice, to avoid removing ID
       # that are used more than one time for many km
       for (k in km_dup) {
-        qid_k <- qid[km == k, ID_F]
+        qid_k <- qid[km == k, km_col]
         segment_data[case == case.list[[i]],
                      c(qid_k[-1]) := as.list(rep(NA, length(qid_k[-1])))
                      ]
+      }
+    }
+  }
+  if (param == 'velocity') {
+    for (i in seq_along(case.list)) {
+      # get list of qIDs for this case
+      qid <- id_tbl[case == case.list[[i]], list(km, km_col)]
+      # finding the IDs that have duplicated km
+      km_dup <- unique(qid[duplicated(km), km])
+      for (k in km_dup) {
+        qid_k <- qid[km == k, km_col]
+        segment_data[case == case.list[[i]],
+                     eval(qid_k[1]) := rowMeans(.SD, na.rm = TRUE),
+                     .SDcols = qid_k
+        ]
+      }
+      # we have to run this for twice, to avoid removing ID
+      # that are used more than one time for many km
+      for (k in km_dup) {
+        qid_k <- qid[km == k, km_col]
+        segment_data[case == case.list[[i]],
+                     c(qid_k[-1]) := as.list(rep(NA, length(qid_k[-1])))
+        ]
       }
     }
   }
@@ -393,18 +426,18 @@ get_segment_data <- function(
     if (isTRUE(verbose)) cat('Calculating max values....\n')
     segment_data <- segment_data[, lapply(.SD, max, na.rm = TRUE),
                          .SDcols = -c('ts'), by = case] %>%
-      melt(id.vars = 'case', variable.name = 'ID_F', value.name = 'scheitel')
+      melt(id.vars = 'case', variable.name = 'km_col', value.name = 'scheitel')
     # removing ID_F that were aggregated to the first ID_F at the duplicated KM
     if (param == 'discharge') {
       for (i in seq_along(case.list)) {
         # get list of qIDs for this case
-        qid = id_tbl[case == case.list[[i]], list(km, ID_F)]
+        qid = id_tbl[case == case.list[[i]], list(km, km_col)]
         # finding the IDs that have duplicated km
         km_dup = qid[duplicated(km), km]
         for (k in km_dup) {
-          qid_k <- qid[km == k, ID_F]
+          qid_k <- qid[km == k, km_col]
           segment_data <- segment_data[!(case == case.list[[i]] &
-                                           ID_F %in% qid_k[-1])]
+                                           km_col %in% qid_k[-1])]
         }
       }
     }
@@ -415,8 +448,8 @@ get_segment_data <- function(
     }
     segment_data <- merge(
       segment_data,
-      id_tbl[, .SD, .SDcols = c('ID_F', 'besonderheit', 'km', 'river', 'case')],
-      by = c('case', 'ID_F'),
+      id_tbl[, .SD, .SDcols = c('km_col', 'besonderheit', 'km', 'river', 'case')],
+      by = c('case', 'km_col'),
       sort = FALSE
     )
   }
@@ -1411,7 +1444,7 @@ get_polder_case_tbl <- function(
   case_tbl_ohne[, grp := .GRP, by = case]
   case_tbl <- rbind(case_tbl_mit, case_tbl_ohne)
   # reading caselist.cmt
-  case_cmt <- fread(file_path('caselist.cmt', sobek.project), sep = ' ',
+  case_cmt <- fread(paste0(sobek.project, "\\caselist.cmt"), sep = ' ',
                     quote = "'", col.names = c('case_number', 'case'))
   case_cmt[, case := str_remove_all(case, '"')]
   case_cmt <- case_cmt[case %in% c(case.mit, case.ohne)]

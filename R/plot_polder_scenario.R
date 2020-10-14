@@ -589,13 +589,15 @@ plot_polder_scenario_old <- function(
   }
   if (isTRUE(y2_axis)) {
     if (y2.scale != 0) {
+      y2_pretty <- round(y2_pretty, 2)
       g <- g +
         scale_y_continuous(
           breaks = y1_pretty,
+          labels = fm_nr,
           sec.axis =
             sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
                      breaks = y2_pretty,
-                     labels = round(y2_pretty, 2),
+                     labels = fm_nr,
                      name = y2_name)
         )
     } else{
@@ -603,6 +605,7 @@ plot_polder_scenario_old <- function(
       g <- g +
         scale_y_continuous(
           breaks = y1_pretty,
+          labels = fm_nr,
           sec.axis =
             sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
                      name = y2_name)
@@ -787,7 +790,7 @@ get_polder_scenario_case_tbl <- function(
   # parsing information from cases
   case_tbl <- parse_case(case.desc, case.list)
   # reading caselist.cmt
-  case_cmt <- fread(file_path('caselist.cmt', sobek.project), sep = ' ',
+  case_cmt <- fread(file.path(sobek.project, 'caselist.cmt'), sep = ' ',
                     quote = "'", col.names = c('case_number', 'case'))
   case_cmt[, case := str_remove_all(case, '"')]
   case_cmt <- case_cmt[case %in% case.list]
@@ -1458,13 +1461,15 @@ plot_polder_scenario <- function(
   }
   if (isTRUE(y2_axis)) {
     if (y2.scale != 0) {
+      y2_pretty <- round(y2_pretty, 2)
       g <- g +
         scale_y_continuous(
           breaks = y1_pretty,
+          labels = fm_nr,
           sec.axis =
             sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
                      breaks = y2_pretty,
-                     labels = round(y2_pretty, 2),
+                     labels = fm_nr,
                      name = y2_name)
         )
     } else{
@@ -1472,8 +1477,10 @@ plot_polder_scenario <- function(
       g <- g +
         scale_y_continuous(
           breaks = y1_pretty,
+          labels = fm_nr,
           sec.axis =
             sec_axis(trans = ~./y2.scale - y2_shift/y2.scale,
+                     # labels = fm_nr,
                      name = y2_name)
         )
     }

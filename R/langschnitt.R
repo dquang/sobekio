@@ -362,10 +362,7 @@ plot_drv <- function(
     ) +
     labs(title = plot.title) +
     ylab(y.lab) +
-    scale_y_continuous(
-      breaks = y1_pretty,
-      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
-      )
+    scale_y_continuous(breaks = y1_pretty, labels = fm_nr)
   if (reverse.x) {
     g <- g +
       scale_x_reverse(
@@ -406,14 +403,11 @@ plot_drv <- function(
       size = line.size
     ) +
       scale_y_continuous(
-        breaks = y1_pretty,
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+        breaks = y1_pretty, labels = fm_nr,
         sec.axis =
           sec_axis(
             trans = ~ (. - y2_shift) / y2.scale,
-            breaks = y2_pretty,
-            labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
-            name = y2_name
+            breaks = y2_pretty, labels = fm_nr, name = y2_name
           )
       )
   }
@@ -924,13 +918,10 @@ plot_longprofile_old <- function(
                        ),
                        size = line.size)
   }
-  if (!delta) g <- g + scale_y_continuous(
-    breaks = y1_pretty,
-    labels = function(x) stri_replace_all_fixed(as.character(x), ".", ",")
-    )
-  if (!is.null(man.colors)) {
+  if (!delta)
+    g <- g + scale_y_continuous(breaks = y1_pretty, labels = fm_nr)
+  if (!is.null(man.colors))
     g <- g + scale_color_manual(values = c(man.colors, man.colors))
-  }
   if (delta) {
     # manual setting for y2 axis
     if (!is.null(y2.shift)) {
@@ -975,14 +966,11 @@ plot_longprofile_old <- function(
       size = line.size
     ) +
       scale_y_continuous(
-        breaks = y1_pretty,
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+        breaks = y1_pretty, labels = fm_nr,
         sec.axis =
           sec_axis(
             trans = ~ (. - y2_shift) / y2.scale,
-            breaks = y2_pretty,
-            labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
-            name = y2_name
+            breaks = y2_pretty, labels = fm_nr, name = y2_name
           )
       )
   }
@@ -1223,7 +1211,7 @@ plot_longprofile <- function(
     if (is.null(compare.by) || is.null(group.by)) {
       stop('For caculating delta, compare.by and group.by must be specified!')
     }
-    total_case <- length(unique(as.vector(outer(cmp_vars, grp_vars, paste)))) / 2
+    total_case <- length(unique(as.vector(outer(cmp_vars, grp_vars, paste))))
     if (total_case != length(case.desc)) {
       cat("Combination of compare.by and group.by does not have the same length as case.desc\n")
       cat('Hint: notiz can be modified and used as a groupping parameter\n')
@@ -1331,8 +1319,8 @@ plot_longprofile <- function(
   if (verbose) cat('Preparing graphic...\n')
   g_base <- ggplot(data = data_tbl,
                    aes(x = km,
-                       linetype = compare__by,
                        color = group__by,
+                       linetype = compare__by,
                        y = scheitel)
   ) +
     theme_bw(base_size = txt.size) +
@@ -1437,14 +1425,10 @@ plot_longprofile <- function(
         size = delta.size
       ) +
       scale_y_continuous(
-        name = y.lab,
-        breaks = y1_breaks,
-        labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
+        name = y.lab, breaks = y1_breaks, labels = fm_nr,
         sec.axis = sec_axis(
-          name = y2_name,
-          labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
-          trans = ~(. - y2_shift) / y2_scale,
-          breaks = y2_breaks
+          name = y2_name, labels = fm_nr,
+          trans = ~(. - y2_shift) / y2_scale, breaks = y2_breaks
         )
       ) +
       scale_linetype_discrete(
@@ -1475,27 +1459,17 @@ plot_longprofile <- function(
                           size = 0.5, color = 'grey20')
     }
   } else {
-    g <- g + scale_y_continuous(
-      name = y.lab,
-      labels = function(x) stri_replace_all_fixed(as.character(x), ".", ","),
-      breaks = y1_breaks
-    )
+    g <- g + scale_y_continuous(name = y.lab, labels = fm_nr, breaks = y1_breaks)
   }
   g$labels$linetype <- lt.name
   g$labels$colour <- color.name
   g <- g + guides(
-    color = guide_legend(
-      nrow = color.nrow
-    ),
-    linetype = guide_legend(
-      nrow = lt.nrow
-    ),
-    shape = guide_legend(
-      nrow = shape.nrow
-    )
+    color = guide_legend(nrow = color.nrow),
+    linetype = guide_legend(nrow = lt.nrow),
+    shape = guide_legend(nrow = shape.nrow)
   )
-  if (verbose & delta) cat("tried with y2_scale = ", y2_scale, " y2_shift = ",
-                   y2_shift, "\n")
+  if (verbose & delta)
+    cat("tried with y2_scale = ", y2_scale, " y2_shift = ", y2_shift, "\n")
   if (keep.data) {
     return(list(g = g, data_tbl = dta))
   } else {

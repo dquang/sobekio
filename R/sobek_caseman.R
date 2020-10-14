@@ -3,23 +3,26 @@
 #' @param case.name Name of the Case
 #' @param sobek.project Path to Sobek Project Folder
 #' @param sobek.path Path to Sobek Program Folder (ex. d:/so21302)
-#' @param update.fix if TRUE, the path to fixed data will be update to fix.data
-#' @param overwrite Should simulation result overwrite back to Case folder?
+#' @param fix.data Path to the fixed data
 #' @param begin Starting time of simulation. If given, the start time in settings.dat will be temporally replaced by this value. This is useful for testing simulations.
 #' @param end Ending time of simulation
+#' @param overwrite Should simulation result overwrite back to Case folder?
+#' @param clear.temp Should temporary folder be cleared after the simulation?
 #' @export
 #' @return a list of simulation summary and changed files
 sobek_sim <- function(case.name,
                       sobek.project,
                       sobek.path,
-                      overwrite = TRUE,
-                      clear.temp = TRUE,
+                      fix.data = NULL,
                       begin = NULL,
-                      end = NULL
+                      end = NULL,
+                      overwrite = TRUE,
+                      clear.temp = TRUE
 ) {
   case.name <- unlist(case.name)
   stopifnot(length(case.name) == 1)
   sobek.path <- normalizePath(sobek.path)
+  if (!is.null(fix.data)) fix.data <- normalizePath(fix.data)
   sobek.project <- normalizePath(sobek.project)
   c_folder <- get_case_folder(case.list = case.name, sobek.project = sobek.project)
   stopifnot(!is.na(c_folder))
@@ -44,7 +47,8 @@ sobek_sim <- function(case.name,
   file.copy(from = paste0(tmp_folder, "\\WORK\\casedesc.cmt"),
             to = org_desc, overwrite = TRUE)
   init_sbk_cmt(case.folder = c_folder, tmp.folder = tmp_folder,
-               sobek.path = sobek.path, fix.data = NULL, type = "simulate")
+               sobek.path = sobek.path, fix.data = fix.data,
+               type = "simulate")
   setwd(cmt_folder)
   # change simulation BEGIN and END in settings.dat
   change_settings(begin = begin, end = end,
@@ -89,13 +93,18 @@ sobek_sim <- function(case.name,
     file.copy(from = org_set, overwrite = TRUE,
               to = paste0(tmp_folder, "\\WORK\\settings.dat"),
               )
+    unlink(org_set)
+    unlink(org_desc)
     setwd(tmp_folder)
     if (overwrite) {
       # get case folder again, try to avoid if SOBEK GUI changed things in between
       c_folder <- get_case_folder(case.name, sobek.project)
       if (is.na(c_folder))
         stop("Case folder is not found any more for case: ", case.name)
-      changes <- save_changed_files(orig = c_folder, work = wk_folder)
+      changed_wk <- save_changed_files(orig = c_folder, work = wk_folder)
+      changed_others <- save_changed_files(
+        orig = sobek.project, work = tmp_folder, except.dirs = "work|cmtwork")
+      changed_files <- c(changed_wk, changed_others)
     }
     cat("done.\n")
   }
@@ -129,7 +138,7 @@ sobek_sim <- function(case.name,
     setwd(wkd)
   }
   setwd(wkd)
-  invisible(list(summary = ret, changes = changes))
+  invisible(list(summary = ret, changes = changed_files))
 }
 
 
@@ -258,14 +267,15 @@ sobek_edit <- function(case.name, sobek.project, sobek.path, fix.data = NULL) {
   on.exit(setwd(wkd))
   on.exit(unlink(tmp_folder, recursive = TRUE))
   cmt_folder <- file.path(tmp_folder, "CMTWORK", fsep = "\\")
+  wk_folder <- file.path(tmp_folder, "WORK", fsep = "\\")
   init_sbk_work(case.folder = c_folder, tmp.folder = tmp_folder)
-  org_desc <- tempfile(tmpdir = tmp_folder)
+  org_desc <- tempfile(tmpdir = tmp_folder, pattern = "tmp_cdesc_")
   file.copy(from = paste0(tmp_folder, "\\WORK\\casedesc.cmt"),
             to = org_desc, overwrite = TRUE)
   init_sbk_cmt(case.folder = c_folder, tmp.folder = tmp_folder,
                sobek.path = sobek.path,
                fix.data = fix.data, type = "edit")
-  # Viewing Result ----------------------------------------------------------
+  # Call schemat.exe for editing------------------------------------------------
   setwd(cmt_folder)
   cmd <- paste0(sobek.path, "\\programs\\schemat.exe schemat.ini")
   if (interactive()) {
@@ -283,20 +293,33 @@ sobek_edit <- function(case.name, sobek.project, sobek.path, fix.data = NULL) {
   }
   system(cmd, wait = TRUE, invisible = FALSE)
   setwd(wkd)
+  # save changed files
+  # save work folder to case folder
+  changed_wk <- save_changed_files(orig = c_folder, work = wk_folder)
+  changed_others <- save_changed_files(
+    orig = sobek.project, work = tmp_folder,
+    except.dirs = "work|cmtwork", except.files = basename(org_desc))
+  changed_files <- c(changed_wk, changed_others)
+  changed_files <- changed_files[!grepl("casedesc.cmt$", changed_files,
+                                       ignore.case = TRUE)]
+  # save casedesc.cmt
   desc_cmt <- fread(file = org_desc,
                     header = FALSE, sep = "\n", encoding = "UTF-8")
-  c_status <- desc_cmt[grep("^[A-Z0-9]{1, } \\d{1,}", V1)]
-  c_status[, c("V2", "V3") := tstrsplit(V1, " ")]
-  c_status[!grepl("map|view", V2, ignore.case = TRUE), V3 := 1]
-  c_status[grepl("map|view", V2, ignore.case = TRUE), V3 := 4]
-  c_status[, V1 := paste(V2, V3)]
-  desc_cmt[grep("^[A-Z0-9]{1, } \\d{1,}", V1), V1 := c_status$V1]
-  wk_folder <- paste0(tmp_folder, "\\WORK")
+  if (length(changed_files) > 0) {
+    # if there was something changed, we change the case status
+    c_status <- desc_cmt[grep("^[A-Z0-9]{1, } \\d{1,}", V1)]
+    c_status[, c("V2", "V3") := tstrsplit(V1, " ")]
+    c_status[!grepl("map|view", V2, ignore.case = TRUE), V3 := 1]
+    c_status[grepl("map|view", V2, ignore.case = TRUE), V3 := 4]
+    c_status[, V1 := paste(V2, V3)]
+    desc_cmt[grep("^[A-Z0-9]{1, } \\d{1,}", V1), V1 := c_status$V1]
+    changed_files <- c(changed_files, paste0(c_folder, "\\casedesc.cmt"))
+  }
   fwrite(
     desc_cmt,
-    file = file.path(wk_folder, "casedesc.cmt"),
+    file = paste0(c_folder, "\\casedesc.cmt"),
     sep = "\n", col.names = FALSE, row.names = FALSE, quote = FALSE
   )
-  ret <- save_changed_files(orig = c_folder, work = wk_folder)
-  invisible(ret)
+  unlink(org_desc)
+  invisible(changed_files)
 }

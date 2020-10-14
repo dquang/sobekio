@@ -22,11 +22,12 @@ init_sbk_cmt <- function(
   tmp.folder,
   sobek.path,
   fix.data = NULL,
+  copy.others = TRUE,
   type = c("view", "edit", "simulate")
 ) {
   type <- match.arg(tolower(type), c("view", "edit", "simulate"))
-  cmt_folder <- paste(tmp.folder, "CMTWORK", sep = "\\")
-  wk_folder <- paste(tmp.folder, "WORK", sep = "\\")
+  cmt_folder <- paste0(tmp.folder, "\\CMTWORK")
+  wk_folder <- paste0(tmp.folder, "\\WORK")
   stopifnot(dir.exists(cmt_folder))
   wkd <- getwd()
   setwd(cmt_folder)
@@ -47,22 +48,21 @@ init_sbk_cmt <- function(
   if (!is.null(fix.data)) {
     fix_pat <- paste0("$1 ", fix.data)
     fix_pat <- stri_replace_all_fixed(fix_pat, "\\", "\\\\")
+    fix_pat <- stri_replace_all_fixed(fix_pat, "/", "\\\\")
     fix_pat <- stri_replace_all_fixed(fix_pat, ".", "\\.")
     # change path to fixed folder
     desc_cmt[grep("[IO]{1,2} .*\\\\FIXED", V1, ignore.case = TRUE),
-             stri_replace_first_regex(
+             V1 := stri_replace_first_regex(
                V1,
                "([IO]{1,2}) .*\\\\FIXED", fix_pat,
                opts_regex = stri_opts_regex(case_insensitive = TRUE))]
-  }
-  else {
+  } else {
     # change related path of fixed to project folder
     fix_pat <- paste0(dirname(case.folder), "\\FIXED")
-    fix_pat <- stri_replace_all_fixed(fix_pat, "/", "\\")
     fix_pat <- stri_replace_all_fixed(fix_pat, "\\", "\\\\")
     fix_pat <- stri_replace_all_fixed(fix_pat, ".", "\\.")
     desc_cmt[grep("[IO]{1,2} \\.\\.\\\\FIXED", V1, ignore.case = TRUE),
-             stri_replace_first_regex(
+             V1 := stri_replace_first_regex(
                V1,
                "([IO]{1,2}) \\.\\.\\\\FIXED", fix_pat,
                opts_regex = stri_opts_regex(case_insensitive = TRUE))]
@@ -81,7 +81,7 @@ init_sbk_cmt <- function(
                       sobek.path, "\\programs\\ini\\vv_map.ini")
     system(reg_cmd, wait = TRUE, invisible = TRUE)
     cmt_files <- list.files(cmt_folder, all.files = TRUE, no.. = TRUE)
-    # sapply(cmt_files, replace_ini_fixed, fix.data = fix.data)
+    sapply(cmt_files, replace_ini_fixed, fix.data = fix.data)
     reg_cmd <- paste0(sobek.path, "\\programs\\vervng32.exe ",
                       sobek.path, "\\programs\\ini\\Vv_schem.ini")
     system(reg_cmd, wait = TRUE, invisible = TRUE)
@@ -94,16 +94,15 @@ init_sbk_cmt <- function(
     prep_ini[grep("NrOfCalls", V1, ignore.case = TRUE), V1 := "NrOfCalls=0"]
     prep_ini[grep("@", V1, fixed = TRUE),
              V1 := stri_replace_all_fixed(V1, "@", "..\\WORK\\")]
-    # redirect the resulst file to our netter2.ntc
-    prep_ini[grep("Command2=", V1, ignore.case = TRUE),
-             V1 := paste0("Command2=", sobek.path,
-                          "\\Programs\\netter.exe ntrpluvr.ini netter2.ntc /nosplash")]
     fwrite(prep_ini, "prepmapp.ini", col.names = FALSE, sep = "\n", quote = FALSE)
-    # manually give path to HIS files, write them to netter2.ntc
-    expand_netter(case.folder = case.folder, tmp.folder = tmp.folder,
-                  sobek.path = sobek.path)
-  }
-  else if (type == "edit") {
+    # manually give path to HIS files, write them to "nettmp.dlf"
+    nettmp <- fread(file.path(cmt_folder, "nettmp.dlf"), sep = "\n", header = FALSE)
+    nettmp[, V1 := stri_replace_first_fixed(
+      V1, '"..\\work', paste0('"', case.folder),
+      opts_fixed = stri_opts_fixed(case_insensitive = TRUE))]
+    fwrite(nettmp, file = file.path(cmt_folder, "nettmp.dlf"), sep = "\n",
+           col.names = FALSE, quote = FALSE)
+  } else if (type == "edit") {
     reg_cmd <- paste0(sobek.path, "\\programs\\vervng32.exe ",
                       sobek.path, "\\programs\\ini\\Vv_schem.ini")
     system(reg_cmd, wait = TRUE, invisible = TRUE)
@@ -132,12 +131,19 @@ init_sbk_cmt <- function(
     fwrite(schemat_ini, "schemat.ini", col.names = FALSE, sep = "\n", quote = FALSE)
     expand_netter(case.folder = case.folder, tmp.folder = tmp.folder,
                   sobek.path = sobek.path)
-  }
-  else {
+  } else {
     # init simulate.ini
     reg_cmd <- paste0(sobek.path, "\\programs\\vervng32.exe casedesc.cmt PLUVIUS1 ",
                    sobek.path, "\\programs\\simulate.ini simulate.ini ..\\descprot.cmt")
     system(command = reg_cmd, wait = TRUE)
+  }
+  if (copy.others) {
+    prj_folder <- dirname(case.folder)
+    dirs_2_cp <- list.dirs(prj_folder, recursive = FALSE, full.names = TRUE)
+    dirs_2_cp <- grep("/\\d{1,}$|WORK$|NEWSTART$", dirs_2_cp,
+                      ignore.case = TRUE, value = TRUE, invert = TRUE)
+    if (length(dirs_2_cp) > 0)
+      file.copy(dirs_2_cp, tmp.folder, recursive = TRUE, overwrite = FALSE)
   }
   setwd(wkd)
   invisible(orig_fix)
@@ -289,14 +295,19 @@ list_only_files <- function(path) {
 #'
 #' @param orig Path to original folder
 #' @param work Path to working folder
+#' @param except.dirs Pattern to exclude directories
+#' @param except.files Pattern to exclude files
 #' @export
 save_changed_files <- function(
-  orig, work
+  orig, work, except.dirs = NULL, except.files = NULL
 ){
   changes <- vector(mode = "character")
   orig <- normalizePath(orig)
   work <- normalizePath(work)
   work_dirs <- normalizePath(list.dirs(work))
+  if (!is.null(except.dirs))
+    work_dirs <- grep(except.dirs, work_dirs,
+                      ignore.case = TRUE, invert = TRUE, value = TRUE)
   orig_dirs <- stri_replace_all_fixed(work_dirs, work, orig)
   for (i in seq_along(work_dirs)) {
     work_d <- work_dirs[i]
@@ -304,6 +315,9 @@ save_changed_files <- function(
     changed_files <- md5_changed(before = orig_d, after = work_d)
     changed_files <- unlist(changed_files)
     changed_files <- changed_files[!is.na(changed_files)]
+    if (!is.null(except.files))
+      changed_files <- grep(except.files, changed_files,
+                          ignore.case = TRUE, invert = TRUE, value = TRUE)
     if (length(changed_files) > 0)
       file.copy(from = changed_files, to = orig_d, overwrite = TRUE)
     changes <- c(changes, changed_files)
