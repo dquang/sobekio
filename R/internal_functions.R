@@ -88,59 +88,9 @@ his_time_df <- function(his.file) {
 #' @param his.file Path to the .HIS file
 #' @return a data.table with two column: location & sobek.id
 his_parameter <- function(his.file = "") {
-  con <- file(his.file, open = "rb", encoding = "native.enc")
-  # move file reading cursor to byte 160, where title ends
-  # just to make sure correct reading
-  seek(con, where = 160, origin = "start")
-  # read total number of parameters
-  param_nr <- readBin(con, what = "int", n = 1, size = 4)
-  param_id <- vector(mode = "integer", length = param_nr)
-  param_name <- vector(mode = "character", length = param_nr)
-  seek(con, where = 168, origin = "start")
-  # get parameter table
-  for (i in 1:param_nr) {
-    param_id[i] <- i
-    param_name[i] <- stri_trim_both(stri_conv(readBin(con, what = "raw", n = 20),
-                               from = 'windows-1252'))
-    seek(con, where = 168 + 20 * i, origin = "start")
-  }
-  close(con)
-  param_tbl <- data.table(cbind(param_id, stri_trim_both(param_name)))
-  colnames(param_tbl)[2] <- "param_name"
-  # try to read .hia
-  hia_file <- stri_replace_last_fixed(
-    his.file, ".his", ".hia",
-    opts_fixed = stri_opts_fixed(case_insensitive = TRUE))
-  if (file.exists(hia_file)) {
-    hia_dt <- fread(
-      file = hia_file,
-      sep = "\n",
-      header = FALSE,
-      col.names = "V1",
-      na.strings = "",
-      data.table = TRUE,
-      strip.white = TRUE,
-      encoding = 'Latin-1',
-      blank.lines.skip = TRUE,
-      quote = ""
-    )
-    # remove blank lines
-    hia_dt <- hia_dt[!is.na(V1)]
-    hia_dt[, seg := stri_match_first_regex(V1, "\\[(.+)]")[, 2]]
-    hia_dt[, seg := seg[1], by = .(cumsum(!is.na(seg)))]
-    param_long_tbl <- hia_dt[grepl("Long Parameters", seg, ignore.case = TRUE),
-                             c("V1")]
-    if (nrow(param_long_tbl) > 1) {
-      param_long_tbl[, c("param_id", "param_name") := tstrsplit(V1, "=")]
-      param_long_tbl[, V1 := NULL]
-      param_tbl <- rbind(param_tbl, param_long_tbl[-1])
-    }
-  }
-  # correcting the 'water level' instead of 'waterlevel' in measstat.his
-  param_tbl[, param_name := gsub('water level|w\\.level', 'Waterlevel',
-                                  param_name, ignore.case = TRUE)
-             ]
-  return(param_tbl)
+  cat("Please use his_info function for all information about HIS file\n")
+  hinfo <- his_info(his.file)
+  return(hinfo$param_tbl)
 }
 
 

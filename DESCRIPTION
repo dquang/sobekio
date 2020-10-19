@@ -33,4 +33,5 @@ Suggests:
   foreach,
   knitr,
   rmarkdown
+LinkingTo: Rcpp
 VignetteBuilder: knitr
