@@ -151,7 +151,7 @@ his_from_list_1param <- function(his.file, id.list, param = 1, from.ts = 1, n.ts
   }
   ret <- as.data.table(data_mtx)
   colnames(ret) <- c("ts", id.list)
-  ret[, ts := as.POSIXct(ts * info_lst$dt, tz = "GMT",
+  ret[, ts := as.POSIXct(ts * info_lst$dt,
                          origin = as.POSIXct(info_lst$t0, format = "%Y.%m.%d %H:%M:%S"))]
   ret
 }
@@ -222,8 +222,8 @@ his_from_list <- function(his.file, id.list, param = 1, from.ts = 1, n.ts = NULL
     data_mtx[i, -1] <- this_line[cols_mask]
   }
   ret <- as.data.table(data_mtx)
-  colnames(ret)[-1] <- c("ts", as.vector(outer(id.list, param, FUN = paste, sep = "_")))
-  ret[, ts := as.POSIXct(ts * info_lst$dt, tz = "GMT",
+  colnames(ret) <- c("ts", as.vector(outer(id.list, param, FUN = paste, sep = "_")))
+  ret[, ts := as.POSIXct(ts * info_lst$dt,
                          origin = as.POSIXct(info_lst$t0, format = "%Y.%m.%d %H:%M:%S"))]
   ret
 }

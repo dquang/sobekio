@@ -254,7 +254,7 @@ plot_peak_time <- function(
   indt <- indt[, .SD, .SDcols = all_cols] %>%
     melt(measure.vars = measure_cols, variable.name = 'Type',
          value.name = 'Zeitpunkt')
-  indt[, Zeitpunkt := as.POSIXct(Zeitpunkt, tz = "GMT", origin = '1970-01-01')]
+  indt[, Zeitpunkt := as.POSIXct(Zeitpunkt, origin = '1970-01-01')]
   g <- ggplot(data = indt,
               aes(x = km, y = Zeitpunkt,
                   color = !!ensym(color.by),

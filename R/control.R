@@ -312,8 +312,7 @@ get_control_tbl <- function(
                         tstrsplit(str_trim(V1), split = ' ')]
           ts_chk <- grepl("^'\\d{4}/\\d{2}/\\d{2}", ct_name_tbl$V2[1])[1]
           if (ts_chk) {
-            ct_name_tbl[, ts := as.POSIXct(V2, tz = 'GMT',
-                                         format = "'%Y/%m/%d;%H:%M:%S'")]
+            ct_name_tbl[, ts := as.POSIXct(V2, format = "'%Y/%m/%d;%H:%M:%S'")]
           } else {
             ct_name_tbl[, ts := as.double(V2)]
           }

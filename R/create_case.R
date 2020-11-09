@@ -11,9 +11,8 @@ set_time <- function(sfile = "", begin.time = NULL, end.time = NULL){
                              col.names = c("dat")
   )
   if(!is.null(begin.time)){
-    # convert string to POSIXCt, tz = "GMT" to avoid time zone effect
+    # convert string to POSIXCt
     start_t <- try(as.POSIXct(x = begin.time,
-                              tz = "GMT",
                               tryFormats = c(
                                 "%Y-%m-%d %H:%M:%S",
                                 "%Y/%m/%d %H:%M:%S",
@@ -31,17 +30,17 @@ set_time <- function(sfile = "", begin.time = NULL, end.time = NULL){
       stop("Cannot regconize time string. Simulation time was not set!")
     }
     start_Y <- paste0("BeginYear=",
-                     strftime(start_t,format = "%Y", tz = "GMT"))
+                     strftime(start_t,format = "%Y"))
     start_m <- paste0("BeginMonth=",
-                     strftime(start_t, format = "%m", tz = "GMT"))
+                     strftime(start_t, format = "%m"))
     start_d <- paste0("BeginDay=",
-                     strftime(start_t, format = "%d", tz = "GMT"))
+                     strftime(start_t, format = "%d"))
     start_H <- paste0("BeginHour=",
-                     strftime(start_t, format = "%H", tz = "GMT"))
+                     strftime(start_t, format = "%H"))
     start_M <- paste0("BeginMinute=",
-                     strftime(start_t, format = "%M", tz = "GMT"))
+                     strftime(start_t, format = "%M"))
     start_S <- paste0("BeginSecond=",
-                     strftime(start_t, format = "%S", tz = "GMT"))
+                     strftime(start_t, format = "%S"))
     s_dat$dat <- sub("^BeginYear=[0-9]{1,4}", start_Y, s_dat$dat)
     s_dat$dat <- sub("^BeginMonth=[0-9]{1,2}", start_m, s_dat$dat)
     s_dat$dat <- sub("^BeginDay=[0-9]{1,2}", start_d, s_dat$dat)
@@ -52,7 +51,6 @@ set_time <- function(sfile = "", begin.time = NULL, end.time = NULL){
 
   if(!is.null(begin.time)){
     end_t <- try(as.POSIXct(x = end.time,
-                            tz = "GMT",
                             tryFormats = c(
                               "%Y-%m-%d %H:%M:%S",
                               "%Y/%m/%d %H:%M:%S",
@@ -70,23 +68,23 @@ set_time <- function(sfile = "", begin.time = NULL, end.time = NULL){
       stop("Cannot regconize time string. Simulation time was not set!")
     }
     if (!is.null(begin.time)){
-      check_time <- grep(" [-0][0-9]*", difftime(end_t, start_t, tz = "GMT"))
+      check_time <- grep(" [-0][0-9]*", difftime(end_t, start_t))
       if (length(check_time) > 0){
         stop("new.end must be a moment after new.begin")
       }
     }
     end_Y <- paste0("EndYear=",
-                   strftime(end_t, format = "%Y", tz = "GMT"))
+                   strftime(end_t, format = "%Y"))
     end_m <- paste0("EndMonth=",
-                   strftime(end_t, format = "%m", tz = "GMT"))
+                   strftime(end_t, format = "%m"))
     end_d <- paste0("EndDay=",
-                   strftime(end_t, format = "%d", tz = "GMT"))
+                   strftime(end_t, format = "%d"))
     end_H <- paste0("EndHour=",
-                   strftime(end_t, format = "%H", tz = "GMT"))
+                   strftime(end_t, format = "%H"))
     end_M <- paste0("EndMinute=",
-                   strftime(end_t, format = "%M", tz = "GMT"))
+                   strftime(end_t, format = "%M"))
     end_S <- paste0("EndSecond=",
-                   strftime(end_t, format = "%S", tz = "GMT"))
+                   strftime(end_t, format = "%S"))
     s_dat$dat <- sub("^EndYear=[0-9]{1,4}", end_Y, s_dat$dat)
     s_dat$dat <- sub("^EndMonth=[0-9]{1,2}", end_m, s_dat$dat)
     s_dat$dat <- sub("^EndDay=[0-9]{1,2}", end_d, s_dat$dat)

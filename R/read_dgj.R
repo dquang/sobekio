@@ -158,7 +158,7 @@ dgj_top_nq <- function(pfile, as.is = FALSE) {
   }
   if (!isTRUE(as.is)) {
     colnames(q_tbl) <- c('Q', 'Spende', 'Date')
-    q_tbl[, Date := as.POSIXct(Date, tz = 'GMT', format = '%d.%m.%Y')]
+    q_tbl[, Date := as.POSIXct(Date, format = '%d.%m.%Y')]
     num_cols <-  c('Q', 'Spende')
     q_tbl[, (num_cols) := lapply(.SD, as.numeric), .SDcols = num_cols]
   }

@@ -399,14 +399,14 @@ get_segment_data <- function(
   }
   if (donau.wehr & param == "waterlevel") {
     # manually defined peak area of the HW2013 and HW2005
-    ts_2005_begin <-  c(as.POSIXct("2005-07-01 00:00", tz = "GMT"),
-                        as.POSIXct("2005-08-20 23:00", tz = "GMT"))
-    ts_2005_end <-  c(as.POSIXct("2005-08-29 00:00", tz = "GMT"),
-                      as.POSIXct("2005-12-31 00:00", tz = "GMT"))
-    ts_2013_begin <- c(as.POSIXct("2013-05-01 00:00", tz = "GMT"),
-                       as.POSIXct("2013-06-03 00:00", tz = "GMT"))
-    ts_2013_end <- c(as.POSIXct("2013-06-04 00:00", tz = "GMT"),
-                     as.POSIXct("2013-12-31 00:00", tz = "GMT"))
+    ts_2005_begin <-  c(as.POSIXct("2005-07-01 00:00"),
+                        as.POSIXct("2005-08-20 23:00"))
+    ts_2005_end <-  c(as.POSIXct("2005-08-29 00:00"),
+                      as.POSIXct("2005-12-31 00:00"))
+    ts_2013_begin <- c(as.POSIXct("2013-05-01 00:00"),
+                       as.POSIXct("2013-06-03 00:00"))
+    ts_2013_end <- c(as.POSIXct("2013-06-04 00:00"),
+                     as.POSIXct("2013-12-31 00:00"))
     for (a_case in case.list) {
       if (grepl("2013|2005", case.desc[case.list == a_case])) {
         wehr_ids <- id_tbl[km %between% c(2203, 2212) & ID_TYPE == "wID" &

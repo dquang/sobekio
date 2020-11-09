@@ -344,7 +344,6 @@ time_to_list <- function(input) {
   if (class(input) == "character") {
     ret <- as.POSIXct(
       input,
-      tz = "GMT",
       tryFormats = c(
         # US
         "%Y-%m-%d %H:%M:%S",
@@ -370,7 +369,7 @@ time_to_list <- function(input) {
   } else {
     ret <- input
   }
-  ret <- format(ret, tz = "GMT", format = "%d-%m-%Y-%H-%M-%S")
+  ret <- format(ret, format = "%d-%m-%Y-%H-%M-%S")
   ret <- as.numeric(strsplit(ret, "-")[[1]])
   ret <- list(
     hh = ret[4],

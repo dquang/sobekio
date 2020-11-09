@@ -187,6 +187,12 @@ plot_station <- function(
   dhwr = dp,
   x_expand = expansion(0.02)
 ) {
+  if (length(dp) != length(p2move))
+    dp <- rep(dp[1], length(p2move))
+  if (length(dm) != length(m2move))
+    dm <- rep(dm[1], length(m2move))
+  if (length(dm) != length(hwr2move))
+    dhwr <- rep(dhwr[1], length(hwr2move))
   x_reverse <- isTRUE(x_reverse)
   if (is.null(limits)) limits <- range(dta$km)
   if (is.null(x_breaks)) x_breaks <- pretty(limits, 10, 10)
@@ -202,15 +208,18 @@ plot_station <- function(
   }
   # HWR
   hwr_dta <- dta[type == "gs" & !is.na(akz)]
-  hwr_dta[akz %in% hwr2move, km_txt := km + dhwr]
+  for (k in seq_along(hwr2move))
+    hwr_dta[stri_trim_both(akz) %in% hwr2move[k], km_txt := km + dhwr[k]]
   hwr_chk <- nrow(hwr_dta) > 0
   # Zufluss
   m_dta <- dta[type == "m"]
-  m_dta[akz %in% m2move, km_txt := km + dm]
+  for (k in seq_along(m2move))
+    m_dta[stri_trim_both(akz) %in% m2move[k], km_txt := km + dm[k]]
   m_chk <- nrow(m_dta) > 0
   # Pegel
   p_dta <- dta[type == "p"]
-  p_dta[akz %in% p2move, km_txt := km + dp]
+  for (k in seq_along(p2move))
+    p_dta[stri_trim_both(akz) %in% p2move[k], km_txt := km + dp[k]]
   p_chk <- nrow(p_dta) > 0
   g <- ggplot(
     data = dta,
@@ -313,7 +322,7 @@ plot_station <- function(
     }
   }
   if (p_chk) {
-    p_hjust <- ifelse(p_angle == 90, 0, 1)
+    p_hjust <- ifelse(p_angle == 90, 0, 0.5)
     g <- g +
       # add pegel
       geom_point(aes(y = p_pts, shape = "Pegel"),
@@ -483,8 +492,8 @@ add_fav <- function(g,
                 id.vars = "km")
   }
   fav[, compare__by := NA][, group__by := NA]
-  m2move_chk <- nrow(fav[type == "m" & akz %in% m2move]) > 0
-  p2move_chk <- nrow(fav[type == "p" & akz %in% p2move]) > 0
+  m2move_chk <- nrow(fav[type == "m" & stri_trim_both(akz) %in% m2move]) > 0
+  p2move_chk <- nrow(fav[type == "p" & stri_trim_both(akz) %in% p2move]) > 0
   fav[, km_m := km]
   new_y <- any(!is.null(y_lims), !is.null(y_breaks))
   new_x <- any(!is.null(x_lims), !is.null(x_breaks))
@@ -527,13 +536,13 @@ add_fav <- function(g,
                        hjust = 0, vjust = 0,
                        size = mtxt_size,
                        angle = 90,
-                       data = fav[type == 'm' & !akz %in% m2move]) +
+                       data = fav[type == 'm' & !stri_trim_both(akz) %in% m2move]) +
       geom_text(aes(x = km + d_txt, y = mpos, label = label, color = NA, linetype = NA),
                 colour = 'blue',
                 hjust = 0, vjust = 0,
                 size = mtxt_size,
                 angle = 90,
-                data = fav[type == 'm' & akz %in% m2move])
+                data = fav[type == 'm' & stri_trim_both(akz) %in% m2move])
 
   } else {
     g <- g +
@@ -566,7 +575,7 @@ add_fav <- function(g,
         vjust = 1,
         size = mtxt_size,
         show.legend = FALSE,
-        data = fav[type == "p" & !akz %in% p2move]
+        data = fav[type == "p" & !stri_trim_both(akz) %in% p2move]
       ) +
       geom_text(
         mapping = aes(x = km + d_txt, y = ptxt, label = akz),
@@ -574,7 +583,7 @@ add_fav <- function(g,
         vjust = 1,
         size = mtxt_size,
         show.legend = FALSE,
-        data = fav[type == "p" & akz %in% p2move]
+        data = fav[type == "p" & stri_trim_both(akz) %in% p2move]
       )
   } else {
     g <- g +
@@ -1119,10 +1128,10 @@ plot_long_inn <- function(
     fav[, km_m := km]
     fav[, km_p := km]
     if (!is.null(m2move)) {
-      fav[akz %in% m2move, km_m := km - dm2move]
+      fav[stri_trim_both(akz) %in% m2move, km_m := km - dm2move]
     }
     if (!is.null(p2move)) {
-      fav[akz %in% p2move, km_p := km - dp2move]
+      fav[stri_trim_both(akz) %in% p2move, km_p := km - dp2move]
     }
     g <- g +
       geom_point(aes(x = km, y = -Inf),

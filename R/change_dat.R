@@ -44,7 +44,7 @@ get_data_from_id <- function(dat.file = NULL,
   # split the first column to three new columns
   # id_data[, c("V2", "V3", "V4"):= tstrsplit(V1, split = " ", fix = TRUE)]
   id_data[, ts := as.POSIXct(substr(V1, 2, 20 ),
-                             tz = 'GMT',
+                             ,
                              format = "%Y/%m/%d;%H:%M:%S")
           ]
   id_data[, V1 := sub("'.*' ([^ ]*) <", "\\1", V1)]
@@ -217,7 +217,7 @@ change_tble <- function(dat.file = NULL,
     colnames(tble) <- c('ts', 'value')
     ts_class_check <- FALSE %in% grepl("POSIX", tble[1, 1])
     if (ts_class_check) {
-      tble[, ts := as.POSIXct(ts, tz = 'GMT',
+      tble[, ts := as.POSIXct(ts,
                               tryFormats = c(
                                 "%Y-%m-%d %H:%M:%S",
                                 "%Y/%m/%d %H:%M:%S",
@@ -233,7 +233,7 @@ change_tble <- function(dat.file = NULL,
     }
     tble[ ,prn := paste("'",
                         format(ts,
-                               format = '%Y/%m/%d;%H:%M:%S', tz = 'GMT'),
+                               format = '%Y/%m/%d;%H:%M:%S'),
                         "' ",
                         value,
                         " <",

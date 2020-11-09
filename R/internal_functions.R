@@ -67,7 +67,7 @@ his_time_df <- function(his.file) {
   t0_pattern <- "\\d{4}.\\d{2}.\\d{2} \\d{2}:\\d{2}:\\d{2}"
   dt_pattern <- "scu= *(\\d{1,})s"
   his_t0 <- stri_match_first_regex(txt_title, t0_pattern)[1]
-  his_t0 <- as.POSIXct(his_t0, format = "%Y.%m.%d %H:%M:%S", tz = "GMT")
+  his_t0 <- as.POSIXct(his_t0, format = "%Y.%m.%d %H:%M:%S")
   his_dt <- as.integer(stri_match_first_regex(txt_title, dt_pattern)[2])
   his_time <- vector(mode = 'numeric', length = total_tstep)
   seek(con, where = 168 + 20 * param_nr + 24 * total_loc)
@@ -76,7 +76,7 @@ his_time_df <- function(his.file) {
     seek(con, where = 4 * param_nr * total_loc, origin = "current")
   }
   close(con)
-  his_time <- as.POSIXct(his_time, origin = his_t0, tz = "GMT")
+  his_time <- as.POSIXct(his_time, origin = his_t0)
   his_time <- data.table(ts = his_time)
 
   return(his_time)

@@ -75,8 +75,8 @@ polder_tmw <- function(
   ret_ts_be[2, ts := ts + t_step]
   ret <- rbind(ret_ts_be, ret)
   setorder(ret, ts)
-  ret[, date := strftime(ts, format = '%d.%m.%Y', tz = 'GMT')]
-  ret[, time := strftime(ts, format = '%H:%M:%S', tz = 'GMT')]
+  ret[, date := strftime(ts, format = '%d.%m.%Y')]
+  ret[, time := strftime(ts, format = '%H:%M:%S')]
   ret <- ret[, .SD, .SDcols = c('date', 'time', 'qin')]
   if (isTRUE(clipboard)) {
     write.table(
